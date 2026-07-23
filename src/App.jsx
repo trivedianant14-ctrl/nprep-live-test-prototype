@@ -5,6 +5,8 @@ import StatusBar from './components/StatusBar'
 import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
+import ExamPreTest from './exam/ExamPreTest'
+import ExamScreen from './exam/ExamScreen'
 
 const CATEGORIES = ['PYQ Test', 'Subject Test', 'Daily Test', 'Mini Test', 'Live Test']
 const NAV_TABS = [
@@ -38,11 +40,12 @@ const initialRegistered = new Set(
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('Live Test')
-  const [screen, setScreen] = useState('home') // 'home' | 'series' | 'calendar'
+  const [screen, setScreen] = useState('home') // 'home' | 'series' | 'calendar' | 'exampretest' | 'exam'
   const [activeSeriesId, setActiveSeriesId] = useState(null)
   const [registeredIds, setRegisteredIds] = useState(initialRegistered)
   const [activeModal, setActiveModal] = useState(null)
   const [joined, setJoined] = useState(false)
+  const [examInterfaceMode, setExamInterfaceMode] = useState('nprep')
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
   const goHome = () => setScreen('home')
@@ -51,6 +54,23 @@ export default function App() {
   const handleConfirm = () => {
     setRegisteredIds(prev => new Set([...prev, activeModal.test.id]))
     setActiveModal({ type:'success', test: activeModal.test })
+  }
+
+  if (screen === 'exampretest' || screen === 'exam') {
+    return (
+      <div className="phone-wrapper" style={{ width:'100%', height:'100%' }}>
+        <div className="phone">
+          {screen === 'exampretest' ? (
+            <ExamPreTest
+              onBack={goHome}
+              onStart={(mode) => { setExamInterfaceMode(mode); setScreen('exam') }}
+            />
+          ) : (
+            <ExamScreen interfaceMode={examInterfaceMode} onExit={() => { setJoined(true); setScreen('home') }} />
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -90,7 +110,7 @@ export default function App() {
             <LiveTestHome
               registeredIds={registeredIds}
               onRegisterClick={handleRegisterClick}
-              onJoined={() => setJoined(true)}
+              onJoined={() => setScreen('exampretest')}
               joined={joined}
               onOpenSeries={openSeries}
               onOpenCalendar={() => setScreen('calendar')}

@@ -30,8 +30,8 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
           <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><StarIcon />{LIVE_TEST.marks} Marks</span>
           <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><UsersIcon />{LIVE_TEST.enrolled.toLocaleString()} joined</span>
         </div>
-        <button onClick={onJoined} disabled={joined} style={{ width:'100%', padding:'12px', borderRadius:10, background:'white', color:joined?G:P, fontSize:14, fontWeight:700, border:'none', cursor:joined?'default':'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }}>
-          {joined ? '✓ Joined' : 'Join Now'}
+        <button onClick={onJoined} style={{ width:'100%', padding:'12px', borderRadius:10, background:'white', color:joined?G:P, fontSize:14, fontWeight:700, border:'none', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }}>
+          {joined ? 'Re-enter Test' : 'Join Now'}
         </button>
       </div>
 

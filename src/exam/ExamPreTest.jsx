@@ -1,0 +1,74 @@
+import { useState } from 'react'
+import { EXAM_META } from './examData'
+import { P, PD, PL, PB, T1, T2, T3, BD, BG2 } from '../data'
+import { ChevronLeft, ClockIcon, StarIcon } from '../icons'
+
+const NAVY = '#1f3a68', NAVY_D = '#162d52'
+
+export default function ExamPreTest({ onBack, onStart }) {
+  const [interfaceMode, setInterfaceMode] = useState('nprep')
+  const [agreed, setAgreed] = useState(false)
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 16px 12px', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
+        <button onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', color:T1, padding:0, flexShrink:0 }}>
+          <ChevronLeft />
+        </button>
+        <div style={{ fontSize:16, fontWeight:700, color:T1 }}>Before you begin</div>
+      </div>
+
+      <div className="scroll" style={{ flex:1, padding:'18px 16px 24px' }}>
+        <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'16px', marginBottom:20 }}>
+          <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:4 }}>{EXAM_META.shortName}</div>
+          <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{EXAM_META.candidate} · Roll No {EXAM_META.rollNo}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><ClockIcon size={13} />90 min · 5 sections × 18 min</span>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><StarIcon size={13} />{EXAM_META.totalMarks} Marks</span>
+          </div>
+          <div style={{ fontSize:11, color:T3, marginTop:8 }}>+{EXAM_META.correctMarks} correct · {EXAM_META.wrongMarks} incorrect</div>
+        </div>
+
+        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>Choose your test-taking interface</div>
+        <div style={{ display:'flex', background:BG2, borderRadius:12, padding:4, gap:4, marginBottom:10 }}>
+          {[
+            { id:'nprep',  label:'NPrep',  sub:'Modern mobile',  color:P,    colorD:PD },
+            { id:'norcet', label:'NORCET', sub:'Govt. portal',   color:NAVY, colorD:NAVY_D },
+          ].map(opt => {
+            const isAct = interfaceMode === opt.id
+            return (
+              <button key={opt.id} onClick={() => setInterfaceMode(opt.id)} style={{
+                flex:1, padding:'11px 8px', borderRadius:9, border:'none', cursor:'pointer',
+                background: isAct ? `linear-gradient(135deg, ${opt.color}, ${opt.colorD})` : 'transparent',
+                boxShadow: isAct ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+              }}>
+                <div style={{ fontSize:13, fontWeight:700, color: isAct ? 'white' : T1 }}>{opt.label}</div>
+                <div style={{ fontSize:10, color: isAct ? 'rgba(255,255,255,0.75)' : T3, marginTop:1 }}>{opt.sub}</div>
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ fontSize:11, color:T3, lineHeight:1.6, marginBottom:24 }}>
+          {interfaceMode === 'nprep'
+            ? "NPrep's own clean, mobile-first exam screen — same questions, same rules, friendlier layout."
+            : 'A faithful replica of the official government CBT portal — same layout, timer, and question palette students see on exam day.'}
+          {' '}You can't switch mid-exam — pick the one you want to practice on.
+        </div>
+
+        <label style={{ display:'flex', alignItems:'flex-start', gap:10, fontSize:12, color:T2, lineHeight:1.6, cursor:'pointer' }}>
+          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop:2, flexShrink:0 }} />
+          I have read the instructions and agree to abide by the exam rules. Once started, section timers cannot be paused.
+        </label>
+      </div>
+
+      <div style={{ flexShrink:0, padding:'12px 16px 20px', borderTop:`1px solid ${BD}` }}>
+        <button
+          disabled={!agreed}
+          onClick={() => agreed && onStart(interfaceMode)}
+          style={{ width:'100%', padding:'14px', borderRadius:12, background: agreed ? P : BG2, color: agreed ? 'white' : T3, border:'none', fontSize:14, fontWeight:700, cursor: agreed ? 'pointer' : 'default' }}>
+          I am ready to begin
+        </button>
+      </div>
+    </div>
+  )
+}
