@@ -1,0 +1,160 @@
+import { useState } from 'react'
+import { UPCOMING, P, T1, T2, T3, BD } from './data'
+import { BellIcon } from './icons'
+import StatusBar from './components/StatusBar'
+import LiveTestHome from './screens/LiveTestHome'
+import SeriesDetail from './screens/SeriesDetail'
+import TestCalendar from './screens/TestCalendar'
+
+const CATEGORIES = ['PYQ Test', 'Subject Test', 'Daily Test', 'Mini Test', 'Live Test']
+const NAV_TABS = [
+  { id:'home',   label:'Home',
+    icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+  { id:'qbank',  label:'QBank',
+    icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg> },
+  { id:'videos', label:'Videos',
+    icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> },
+  { id:'tests',  label:'Tests',
+    icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg> },
+  { id:'buy',    label:'Buy',
+    icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg> },
+]
+
+const CONFETTI = [
+  { left:'8%',  color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0,    dur:1.8 },
+  { left:'18%', color:'#FFD93D', w:5,  h:12, round:false, delay:0.10, dur:2.0 },
+  { left:'28%', color:'#3B6D11', w:8,  h:8,  round:true,  delay:0.05, dur:1.7 },
+  { left:'38%', color:'#534AB7', w:11, h:5,  round:false, delay:0.15, dur:1.9 },
+  { left:'48%', color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0.20, dur:1.6 },
+  { left:'58%', color:'#FFD93D', w:5,  h:11, round:false, delay:0,    dur:2.1 },
+  { left:'68%', color:'#3B6D11', w:7,  h:7,  round:true,  delay:0.08, dur:1.8 },
+  { left:'78%', color:'#534AB7', w:10, h:5,  round:false, delay:0.05, dur:2.0 },
+  { left:'88%', color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0.12, dur:1.7 },
+]
+
+const initialRegistered = new Set(
+  Object.values(UPCOMING).flat().filter(t => t.registered).map(t => t.id)
+)
+
+export default function App() {
+  const [activeCategory, setActiveCategory] = useState('Live Test')
+  const [screen, setScreen] = useState('home') // 'home' | 'series' | 'calendar'
+  const [activeSeriesId, setActiveSeriesId] = useState(null)
+  const [registeredIds, setRegisteredIds] = useState(initialRegistered)
+  const [activeModal, setActiveModal] = useState(null)
+  const [joined, setJoined] = useState(false)
+
+  const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
+  const goHome = () => setScreen('home')
+
+  const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
+  const handleConfirm = () => {
+    setRegisteredIds(prev => new Set([...prev, activeModal.test.id]))
+    setActiveModal({ type:'success', test: activeModal.test })
+  }
+
+  return (
+    <div className="phone-wrapper" style={{ width:'100%', height:'100%' }}>
+      <div className="phone">
+        <StatusBar />
+
+        <div style={{ padding:'8px 20px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:'50%', background:`linear-gradient(135deg, ${P}, #8B82E0)`, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:14 }}>A</div>
+            <span style={{ fontSize:17, fontWeight:700, color:T1 }}>Tests</span>
+          </div>
+          <button style={{ position:'relative', background:'none', border:'none', color:T2, display:'flex', cursor:'pointer', padding:4 }}>
+            <BellIcon />
+          </button>
+        </div>
+
+        {screen === 'home' && (
+          <div style={{ flexShrink:0, borderBottom:`1px solid ${BD}` }}>
+            <div style={{ display:'flex', overflowX:'auto', padding:'0 4px' }}>
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setActiveCategory(cat)}
+                  style={{ flexShrink:0, padding:'10px 14px', fontSize:13, fontWeight:activeCategory===cat?700:500, color:activeCategory===cat?P:T2, background:'none', border:'none', borderBottom:`2px solid ${activeCategory===cat?P:'transparent'}`, cursor:'pointer', whiteSpace:'nowrap' }}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="scroll" style={{ flex:1 }}>
+          {screen === 'series' ? (
+            <SeriesDetail seriesId={activeSeriesId} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+          ) : screen === 'calendar' ? (
+            <TestCalendar registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+          ) : activeCategory === 'Live Test' ? (
+            <LiveTestHome
+              registeredIds={registeredIds}
+              onRegisterClick={handleRegisterClick}
+              onJoined={() => setJoined(true)}
+              joined={joined}
+              onOpenSeries={openSeries}
+              onOpenCalendar={() => setScreen('calendar')}
+            />
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60%', color:T3, gap:10 }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+              <div style={{ fontSize:14, fontWeight:600, color:T2 }}>{activeCategory}</div>
+              <div style={{ fontSize:12, color:T3, textAlign:'center', maxWidth:200, lineHeight:1.5 }}>This prototype is scoped to Live Test — {activeCategory} isn't built here.</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ flexShrink:0, background:'white', borderTop:`1px solid ${BD}`, display:'flex', paddingBottom:'env(safe-area-inset-bottom)' }}>
+          {NAV_TABS.map(t => {
+            const active = t.id === 'tests'
+            return (
+              <button key={t.id} onClick={() => { if (t.id !== 'tests') { setScreen('home'); setActiveCategory('Live Test') } }}
+                style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'8px 0 10px', background:'none', border:'none', color:active ? P : T3, cursor:'pointer' }}>
+                {t.icon}
+                <span style={{ fontSize:10, fontWeight:active ? 600 : 400 }}>{t.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {activeModal?.type === 'confirm' && (
+          <div className="popup-overlay">
+            <div className="popup">
+              <div style={{ width:44, height:44, borderRadius:12, background:'#EEEDFE', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+                <BellIcon size={22} />
+              </div>
+              <div style={{ fontSize:16, fontWeight:700, color:T1, marginBottom:8 }}>Confirm Registration</div>
+              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:20 }}>
+                Register for <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span>? You'll be notified as soon as this test goes live.
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => setActiveModal(null)} style={{ flex:1, padding:'11px', borderRadius:10, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                <button onClick={handleConfirm} style={{ flex:1, padding:'11px', borderRadius:10, background:P, color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>Confirm</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeModal?.type === 'success' && (
+          <div className="popup-overlay" style={{ overflow:'hidden' }}>
+            {CONFETTI.map((c, i) => (
+              <div key={i} style={{ position:'absolute', top:0, left:c.left, width:c.w, height:c.h, borderRadius:c.round?'50%':2, background:c.color, animation:`confettiFall ${c.dur}s ${c.delay}s ease-in both`, zIndex:0, pointerEvents:'none' }} />
+            ))}
+            <div className="popup" style={{ textAlign:'center', position:'relative', zIndex:1 }}>
+              <div style={{ width:72, height:72, borderRadius:'50%', background:'#EAF3DE', border:'3px solid #97C459', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', animation:'checkPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3B6D11" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+              </div>
+              <div style={{ fontSize:26, fontWeight:800, color:P, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray! 🎉</div>
+              <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:10 }}>You're Registered!</div>
+              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:22 }}>
+                We'll notify you as soon as <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span> goes live. Good luck!
+              </div>
+              <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:12, background:P, color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>Got it</button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
