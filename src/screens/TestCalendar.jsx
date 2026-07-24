@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { SERIES, UPCOMING, NORCET_TYPE_LABEL, P, PD, PL, PB, G, GL, GB, T1, T2, T3, BD } from '../data'
-import { ChevronLeft, ChevronRight, ClockIcon, StarIcon } from '../icons'
+import { SERIES, UPCOMING, NORCET_TYPE_LABEL, P, T1, T2, T3, BD } from '../data'
+import { ChevronLeft } from '../icons'
+import { UpcomingCard } from '../components/Cards'
 
 const MONTH_MAP = { Jan:'January', Feb:'February', Mar:'March', Apr:'April', May:'May', Jun:'June', Jul:'July', Aug:'August', Sep:'September', Oct:'October', Nov:'November', Dec:'December' }
 const DAY_MAP   = { Sun:'Sunday', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday' }
@@ -81,45 +82,10 @@ export default function TestCalendar({ registeredIds, onRegisterClick, onBack })
                   </span>
                 </div>
                 {dg.tests.map(t => {
-                  const isReg = registeredIds.has(t.id)
                   const series = SERIES.find(s => s.id === t.seriesId)
-                  const regUrgent = t.regCloses <= 2
+                  const label = [series.label.replace(' Test Series', ''), t.type && NORCET_TYPE_LABEL[t.type]].filter(Boolean).join(' · ')
                   return (
-                    <div key={t.id} style={{ background:'white', border:`1.5px solid ${BD}`, borderRadius:12, padding:'13px 14px', marginBottom:8, boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14, fontWeight:700, color:T1, lineHeight:1.4, marginBottom:2 }}>{t.fullName}</div>
-                          <div style={{ fontSize:11, color:T3, marginBottom:6 }}>{t.subtitle}</div>
-                          <div style={{ display:'flex', gap:6, marginBottom:8, flexWrap:'wrap' }}>
-                            <span style={{ fontSize:10, fontWeight:600, padding:'2px 8px', borderRadius:20, background:series.bg, color:series.color, border:`1px solid ${series.border}` }}>
-                              {series.label.replace(' Test Series', '')}
-                            </span>
-                            {t.type && (
-                              <span style={{ fontSize:10, fontWeight:600, padding:'2px 8px', borderRadius:20, background:PL, color:PD, border:`1px solid ${PB}` }}>
-                                {NORCET_TYPE_LABEL[t.type]}
-                              </span>
-                            )}
-                            {!isReg && (
-                              <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:regUrgent?'#FDECEC':GL, color:regUrgent?'#C53030':G, border:`1px solid ${regUrgent?'#F5A3A3':GB}` }}>
-                                Reg. closes in {t.regCloses}d
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                            <span style={{ fontSize:11, color:T2, display:'inline-flex', alignItems:'center', gap:3 }}><ClockIcon />{t.duration}</span>
-                            <span style={{ fontSize:11, color:T2, display:'inline-flex', alignItems:'center', gap:3 }}><StarIcon />{t.marks} Marks</span>
-                            {isReg && (
-                              <span style={{ fontSize:10, fontWeight:700, color:G, background:GL, border:`1px solid ${GB}`, padding:'1px 7px', borderRadius:20 }}>you're in!</span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => !isReg && onRegisterClick(t)}
-                          style={{ padding:'7px 14px', borderRadius:8, fontSize:12, fontWeight:700, cursor:isReg?'default':'pointer', background:isReg?GL:'#1A56B0', color:isReg?G:'white', border:`1px solid ${isReg?GB:'#1A56B0'}`, flexShrink:0, marginTop:2 }}>
-                          {isReg ? '✓ Registered' : 'Register'}
-                        </button>
-                      </div>
-                    </div>
+                    <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={label} />
                   )
                 })}
               </div>

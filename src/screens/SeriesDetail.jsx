@@ -61,7 +61,7 @@ export default function SeriesDetail({ seriesId, initialType = 'all', registered
             <div style={{ textAlign:'center', padding:'20px 0', color:T3, fontSize:13 }}>No upcoming tests in this category right now</div>
           ) : (
             upcoming.map(t => (
-              <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} typeLabel={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />
+              <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />
             ))
           )}
         </div>
@@ -91,7 +91,7 @@ export default function SeriesDetail({ seriesId, initialType = 'all', registered
           {past.length === 0 ? (
             <div style={{ textAlign:'center', padding:'24px 0', color:T3, fontSize:13 }}>No past tests in this category</div>
           ) : (
-            past.map(t => <PastCard key={t.id} test={t} typeLabel={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />)
+            past.map(t => <PastCard key={t.id} test={t} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />)
           )}
         </div>
 

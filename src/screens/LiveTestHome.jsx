@@ -1,4 +1,4 @@
-import { LIVE_TEST, SERIES, UPCOMING, PAST, P, PD, PL, G, T1, T2, T3, BD } from '../data'
+import { LIVE_TEST, SERIES, UPCOMING, PAST, P, PD, G, T1, T2, T3, BD } from '../data'
 import { ClockIcon, StarIcon, UsersIcon, ChevronRight, CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import { ordinal } from '../utils/format'
@@ -43,35 +43,33 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
       {lastAttempt && (
         <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>
           <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Your Last Attempt</div>
-          <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, padding:'14px', marginBottom:10 }}>
-            <div style={{ fontSize:12, color:T2, marginBottom:10 }}>{lastAttempt.testName}</div>
-            <div style={{ display:'flex', gap:8 }}>
-              <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.score}</div>
-                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Score</div>
-              </div>
-              <div style={{ flex:1, textAlign:'center', borderLeft:`1px solid ${BD}`, borderRight:`1px solid ${BD}` }}>
-                <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.percentile}{ordinal(lastAttempt.percentile)}</div>
-                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Percentile</div>
-              </div>
-              <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:18, fontWeight:800, color:P }}>~{lastAttempt.air.toLocaleString()}</div>
-                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Est. AIR</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ background:PL, border:`1px solid ${PD}22`, borderRadius:12, padding:'13px 14px', display:'flex', alignItems:'center', gap:12 }}>
-            <span style={{ fontSize:20, flexShrink:0 }}>🎯</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:12.5, fontWeight:700, color:PD, marginBottom:2 }}>Recommended for you</div>
-              <div style={{ fontSize:11.5, color:T2, lineHeight:1.5 }}>
-                {lastAttempt.weakestSection.name} was your weakest section — practice more Subject Preboard tests to strengthen it.
+          <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, overflow:'hidden' }}>
+            <div style={{ padding:'14px 14px 12px' }}>
+              <div style={{ fontSize:12, color:T2, marginBottom:10 }}>{lastAttempt.testName}</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <div style={{ flex:1, textAlign:'center' }}>
+                  <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.score}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Score</div>
+                </div>
+                <div style={{ flex:1, textAlign:'center', borderLeft:`1px solid ${BD}`, borderRight:`1px solid ${BD}` }}>
+                  <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.percentile}{ordinal(lastAttempt.percentile)}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Percentile</div>
+                </div>
+                <div style={{ flex:1, textAlign:'center' }}>
+                  <div style={{ fontSize:18, fontWeight:800, color:P }}>~{lastAttempt.air.toLocaleString()}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Est. AIR</div>
+                </div>
               </div>
             </div>
+            <div style={{ borderTop:`1px solid ${BD}`, padding:'11px 14px', display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:11.5, color:T2, flex:1, lineHeight:1.5 }}>
+                <span style={{ fontWeight:700, color:T1 }}>{lastAttempt.weakestSection.name}</span> was your weakest section.
+              </span>
+              <button onClick={() => onOpenSeries('norcet', 'subject_preboard')} style={{ flexShrink:0, padding:'8px 12px', borderRadius:8, background:P, color:'white', border:'none', fontSize:11.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                Practice →
+              </button>
+            </div>
           </div>
-          <button onClick={() => onOpenSeries('norcet', 'subject_preboard')} style={{ width:'100%', marginTop:8, padding:'10px', borderRadius:10, background:P, color:'white', border:'none', fontSize:12.5, fontWeight:700, cursor:'pointer' }}>
-            Practice Subject Preboard →
-          </button>
         </div>
       )}
 
@@ -79,7 +77,7 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>
         <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Upcoming Tests</div>
         {topUpcoming.map(t => (
-          <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} typeLabel={SERIES.find(s => s.id === t.seriesId)?.label} />
+          <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={SERIES.find(s => s.id === t.seriesId)?.label} />
         ))}
       </div>
 
