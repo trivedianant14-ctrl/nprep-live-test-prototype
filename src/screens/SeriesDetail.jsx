@@ -3,9 +3,9 @@ import { seriesById, UPCOMING, PAST, NORCET_TYPES, NORCET_TYPE_LABEL, P, PD, G, 
 import { ChevronLeft, ChevronUp, ChevronRight } from '../icons'
 import { UpcomingCard, PastCard } from '../components/Cards'
 
-export default function SeriesDetail({ seriesId, registeredIds, onRegisterClick, onBack }) {
+export default function SeriesDetail({ seriesId, initialType = 'all', registeredIds, onRegisterClick, onBack }) {
   const series = seriesById(seriesId)
-  const [activeType, setActiveType] = useState('all')
+  const [activeType, setActiveType] = useState(series.hasTypes ? initialType : 'all')
   const [myAttemptsOnly, setMyAttemptsOnly] = useState(false)
 
   const upcomingAll = UPCOMING[seriesId] || []

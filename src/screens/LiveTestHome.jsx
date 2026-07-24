@@ -1,8 +1,9 @@
-import { LIVE_TEST, SERIES, UPCOMING, PAST, P, PD, G, T1, T2, T3, BD } from '../data'
+import { LIVE_TEST, SERIES, UPCOMING, PAST, P, PD, PL, G, T1, T2, T3, BD } from '../data'
 import { ClockIcon, StarIcon, UsersIcon, ChevronRight, CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
+import { ordinal } from '../utils/format'
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar }) {
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, lastAttempt }) {
   // Most time-sensitive tests across every series, sorted by soonest registration
   // deadline — this is the "Upcoming Tests" preview from the wireframe, but instead of
   // being empty it surfaces exactly what needs a decision right now.
@@ -34,6 +35,45 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
           {joined ? 'Re-enter Test' : 'Join Now'}
         </button>
       </div>
+
+      {/* Your Progress + Recommended for You — surfaced right on Home, not buried inside a
+          one-time results screen. Adaptive-learning research is consistent on this: apps
+          that resurface a student's weak area as an immediate next action (not just report
+          it once and move on) are what actually close the loop. */}
+      {lastAttempt && (
+        <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Your Last Attempt</div>
+          <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, padding:'14px', marginBottom:10 }}>
+            <div style={{ fontSize:12, color:T2, marginBottom:10 }}>{lastAttempt.testName}</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <div style={{ flex:1, textAlign:'center' }}>
+                <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.score}</div>
+                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Score</div>
+              </div>
+              <div style={{ flex:1, textAlign:'center', borderLeft:`1px solid ${BD}`, borderRight:`1px solid ${BD}` }}>
+                <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.percentile}{ordinal(lastAttempt.percentile)}</div>
+                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Percentile</div>
+              </div>
+              <div style={{ flex:1, textAlign:'center' }}>
+                <div style={{ fontSize:18, fontWeight:800, color:P }}>~{lastAttempt.air.toLocaleString()}</div>
+                <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Est. AIR</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ background:PL, border:`1px solid ${PD}22`, borderRadius:12, padding:'13px 14px', display:'flex', alignItems:'center', gap:12 }}>
+            <span style={{ fontSize:20, flexShrink:0 }}>🎯</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:12.5, fontWeight:700, color:PD, marginBottom:2 }}>Recommended for you</div>
+              <div style={{ fontSize:11.5, color:T2, lineHeight:1.5 }}>
+                {lastAttempt.weakestSection.name} was your weakest section — practice more Subject Preboard tests to strengthen it.
+              </div>
+            </div>
+          </div>
+          <button onClick={() => onOpenSeries('norcet', 'subject_preboard')} style={{ width:'100%', marginTop:8, padding:'10px', borderRadius:10, background:P, color:'white', border:'none', fontSize:12.5, fontWeight:700, cursor:'pointer' }}>
+            Practice Subject Preboard →
+          </button>
+        </div>
+      )}
 
       {/* Upcoming Tests */}
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>

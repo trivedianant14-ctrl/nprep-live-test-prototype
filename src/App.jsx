@@ -48,8 +48,10 @@ export default function App() {
   const [joined, setJoined] = useState(false)
   const [examInterfaceMode, setExamInterfaceMode] = useState('nprep')
   const [reminders, setReminders] = useState({ oneDay:false, oneHour:false })
+  const [lastAttempt, setLastAttempt] = useState(null)
+  const [initialSeriesType, setInitialSeriesType] = useState('all')
 
-  const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
+  const openSeries = (id, type = 'all') => { setActiveSeriesId(id); setInitialSeriesType(type); setScreen('series') }
   const goHome = () => setScreen('home')
 
   const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
@@ -70,7 +72,11 @@ export default function App() {
               onStart={(mode) => { setExamInterfaceMode(mode); setScreen('exam') }}
             />
           ) : (
-            <ExamScreen interfaceMode={examInterfaceMode} onExit={() => { setJoined(true); setScreen('home') }} />
+            <ExamScreen
+              interfaceMode={examInterfaceMode}
+              onExit={() => { setJoined(true); setScreen('home') }}
+              onFinish={(results) => setLastAttempt(results)}
+            />
           )}
         </div>
       </div>
@@ -107,7 +113,7 @@ export default function App() {
 
         <div className="scroll" style={{ flex:1 }}>
           {screen === 'series' ? (
-            <SeriesDetail seriesId={activeSeriesId} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+            <SeriesDetail seriesId={activeSeriesId} initialType={initialSeriesType} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
           ) : screen === 'calendar' ? (
             <TestCalendar registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
           ) : activeCategory === 'Live Test' ? (
@@ -118,6 +124,7 @@ export default function App() {
               joined={joined}
               onOpenSeries={openSeries}
               onOpenCalendar={() => setScreen('calendar')}
+              lastAttempt={lastAttempt}
             />
           ) : (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60%', color:T3, gap:10 }}>

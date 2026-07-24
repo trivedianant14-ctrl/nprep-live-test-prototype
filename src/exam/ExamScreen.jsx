@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { QUESTIONS, SECTIONS, SECTION_DURATION, EXAM_META } from './examData'
 import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
+import { ordinal } from '../utils/format'
 
 // A compressive curve rather than a straight line — competitive-exam percentile
 // distributions are rarely linear against raw accuracy, and a straight mapping
@@ -9,11 +10,6 @@ import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 function estimatePercentile(accuracy) {
   const raw = 100 * (1 - Math.exp(-accuracy / 32))
   return Math.min(99, Math.max(1, Math.round(raw)))
-}
-
-function ordinal(n) {
-  const s = ['th', 'st', 'nd', 'rd'], v = n % 100
-  return s[(v - 20) % 10] || s[v] || s[0]
 }
 
 // NORCET govt.-portal theme (kept local to this screen, distinct from the app's own tokens)
@@ -55,7 +51,7 @@ const fmtSec = s => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
 }
 
-export default function ExamScreen({ interfaceMode = 'nprep', onExit }) {
+export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish }) {
   const isNPrep = interfaceMode === 'nprep'
   const HDR = isNPrep ? P : NAVY
   const HDR_D = isNPrep ? PD : NAVY_D
@@ -115,8 +111,10 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit }) {
     const percentile = estimatePercentile(accuracy)
     const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
     const weakestSection = [...sectionStats].sort((a, b) => a.correct / 20 - b.correct / 20)[0]
-    setFinalResults({ correct, wrong, unattempted, score, timeTaken: SECTIONS.length * SECTION_DURATION - totalTimeLeft, sectionStats, percentile, air, weakestSection })
+    const results = { correct, wrong, unattempted, score, accuracy, timeTaken: SECTIONS.length * SECTION_DURATION - totalTimeLeft, sectionStats, percentile, air, weakestSection, testName: EXAM_META.shortName }
+    setFinalResults(results)
     setPhase('submitted')
+    onFinish?.(results)
   }
 
   // Tick current section's timer
