@@ -7,6 +7,7 @@ import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
+import { downloadIcsForTest } from './utils/ics'
 
 const CATEGORIES = ['PYQ Test', 'Subject Test', 'Daily Test', 'Mini Test', 'Live Test']
 const NAV_TABS = [
@@ -46,6 +47,7 @@ export default function App() {
   const [activeModal, setActiveModal] = useState(null)
   const [joined, setJoined] = useState(false)
   const [examInterfaceMode, setExamInterfaceMode] = useState('nprep')
+  const [reminders, setReminders] = useState({ oneDay:false, oneHour:false })
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
   const goHome = () => setScreen('home')
@@ -53,8 +55,10 @@ export default function App() {
   const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
   const handleConfirm = () => {
     setRegisteredIds(prev => new Set([...prev, activeModal.test.id]))
+    setReminders({ oneDay:false, oneHour:false })
     setActiveModal({ type:'success', test: activeModal.test })
   }
+  const toggleReminder = (key) => setReminders(prev => ({ ...prev, [key]: !prev[key] }))
 
   if (screen === 'exampretest' || screen === 'exam') {
     return (
@@ -166,9 +170,29 @@ export default function App() {
               </div>
               <div style={{ fontSize:26, fontWeight:800, color:P, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray! 🎉</div>
               <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:10 }}>You're Registered!</div>
-              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:22 }}>
+              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:18 }}>
                 We'll notify you as soon as <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span> goes live. Good luck!
               </div>
+
+              {/* Reminder opt-in, captured right at the moment of commitment — the point
+                  students are most likely to actually follow through on it. */}
+              <div style={{ textAlign:'left', marginBottom:14 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Remind me</div>
+                <div style={{ display:'flex', gap:8 }}>
+                  {[{ key:'oneDay', label:'🔔 1 day before' }, { key:'oneHour', label:'🔔 1 hour before' }].map(r => (
+                    <button key={r.key} onClick={() => toggleReminder(r.key)} style={{
+                      flex:1, padding:'9px 6px', borderRadius:10, fontSize:11.5, fontWeight:600, cursor:'pointer',
+                      background: reminders[r.key] ? '#EAF3DE' : '#F5F5FB',
+                      color: reminders[r.key] ? '#3B6D11' : T2,
+                      border: `1.5px solid ${reminders[r.key] ? '#97C459' : BD}`,
+                    }}>{r.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={() => downloadIcsForTest(activeModal.test)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px', borderRadius:10, background:'white', color:P, border:`1.5px solid #AFA9EC`, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:10 }}>
+                📅 Add to calendar
+              </button>
               <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:12, background:P, color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>Got it</button>
             </div>
           </div>

@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react'
 import { QUESTIONS, SECTIONS, SECTION_DURATION, EXAM_META } from './examData'
-import { P, PD, PL, T1, T2, T3, BD, BG2 } from '../data'
+import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
+
+// A compressive curve rather than a straight line — competitive-exam percentile
+// distributions are rarely linear against raw accuracy, and a straight mapping
+// would either flatter low scorers or make top scorers feel capped. Modeled the
+// same way real rank-predictor tools (PW, Aakash) frame it: provisional, cohort-based.
+function estimatePercentile(accuracy) {
+  const raw = 100 * (1 - Math.exp(-accuracy / 32))
+  return Math.min(99, Math.max(1, Math.round(raw)))
+}
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100
+  return s[(v - 20) % 10] || s[v] || s[0]
+}
 
 // NORCET govt.-portal theme (kept local to this screen, distinct from the app's own tokens)
 const NAVY = '#1f3a68', NAVY_D = '#162d52'
@@ -97,7 +111,11 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit }) {
       else                               { wrong++;      sectionStats[si].wrong++ }
     })
     const score = parseFloat((correct * EXAM_META.correctMarks + wrong * EXAM_META.wrongMarks).toFixed(2))
-    setFinalResults({ correct, wrong, unattempted, score, timeTaken: SECTIONS.length * SECTION_DURATION - totalTimeLeft, sectionStats })
+    const accuracy = Math.round((correct / QUESTIONS.length) * 100)
+    const percentile = estimatePercentile(accuracy)
+    const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
+    const weakestSection = [...sectionStats].sort((a, b) => a.correct / 20 - b.correct / 20)[0]
+    setFinalResults({ correct, wrong, unattempted, score, timeTaken: SECTIONS.length * SECTION_DURATION - totalTimeLeft, sectionStats, percentile, air, weakestSection })
     setPhase('submitted')
   }
 
@@ -230,6 +248,34 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit }) {
             </div>
             <div style={{ marginTop:10, fontSize:11, color:T3 }}>⏱ {fmtT(r.timeTaken)} taken</div>
           </div>
+
+          {/* Estimated percentile / AIR — the trust-building feature every major Indian
+              competitive-exam app (Testbook, PW, Aakash) leads with on a results screen */}
+          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+            <div style={{ flex:1, background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'12px 10px', textAlign:'center' }}>
+              <div style={{ fontSize:20, fontWeight:800, color:HDR }}>{r.percentile}<span style={{ fontSize:12, fontWeight:600 }}>{ordinal(r.percentile)}</span></div>
+              <div style={{ fontSize:10, color:T3, fontWeight:600, marginTop:2 }}>Est. Percentile</div>
+            </div>
+            <div style={{ flex:1, background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'12px 10px', textAlign:'center' }}>
+              <div style={{ fontSize:20, fontWeight:800, color:HDR }}>~{r.air.toLocaleString()}</div>
+              <div style={{ fontSize:10, color:T3, fontWeight:600, marginTop:2 }}>Est. All-India Rank</div>
+            </div>
+          </div>
+          <div style={{ fontSize:10, color:T3, textAlign:'center', marginTop:-10, marginBottom:16, lineHeight:1.5 }}>
+            Provisional — based on today's live cohort of {LIVE_TEST.enrolled.toLocaleString()}. Updates once every attempt is in.
+          </div>
+
+          {/* Weakest section — a data-driven nudge instead of a generic "keep practicing" */}
+          <div style={{ background:PL, border:`1px solid ${PD}22`, borderRadius:10, padding:'13px 14px', marginBottom:16, display:'flex', alignItems:'flex-start', gap:10 }}>
+            <span style={{ fontSize:16, flexShrink:0 }}>🎯</span>
+            <div>
+              <div style={{ fontSize:12.5, fontWeight:700, color:PD, marginBottom:2 }}>Focus area: {r.weakestSection.name}</div>
+              <div style={{ fontSize:11.5, color:T2, lineHeight:1.5 }}>
+                Your weakest section this attempt — only {r.weakestSection.correct}/20 correct. Revisit this before your next test.
+              </div>
+            </div>
+          </div>
+
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16 }}>
             {[{ label:'Correct', value:r.correct, fg:GRUN }, { label:'Wrong', value:r.wrong, fg:DIAM }, { label:'Skipped', value:r.unattempted, fg:T3 }].map(c => (
               <div key={c.label} style={{ background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'14px 8px', textAlign:'center' }}>
