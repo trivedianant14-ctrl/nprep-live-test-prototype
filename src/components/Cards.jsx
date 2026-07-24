@@ -1,5 +1,6 @@
 import { P, G, GL, GB, A, AL, AB, T1, T2, T3, BD } from '../data'
 import { ClockIcon, StarIcon } from '../icons'
+import { downloadReportCard } from '../utils/reportPdf'
 
 // Joins meta fragments with a middot, skipping empty ones — used instead of separate
 // pills for each fact so a card reads as one calm line, not a row of colored chips.
@@ -61,11 +62,17 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label }) {
           `${(isRegistered ? test.enrolled + 1 : test.enrolled).toLocaleString()} registered`,
         ]}
       />
-      <button
-        onClick={() => !isRegistered && onRegisterClick(test)}
-        style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12.5, fontWeight:700, cursor:isRegistered?'default':'pointer', background:isRegistered?GL:P, color:isRegistered?G:'white', border:isRegistered?`1px solid ${GB}`:'none' }}>
-        {isRegistered ? '✓ Registered' : 'Register'}
-      </button>
+      {test.deliveryChannel === 'whatsapp' ? (
+        <div style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12, fontWeight:600, background:'#F0FDF4', color:'#166534', border:'1px solid #86EFAC', textAlign:'center' }}>
+          📱 Sent via WhatsApp — no app registration needed
+        </div>
+      ) : (
+        <button
+          onClick={() => !isRegistered && onRegisterClick(test)}
+          style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12.5, fontWeight:700, cursor:isRegistered?'default':'pointer', background:isRegistered?GL:P, color:isRegistered?G:'white', border:isRegistered?`1px solid ${GB}`:'none' }}>
+          {isRegistered ? '✓ Registered' : 'Register'}
+        </button>
+      )}
     </div>
   )
 }
@@ -92,8 +99,20 @@ export function PastCard({ test, label }) {
             test.score && <span style={{ fontWeight:700, color:G }}>{test.score}/{test.mks}</span>,
           ]}
         />
-        <button style={{ width:'100%', padding:'9px', borderRadius:9, fontSize:12, fontWeight:600, background:'white', color:P, border:`1px solid ${P}`, cursor:'pointer' }}>
-          View Result
+        <button
+          onClick={() => test.reportLabel && downloadReportCard({
+            fileName: `${test.reportLabel.replace(/\s+/g, '-')}-${test.fullName.replace(/\s+/g, '-')}.pdf`,
+            title: test.reportLabel,
+            subtitle: test.fullName,
+            rows: [
+              ['Test', test.subtitle],
+              ['Date', test.date],
+              ['Duration', test.dur],
+              ['Score', test.score ? `${test.score} / ${test.mks}` : 'Not scored'],
+            ],
+          })}
+          style={{ width:'100%', padding:'9px', borderRadius:9, fontSize:12, fontWeight:600, background:'white', color:P, border:`1px solid ${P}`, cursor:'pointer' }}>
+          {test.reportLabel ? `Download ${test.reportLabel}` : 'View Result'}
         </button>
       </div>
     )

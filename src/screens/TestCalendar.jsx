@@ -2,16 +2,18 @@ import { useState } from 'react'
 import { SERIES, UPCOMING, NORCET_TYPE_LABEL, P, T1, T2, T3, BD } from '../data'
 import { ChevronLeft } from '../icons'
 import { UpcomingCard } from '../components/Cards'
+import { brandListForTier } from '../utils/tierBranding'
 
 const MONTH_MAP = { Jan:'January', Feb:'February', Mar:'March', Apr:'April', May:'May', Jun:'June', Jul:'July', Aug:'August', Sep:'September', Oct:'October', Nov:'November', Dec:'December' }
 const DAY_MAP   = { Sun:'Sunday', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday' }
 
-export default function TestCalendar({ registeredIds, onRegisterClick, onBack }) {
+export default function TestCalendar({ registeredIds, onRegisterClick, onBack, userTier }) {
   const [filter, setFilter] = useState('all')
 
-  const allUpcoming = Object.entries(UPCOMING)
-    .flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId })))
-    .sort((a, b) => a.daysOut - b.daysOut)
+  const allUpcoming = brandListForTier(
+    Object.entries(UPCOMING).flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId }))),
+    userTier
+  ).sort((a, b) => a.daysOut - b.daysOut)
 
   const filtered = filter === 'all' ? allUpcoming : allUpcoming.filter(t => t.seriesId === filter)
 

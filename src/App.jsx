@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { UPCOMING, P, T1, T2, T3, BD } from './data'
+import { UPCOMING, P, T1, T2, T3, BD, BG2 } from './data'
 import { BellIcon } from './icons'
 import StatusBar from './components/StatusBar'
 import LiveTestHome from './screens/LiveTestHome'
@@ -50,6 +50,7 @@ export default function App() {
   const [reminders, setReminders] = useState({ oneDay:false, oneHour:false })
   const [lastAttempt, setLastAttempt] = useState(null)
   const [initialSeriesType, setInitialSeriesType] = useState('all')
+  const [userTier, setUserTier] = useState('paid')
 
   const openSeries = (id, type = 'all') => { setActiveSeriesId(id); setInitialSeriesType(type); setScreen('series') }
   const goHome = () => setScreen('home')
@@ -93,9 +94,22 @@ export default function App() {
             <div style={{ width:36, height:36, borderRadius:'50%', background:`linear-gradient(135deg, ${P}, #8B82E0)`, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:14 }}>A</div>
             <span style={{ fontSize:17, fontWeight:700, color:T1 }}>Tests</span>
           </div>
-          <button style={{ position:'relative', background:'none', border:'none', color:T2, display:'flex', cursor:'pointer', padding:4 }}>
-            <BellIcon />
-          </button>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'inline-flex', background:BG2, borderRadius:20, padding:2, gap:2 }}>
+              {[{ id:'free', label:'Free' }, { id:'paid', label:'Paid' }].map(o => {
+                const active = userTier === o.id
+                return (
+                  <button key={o.id} onClick={() => setUserTier(o.id)} style={{
+                    padding:'4px 10px', borderRadius:16, fontSize:10.5, fontWeight:active?700:500,
+                    background: active ? P : 'transparent', color: active ? 'white' : T3, border:'none', cursor:'pointer',
+                  }}>{o.label}</button>
+                )
+              })}
+            </div>
+            <button style={{ position:'relative', background:'none', border:'none', color:T2, display:'flex', cursor:'pointer', padding:4 }}>
+              <BellIcon />
+            </button>
+          </div>
         </div>
 
         {screen === 'home' && (
@@ -113,9 +127,9 @@ export default function App() {
 
         <div className="scroll" style={{ flex:1 }}>
           {screen === 'series' ? (
-            <SeriesDetail seriesId={activeSeriesId} initialType={initialSeriesType} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+            <SeriesDetail seriesId={activeSeriesId} initialType={initialSeriesType} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
           ) : screen === 'calendar' ? (
-            <TestCalendar registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+            <TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
           ) : activeCategory === 'Live Test' ? (
             <LiveTestHome
               registeredIds={registeredIds}
@@ -125,6 +139,7 @@ export default function App() {
               onOpenSeries={openSeries}
               onOpenCalendar={() => setScreen('calendar')}
               lastAttempt={lastAttempt}
+              userTier={userTier}
             />
           ) : (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60%', color:T3, gap:10 }}>

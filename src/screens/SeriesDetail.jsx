@@ -1,15 +1,31 @@
 import { useState } from 'react'
-import { seriesById, UPCOMING, PAST, NORCET_TYPES, NORCET_TYPE_LABEL, P, PD, G, GL, GB, BG2, T1, T2, T3, BD } from '../data'
+import { seriesById, UPCOMING, PAST, NORCET_TYPES, NORCET_TYPE_LABEL, PL, PD, PB, P, G, GL, GB, BG2, T1, T2, T3, BD } from '../data'
 import { ChevronLeft, ChevronUp, ChevronRight } from '../icons'
 import { UpcomingCard, PastCard } from '../components/Cards'
+import { brandListForTier } from '../utils/tierBranding'
 
-export default function SeriesDetail({ seriesId, initialType = 'all', registeredIds, onRegisterClick, onBack }) {
-  const series = seriesById(seriesId)
+// 'scholarship' isn't a real content series — it's the same Norcet Diagnostic tests,
+// wearing a different name depending on the viewer's tier. See tierBranding.js.
+function resolveSeries(seriesId, userTier) {
+  if (seriesId !== 'scholarship') return { series: seriesById(seriesId), sourceSeriesId: seriesId, lockType: null }
+  const isFree = userTier === 'free'
+  return {
+    series: isFree
+      ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · Sent via WhatsApp', bg:'#FDF0F7', color:'#9D174D', border:'#F9A8D4', hasTypes:false }
+      : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts',    bg:PL,        color:PD,        border:PB,        hasTypes:false },
+    sourceSeriesId: 'norcet',
+    lockType: 'diagnostic',
+  }
+}
+
+export default function SeriesDetail({ seriesId, initialType = 'all', userTier, registeredIds, onRegisterClick, onBack }) {
+  const { series, sourceSeriesId, lockType } = resolveSeries(seriesId, userTier)
   const [activeType, setActiveType] = useState(series.hasTypes ? initialType : 'all')
   const [myAttemptsOnly, setMyAttemptsOnly] = useState(false)
 
-  const upcomingAll = UPCOMING[seriesId] || []
-  const pastAll     = PAST[seriesId] || []
+  const filterByLock = list => lockType ? list.filter(t => t.type === lockType) : list
+  const upcomingAll = brandListForTier(filterByLock(UPCOMING[sourceSeriesId] || []), userTier)
+  const pastAll     = brandListForTier(filterByLock(PAST[sourceSeriesId] || []), userTier)
 
   const byType = (list) => activeType === 'all' ? list : list.filter(t => t.type === activeType)
   const upcoming = byType(upcomingAll)

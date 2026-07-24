@@ -39,13 +39,18 @@ export const NORCET_TYPES = [
 ]
 export const NORCET_TYPE_LABEL = NORCET_TYPES.reduce((acc, t) => { acc[t.id] = t.label; return acc }, {})
 
-// The one test that's actually live right now — same test shown in the production
-// Live Test screenshots (NORCET 10 — Stage I hero card).
+// The featured live test. Real start/end timestamps (not just a display string) so its
+// homepage banner can compute its own lifecycle phase automatically — upcoming, starting
+// soon, live, ended, results — instead of being hardcoded to always say "LIVE".
+// Defaults to "started 10 min ago, ends in 80" so the banner opens on the live phase.
+const _now = new Date()
 export const LIVE_TEST = {
   id: 0,
   name: 'NORCET 10 — Stage I',
   timeLabel: 'Today, 3:00 PM – 4:30 PM',
   durationLabel: '90 min', marks: '100', enrolled: 2847,
+  startAt: new Date(_now.getTime() - 10 * 60000),
+  endAt: new Date(_now.getTime() + 80 * 60000),
 }
 
 // ─── Upcoming tests, grouped by series ──────────────────────────────────────

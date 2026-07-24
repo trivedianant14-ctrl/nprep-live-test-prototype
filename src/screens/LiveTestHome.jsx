@@ -1,40 +1,65 @@
-import { LIVE_TEST, SERIES, UPCOMING, PAST, P, PD, G, T1, T2, T3, BD } from '../data'
-import { ClockIcon, StarIcon, UsersIcon, ChevronRight, CalendarIcon } from '../icons'
+import { useState } from 'react'
+import { LIVE_TEST, SERIES, UPCOMING, PAST, PL, PD, PB, P, T1, T2, T3, BD } from '../data'
+import { ChevronRight, CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
+import LiveTestBanner from '../components/LiveTestBanner'
 import { ordinal } from '../utils/format'
+import { brandListForTier } from '../utils/tierBranding'
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, lastAttempt }) {
+const PREVIEW_PHASES = [
+  { id: null,            label: 'Auto' },
+  { id: 'upcoming',      label: 'Upcoming' },
+  { id: 'starting_soon', label: 'Starting Soon' },
+  { id: 'live',          label: 'Live' },
+  { id: 'ended',         label: 'Ended' },
+  { id: 'results',       label: 'Results' },
+]
+
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, lastAttempt, userTier }) {
+  const [previewPhase, setPreviewPhase] = useState(null)
+
   // Most time-sensitive tests across every series, sorted by soonest registration
   // deadline — this is the "Upcoming Tests" preview from the wireframe, but instead of
   // being empty it surfaces exactly what needs a decision right now.
   const allUpcoming = Object.entries(UPCOMING).flatMap(([seriesId, tests]) =>
     tests.map(t => ({ ...t, seriesId }))
   )
-  const topUpcoming = [...allUpcoming].sort((a, b) => a.regCloses - b.regCloses).slice(0, 2)
+  const topUpcoming = brandListForTier(
+    [...allUpcoming].sort((a, b) => a.regCloses - b.regCloses).slice(0, 2),
+    userTier
+  )
+
+  // The 4th Past-Tests tile is the same Diagnostic content living inside Norcet, just
+  // wearing a different name depending on who's looking — see SeriesDetail's
+  // 'scholarship' special-case for the matching drill-down.
+  const diagUpcoming = (UPCOMING.norcet || []).filter(t => t.type === 'diagnostic')
+  const diagPast = (PAST.norcet || []).filter(t => t.type === 'diagnostic')
+  const scholarshipTile = userTier === 'free'
+    ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · via WhatsApp', bg:'#FDF0F7', color:'#9D174D', border:'#F9A8D4' }
+    : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts', bg:PL, color:PD, border:PB }
+  const displaySeries = SERIES.map(s => s.id === 'scholarship' ? scholarshipTile : s)
 
   return (
     <div style={{ padding:'16px 16px 32px' }}>
 
-      {/* Live Now */}
-      <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:12 }}>Live Now</div>
-      <div style={{ background:`linear-gradient(135deg, ${P} 0%, ${PD} 100%)`, borderRadius:14, padding:'18px 16px 16px', marginBottom:24, boxShadow:'0 4px 16px rgba(83,74,183,0.28)' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700, background:'rgba(255,255,255,0.18)', color:'white', border:'1px solid rgba(255,255,255,0.32)' }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF6B6B', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,107,107,0.4)', animation:'livePulse 1.4s ease-in-out infinite' }} />
-            LIVE
-          </span>
-          <span style={{ fontSize:11, color:'rgba(255,255,255,0.72)', fontWeight:500 }}>{LIVE_TEST.timeLabel}</span>
-        </div>
-        <div style={{ fontSize:15, fontWeight:700, color:'white', marginBottom:12, lineHeight:1.4 }}>{LIVE_TEST.name}</div>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><ClockIcon />{LIVE_TEST.durationLabel}</span>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><StarIcon />{LIVE_TEST.marks} Marks</span>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><UsersIcon />{LIVE_TEST.enrolled.toLocaleString()} joined</span>
-        </div>
-        <button onClick={onJoined} style={{ width:'100%', padding:'12px', borderRadius:10, background:'white', color:joined?G:P, fontSize:14, fontWeight:700, border:'none', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }}>
-          {joined ? 'Re-enter Test' : 'Join Now'}
-        </button>
+      {/* Live Now — an automated banner, not a hardcoded state. It renders whichever
+          lifecycle phase the test's real schedule says it's in right now; the row below
+          only overrides that for previewing the other phases in this prototype. */}
+      <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Live Now</div>
+      <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2, marginBottom:12 }}>
+        <span style={{ fontSize:10, color:T3, fontWeight:600, alignSelf:'center', flexShrink:0 }}>Preview:</span>
+        {PREVIEW_PHASES.map(p => {
+          const active = previewPhase === p.id
+          return (
+            <button key={p.label} onClick={() => setPreviewPhase(p.id)} style={{
+              flexShrink:0, padding:'4px 10px', borderRadius:20, fontSize:10.5, fontWeight:active?700:500,
+              background: active ? P : 'white', color: active ? 'white' : T2,
+              border:`1px solid ${active ? P : BD}`, cursor:'pointer', whiteSpace:'nowrap',
+            }}>{p.label}</button>
+          )
+        })}
       </div>
+      <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} joined={joined} phaseOverride={previewPhase} />
 
       {/* Your Progress + Recommended for You — surfaced right on Home, not buried inside a
           one-time results screen. Adaptive-learning research is consistent on this: apps
@@ -98,16 +123,19 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>
         <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:12 }}>Past Tests</div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          {SERIES.map(s => (
-            <SeriesTile
-              key={s.id}
-              series={s}
-              pastTotal={(PAST[s.id] || []).length}
-              attempted={(PAST[s.id] || []).filter(t => t.attempted).length}
-              upcomingCount={(UPCOMING[s.id] || []).length}
-              onClick={() => onOpenSeries(s.id)}
-            />
-          ))}
+          {displaySeries.map(s => {
+            const isScholarship = s.id === 'scholarship'
+            return (
+              <SeriesTile
+                key={s.id}
+                series={s}
+                pastTotal={isScholarship ? diagPast.length : (PAST[s.id] || []).length}
+                attempted={isScholarship ? diagPast.filter(t => t.attempted).length : (PAST[s.id] || []).filter(t => t.attempted).length}
+                upcomingCount={isScholarship ? diagUpcoming.length : (UPCOMING[s.id] || []).length}
+                onClick={() => onOpenSeries(s.id)}
+              />
+            )
+          })}
         </div>
       </div>
 
