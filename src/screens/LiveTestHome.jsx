@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LIVE_TEST, SERIES, UPCOMING, PAST, PL, PD, PB, P, T1, T2, T3, BD } from '../data'
-import { ChevronRight, CalendarIcon } from '../icons'
+import { CalendarIcon, PlusIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import LiveTestBanner from '../components/LiveTestBanner'
 import { ordinal } from '../utils/format'
@@ -15,7 +15,7 @@ const PREVIEW_PHASES = [
   { id: 'results',       label: 'Results' },
 ]
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, lastAttempt, userTier }) {
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, onCreateTest, lastAttempt, userTier }) {
   const [previewPhase, setPreviewPhase] = useState(null)
 
   // Most time-sensitive tests across every series, sorted by soonest registration
@@ -106,18 +106,29 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
         ))}
       </div>
 
-      {/* Tests Calendar banner */}
-      <button onClick={onOpenCalendar}
-        style={{ width:'100%', display:'flex', alignItems:'center', gap:12, background:'#EDF4FF', border:'1.5px solid #93B8F0', borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left', marginBottom:24 }}>
-        <div style={{ width:40, height:40, borderRadius:10, background:'#1A56B0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <CalendarIcon />
-        </div>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:'#1A56B0' }}>Tests Calendar</div>
-          <div style={{ fontSize:11, color:T2, marginTop:2 }}>See every upcoming test, month by month</div>
-        </div>
-        <ChevronRight size={18} />
-      </button>
+      {/* Tests Calendar + Create Your Own Test */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
+        <button onClick={onOpenCalendar}
+          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8, background:'#EDF4FF', border:'1.5px solid #93B8F0', borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left' }}>
+          <div style={{ width:34, height:34, borderRadius:9, background:'#1A56B0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <CalendarIcon size={16} />
+          </div>
+          <div>
+            <div style={{ fontSize:12.5, fontWeight:700, color:'#1A56B0' }}>Tests Calendar</div>
+            <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Every upcoming test, by month</div>
+          </div>
+        </button>
+        <button onClick={onCreateTest}
+          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8, background:'#EEEDFE', border:`1.5px dashed ${PB}`, borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left' }}>
+          <div style={{ width:34, height:34, borderRadius:9, background:P, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <PlusIcon size={16} color="white" />
+          </div>
+          <div>
+            <div style={{ fontSize:12.5, fontWeight:700, color:PD }}>Create Your Own Test</div>
+            <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Full mock or subject-wise</div>
+          </div>
+        </button>
+      </div>
 
       {/* Past Tests — series tiles */}
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>

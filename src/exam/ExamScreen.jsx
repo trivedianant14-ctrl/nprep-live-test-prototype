@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import { QUESTIONS, SECTIONS, SECTION_DURATION, EXAM_META } from './examData'
+import {
+  QUESTIONS as DEFAULT_QUESTIONS,
+  SECTIONS as DEFAULT_SECTIONS,
+  SECTION_DURATION,
+  EXAM_META as DEFAULT_EXAM_META,
+} from './examData'
 import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 import { ordinal } from '../utils/format'
 
@@ -51,7 +56,13 @@ const fmtSec = s => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
 }
 
-export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish }) {
+export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, customQuestions, customSections, customMeta }) {
+  // A student-created test (see CreateTest.jsx) reuses this exact engine — it's just a
+  // different slice of the same question bank, not a separate code path.
+  const QUESTIONS  = customQuestions || DEFAULT_QUESTIONS
+  const SECTIONS   = customSections  || DEFAULT_SECTIONS
+  const EXAM_META  = customMeta      || DEFAULT_EXAM_META
+
   const isNPrep = interfaceMode === 'nprep'
   const HDR = isNPrep ? P : NAVY
   const HDR_D = isNPrep ? PD : NAVY_D

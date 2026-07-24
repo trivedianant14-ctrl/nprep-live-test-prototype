@@ -5,8 +5,10 @@ import StatusBar from './components/StatusBar'
 import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
+import CreateTest from './screens/CreateTest'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
+import { buildCustomTest } from './exam/customTest'
 import { downloadIcsForTest } from './utils/ics'
 
 const CATEGORIES = ['PYQ Test', 'Subject Test', 'Daily Test', 'Mini Test', 'Live Test']
@@ -51,9 +53,11 @@ export default function App() {
   const [lastAttempt, setLastAttempt] = useState(null)
   const [initialSeriesType, setInitialSeriesType] = useState('all')
   const [userTier, setUserTier] = useState('paid')
+  const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a student-built one
 
   const openSeries = (id, type = 'all') => { setActiveSeriesId(id); setInitialSeriesType(type); setScreen('series') }
   const goHome = () => setScreen('home')
+  const handleCreateTest = (config) => { setCustomTest(buildCustomTest(config)); setScreen('exampretest') }
 
   const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
   const handleConfirm = () => {
@@ -69,14 +73,21 @@ export default function App() {
         <div className="phone">
           {screen === 'exampretest' ? (
             <ExamPreTest
-              onBack={goHome}
+              onBack={() => { setCustomTest(null); goHome() }}
               onStart={(mode) => { setExamInterfaceMode(mode); setScreen('exam') }}
+              meta={customTest?.meta}
+              sectionCount={customTest ? customTest.sections.length : 5}
+              sectionMinutes={18}
+              totalMarks={customTest?.meta.totalMarks}
             />
           ) : (
             <ExamScreen
               interfaceMode={examInterfaceMode}
-              onExit={() => { setJoined(true); setScreen('home') }}
+              onExit={() => { setJoined(true); setCustomTest(null); setScreen('home') }}
               onFinish={(results) => setLastAttempt(results)}
+              customQuestions={customTest?.questions}
+              customSections={customTest?.sections}
+              customMeta={customTest?.meta}
             />
           )}
         </div>
@@ -130,6 +141,8 @@ export default function App() {
             <SeriesDetail seriesId={activeSeriesId} initialType={initialSeriesType} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
           ) : screen === 'calendar' ? (
             <TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+          ) : screen === 'createtest' ? (
+            <CreateTest onBack={goHome} onCreate={handleCreateTest} />
           ) : activeCategory === 'Live Test' ? (
             <LiveTestHome
               registeredIds={registeredIds}
@@ -138,6 +151,7 @@ export default function App() {
               joined={joined}
               onOpenSeries={openSeries}
               onOpenCalendar={() => setScreen('calendar')}
+              onCreateTest={() => setScreen('createtest')}
               lastAttempt={lastAttempt}
               userTier={userTier}
             />

@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { EXAM_META } from './examData'
+import { EXAM_META as DEFAULT_EXAM_META } from './examData'
 import { P, PD, PL, PB, T1, T2, T3, BD, BG2 } from '../data'
 import { ChevronLeft, ClockIcon, StarIcon } from '../icons'
 
 const NAVY = '#1f3a68', NAVY_D = '#162d52'
 
-export default function ExamPreTest({ onBack, onStart }) {
+// meta/sectionCount/sectionMinutes default to the official live test, but a
+// student-created test (see CreateTest.jsx) passes its own — same pretest screen,
+// same interface choice, different content underneath.
+export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, sectionMinutes = 18, totalMarks }) {
   const [interfaceMode, setInterfaceMode] = useState('nprep')
   const [agreed, setAgreed] = useState(false)
+  const m = meta || DEFAULT_EXAM_META
+  const marks = totalMarks ?? m.totalMarks
+  const totalMinutes = sectionCount * sectionMinutes
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
@@ -20,13 +26,13 @@ export default function ExamPreTest({ onBack, onStart }) {
 
       <div className="scroll" style={{ flex:1, padding:'18px 16px 24px' }}>
         <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'16px', marginBottom:20 }}>
-          <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:4 }}>{EXAM_META.shortName}</div>
-          <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{EXAM_META.candidate} · Roll No {EXAM_META.rollNo}</div>
+          <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:4 }}>{m.shortName}</div>
+          <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{m.candidate} · Roll No {m.rollNo}</div>
           <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><ClockIcon size={13} />90 min · 5 sections × 18 min</span>
-            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><StarIcon size={13} />{EXAM_META.totalMarks} Marks</span>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><ClockIcon size={13} />{totalMinutes} min · {sectionCount} section{sectionCount === 1 ? '' : 's'} × {sectionMinutes} min</span>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><StarIcon size={13} />{marks} Marks</span>
           </div>
-          <div style={{ fontSize:11, color:T3, marginTop:8 }}>+{EXAM_META.correctMarks} correct · {EXAM_META.wrongMarks} incorrect</div>
+          <div style={{ fontSize:11, color:T3, marginTop:8 }}>+{m.correctMarks} correct · {m.wrongMarks} incorrect</div>
         </div>
 
         <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>Choose your test-taking interface</div>
