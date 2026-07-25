@@ -59,7 +59,10 @@ const fmtSec = s => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
 }
 
-export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, customQuestions, customSections, customMeta }) {
+// initialSnapshot/onPause power the Daily Test pause-resume flow: pausing hands the
+// full attempt state (including the shuffled paper — a resume is the SAME attempt, so
+// it must not reshuffle) back to App; resuming passes it back in as initialSnapshot.
+export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, onPause, initialSnapshot, exitLabel = 'Back to Live Tests', customQuestions, customSections, customMeta }) {
   const isNPrep = interfaceMode === 'nprep'
   const HDR = isNPrep ? P : NAVY
   const HDR_D = isNPrep ? PD : NAVY_D
@@ -71,16 +74,18 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   // on re-render. A student-created test (see CreateTest.jsx) reuses this exact engine —
   // it's just a different slice of the same question bank, not a separate code path.
   const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
-    shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
+    initialSnapshot
+      ? { questions: initialSnapshot.questions, sections: initialSnapshot.sections }
+      : shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
   )
 
-  const [curSec, setCurSec]                       = useState(0)
-  const [curQLocal, setCurQLocal]                 = useState(0)
-  const [sectionTimers, setSectionTimers]         = useState(() => SECTIONS.map(() => SECTION_DURATION))
-  const [sectionLocked, setSectionLocked]         = useState(() => SECTIONS.map(() => false))
-  const [answers, setAnswers]                     = useState(() => Array(QUESTIONS.length).fill(null))
-  const [marked, setMarked]                       = useState(() => Array(QUESTIONS.length).fill(false))
-  const [visited, setVisited]                     = useState(() => Array(QUESTIONS.length).fill(false))
+  const [curSec, setCurSec]                       = useState(() => initialSnapshot?.curSec ?? 0)
+  const [curQLocal, setCurQLocal]                 = useState(() => initialSnapshot?.curQLocal ?? 0)
+  const [sectionTimers, setSectionTimers]         = useState(() => initialSnapshot?.sectionTimers ?? SECTIONS.map(() => SECTION_DURATION))
+  const [sectionLocked, setSectionLocked]         = useState(() => initialSnapshot?.sectionLocked ?? SECTIONS.map(() => false))
+  const [answers, setAnswers]                     = useState(() => initialSnapshot?.answers ?? Array(QUESTIONS.length).fill(null))
+  const [marked, setMarked]                       = useState(() => initialSnapshot?.marked ?? Array(QUESTIONS.length).fill(false))
+  const [visited, setVisited]                     = useState(() => initialSnapshot?.visited ?? Array(QUESTIONS.length).fill(false))
   const [showGrid, setShowGrid]                   = useState(false)
   const [gridSec, setGridSec]                     = useState(0)
   const [showExitConfirm, setShowExitConfirm]     = useState(false)
@@ -218,9 +223,11 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curSec, curQLocal])
 
+  // Clamped updaters: rapid taps can queue multiple increments into one React batch,
+  // which would otherwise walk curQLocal past the section's last question and crash.
   const goNext = () => {
-    if (!isLastQInSec) setCurQLocal(l => l + 1)
-    else if (!isLastSec) { setCurSec(s => s + 1); setCurQLocal(0) }
+    if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
+    else if (!isLastSec) { setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0) }
   }
   const goPrev = () => {
     if (curQLocal > 0) setCurQLocal(l => l - 1)
@@ -271,7 +278,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
       </div>
       <div style={{ flexShrink:0, padding:'14px 20px 28px', borderTop:`1px solid ${BD}`, display:'flex', flexDirection:'column', gap:10 }}>
         <button onClick={() => setPhase('loading')} style={{ ...hPrim({ width:'100%', padding:'14px', fontSize:14, borderRadius:10 }) }}>View Detailed Analysis</button>
-        <button onClick={onExit} style={{ ...gBtn({ width:'100%', padding:'12px', fontSize:13, borderRadius:10 }) }}>Back to Live Tests</button>
+        <button onClick={onExit} style={{ ...gBtn({ width:'100%', padding:'12px', fontSize:13, borderRadius:10 }) }}>{exitLabel}</button>
       </div>
     </div>
   )
@@ -373,7 +380,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           })}
         </div>
         <div style={{ flexShrink:0, padding:'12px 16px 20px', borderTop:`1px solid ${BD}`, background:'white' }}>
-          <button onClick={onExit} style={{ ...hPrim({ width:'100%', padding:'12px', fontSize:13 }) }}>Back to Live Tests</button>
+          <button onClick={onExit} style={{ ...hPrim({ width:'100%', padding:'12px', fontSize:13 }) }}>{exitLabel}</button>
         </div>
       </div>
     )
@@ -609,15 +616,27 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
         </div>
       )}
 
-      {/* Exit confirm */}
+      {/* Exit confirm — daily tests pause instead of exiting: answers, timers, and the
+          shuffled paper are snapshotted so Continue Test resumes the exact same attempt */}
       {showExitConfirm && (
         <div className="popup-overlay">
           <div className="popup">
-            <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:10 }}>Exit Exam?</div>
-            <div style={{ fontSize:13, color:T2, lineHeight:1.7, marginBottom:20 }}>Your responses will be saved. You can return anytime within the live test window.</div>
+            <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:10 }}>{onPause ? 'Pause Test?' : 'Exit Exam?'}</div>
+            <div style={{ fontSize:13, color:T2, lineHeight:1.7, marginBottom:20 }}>
+              {onPause
+                ? 'Your answers and remaining time will be saved. Pick up exactly where you left off with Continue Test.'
+                : 'Your responses will be saved. You can return anytime within the live test window.'}
+            </div>
             <div style={{ display:'flex', gap:8 }}>
               <button onClick={() => setShowExitConfirm(false)} style={{ ...gBtn({ flex:1 }) }}>Continue</button>
-              <button onClick={() => { setShowExitConfirm(false); onExit() }} style={{ ...gDngr({ flex:1 }) }}>Exit</button>
+              {onPause ? (
+                <button onClick={() => { setShowExitConfirm(false); onPause({ questions: QUESTIONS, sections: SECTIONS, curSec, curQLocal, sectionTimers, sectionLocked, answers, marked, visited }) }}
+                  style={{ flex:1, padding:'10px', borderRadius:8, background:P, color:'white', border:'none', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                  Pause & Exit
+                </button>
+              ) : (
+                <button onClick={() => { setShowExitConfirm(false); onExit() }} style={{ ...gDngr({ flex:1 }) }}>Exit</button>
+              )}
             </div>
           </div>
         </div>

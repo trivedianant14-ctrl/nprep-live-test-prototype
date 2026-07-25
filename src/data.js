@@ -75,7 +75,7 @@ export const SERIES_GROUPS = [
 // section of the exam engine's question bank so "Attempt" runs the real engine.
 // The most recent test is live right now — it drives the red dot on the Daily Test tab.
 export const DAILY_TESTS = [
-  { id: 901, series: 'norcet', fullName: 'Daily Test — Pediatric Nursing',       sectionId: 'C', date: '25 Jul 2026', ts: new Date('2026-07-25'), dur: '18 min', mks: '20', score: null,  attempted: false, liveNow: true },
+  { id: 901, series: 'norcet', fullName: 'Daily Test — Pediatric Nursing',       sectionId: 'C', date: '25 Jul 2026', ts: new Date('2026-07-25'), dur: '18 min', mks: '20', score: null,  attempted: false, liveNow: true, attemptedToday: 467 },
   { id: 902, series: 'norcet', fullName: 'Daily Test — Nursing Foundations',     sectionId: 'A', date: '24 Jul 2026', ts: new Date('2026-07-24'), dur: '18 min', mks: '20', score: '16',  attempted: true  },
   { id: 903, series: 'norcet', fullName: 'Daily Test — Medical Surgical',        sectionId: 'B', date: '23 Jul 2026', ts: new Date('2026-07-23'), dur: '18 min', mks: '20', score: null,  attempted: false },
   { id: 904, series: 'norcet', fullName: 'Daily Test — Community Health',        sectionId: 'D', date: '22 Jul 2026', ts: new Date('2026-07-22'), dur: '18 min', mks: '20', score: '14',  attempted: true  },

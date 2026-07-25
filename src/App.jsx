@@ -55,6 +55,9 @@ export default function App() {
   const [userTier, setUserTier] = useState('paid')
   const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a daily test slice
   const [dailyAttemptedIds, setDailyAttemptedIds] = useState(new Set())
+  const [dailyResults, setDailyResults] = useState({}) // dailyTestId -> full results, powers View Report
+  const [pausedDaily, setPausedDaily] = useState({})   // dailyTestId -> { customTest, snapshot, interfaceMode }
+  const [resumeSnapshot, setResumeSnapshot] = useState(null)
   const [calendarFilter, setCalendarFilter] = useState('all')
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
@@ -63,8 +66,25 @@ export default function App() {
   // A daily test is a one-section slice of the same question bank, run through the
   // same exam engine (and the same anti-cheating shuffle) as the official live test.
   const handleDailyAttempt = (test) => {
+    setResumeSnapshot(null)
     setCustomTest({ ...buildCustomTest({ mode:'subject', selectedSectionIds:[test.sectionId], testName: test.fullName }), dailyTestId: test.id })
     setScreen('exampretest')
+  }
+  // Pausing keeps the whole attempt (answers, timers, shuffled paper) so Continue Test
+  // re-enters the exact same attempt — skipping the pretest screen entirely.
+  const handleDailyPause = (snapshot) => {
+    const id = customTest.dailyTestId
+    setPausedDaily(prev => ({ ...prev, [id]: { customTest, snapshot, interfaceMode: examInterfaceMode } }))
+    setCustomTest(null); setResumeSnapshot(null)
+    setScreen('home'); setActiveCategory('Daily Test')
+  }
+  const handleDailyResume = (test) => {
+    const saved = pausedDaily[test.id]
+    if (!saved) return
+    setCustomTest(saved.customTest)
+    setExamInterfaceMode(saved.interfaceMode)
+    setResumeSnapshot(saved.snapshot)
+    setScreen('exam')
   }
   const isLiveNow = getLifecyclePhase(LIVE_TEST) === 'live'
   const dailyLiveNow = DAILY_TESTS.some(t => t.liveNow && !t.attempted && !dailyAttemptedIds.has(t.id))
@@ -94,12 +114,20 @@ export default function App() {
           ) : (
             <ExamScreen
               interfaceMode={examInterfaceMode}
-              onExit={() => { setCustomTest(null); setScreen('home') }}
+              onExit={() => { setCustomTest(null); setResumeSnapshot(null); setScreen('home') }}
               onFinish={(results) => {
                 setLastAttempt(results)
                 if (!customTest) setLiveTestAttempted(true)
-                else if (customTest.dailyTestId) setDailyAttemptedIds(prev => new Set([...prev, customTest.dailyTestId]))
+                else if (customTest.dailyTestId) {
+                  const id = customTest.dailyTestId
+                  setDailyAttemptedIds(prev => new Set([...prev, id]))
+                  setDailyResults(prev => ({ ...prev, [id]: results }))
+                  setPausedDaily(prev => { const next = { ...prev }; delete next[id]; return next })
+                }
               }}
+              onPause={customTest?.dailyTestId ? handleDailyPause : undefined}
+              exitLabel={customTest?.dailyTestId ? 'Back to Daily Tests' : 'Back to Live Tests'}
+              initialSnapshot={resumeSnapshot}
               customQuestions={customTest?.questions}
               customSections={customTest?.sections}
               customMeta={customTest?.meta}
@@ -179,7 +207,13 @@ export default function App() {
               userTier={userTier}
             />
           ) : activeCategory === 'Daily Test' ? (
-            <DailyTests dailyAttemptedIds={dailyAttemptedIds} onAttempt={handleDailyAttempt} />
+            <DailyTests
+              dailyAttemptedIds={dailyAttemptedIds}
+              dailyResults={dailyResults}
+              pausedIds={new Set(Object.keys(pausedDaily).map(Number))}
+              onAttempt={handleDailyAttempt}
+              onResume={handleDailyResume}
+            />
           ) : (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60%', color:T3, gap:10 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
