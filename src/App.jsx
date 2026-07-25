@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { UPCOMING, LIVE_TEST, DAILY_TESTS, P, PD, G, GL, T1, T2, T3, BD, BG2 } from './data'
+import { UPCOMING, LIVE_TEST, DAILY_TESTS, ATTEMPT_HISTORY, P, PD, G, GL, T1, T2, T3, BD, BG2 } from './data'
 import { BellIcon, CalendarIcon } from './icons'
 import { getLifecyclePhase } from './utils/lifecycle'
 import StatusBar from './components/StatusBar'
@@ -51,6 +51,7 @@ export default function App() {
   const [examInterfaceMode, setExamInterfaceMode] = useState('nprep')
   const [reminders, setReminders] = useState({ oneDay:false, oneHour:false })
   const [lastAttempt, setLastAttempt] = useState(null)
+  const [attemptHistory, setAttemptHistory] = useState(ATTEMPT_HISTORY)
   const [liveTestAttempted, setLiveTestAttempted] = useState(false) // official Live Test only — no re-attempts once true
   const [userTier, setUserTier] = useState('paid')
   const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a daily test slice
@@ -117,6 +118,9 @@ export default function App() {
               onExit={() => { setCustomTest(null); setResumeSnapshot(null); setScreen('home') }}
               onFinish={(results) => {
                 setLastAttempt(results)
+                // Append a point to the Home progress trend (score % + percentile over time)
+                const today = new Date().toLocaleString('en-US', { day: 'numeric', month: 'short' })
+                setAttemptHistory(prev => [...prev, { testName: results.testName, date: today, scorePct: results.accuracy, percentile: results.percentile }])
                 if (!customTest) setLiveTestAttempted(true)
                 else if (customTest.dailyTestId) {
                   const id = customTest.dailyTestId
@@ -204,6 +208,7 @@ export default function App() {
               onOpenSeries={openSeries}
               onOpenCalendar={() => openCalendar('all')}
               lastAttempt={lastAttempt}
+              attemptHistory={attemptHistory}
               userTier={userTier}
             />
           ) : activeCategory === 'Daily Test' ? (

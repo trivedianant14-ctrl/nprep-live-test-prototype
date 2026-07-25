@@ -24,7 +24,89 @@ function testsForTile(map, tile) {
   return tile.types ? list.filter(t => tile.types.includes(t.type)) : list
 }
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, userTier }) {
+// Home-page progress trend — score % / percentile over the last several attempts, the
+// dashboard view PW/Aakash lead with. Pure inline SVG (both metrics are 0–100, so one
+// fixed y-scale works); no chart library. Shows the running delta vs the previous attempt.
+function ProgressTrend({ history }) {
+  const [metric, setMetric] = useState('percentile') // 'percentile' | 'scorePct'
+  const pts = history.slice(-8) // keep the chart readable — last 8 attempts
+  const n = pts.length
+  const vals = pts.map(p => metric === 'percentile' ? p.percentile : p.scorePct)
+  const latest = vals[n - 1]
+  const prev = n > 1 ? vals[n - 2] : null
+  const delta = prev == null ? null : latest - prev
+
+  const W = 300, H = 96, padL = 6, padR = 6, padT = 8, padB = 20
+  const plotW = W - padL - padR, plotH = H - padT - padB
+  const x = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW
+  const y = v => padT + (1 - v / 100) * plotH
+  const linePath = pts.map((_, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(vals[i]).toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L ${x(n - 1).toFixed(1)} ${(padT + plotH).toFixed(1)} L ${x(0).toFixed(1)} ${(padT + plotH).toFixed(1)} Z`
+  // Label density: all points when few, else first / middle / last only.
+  const showLabel = i => n <= 5 || i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2)
+
+  return (
+    <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:T1 }}>Your Progress</div>
+        <div style={{ display:'inline-flex', background:BG2, borderRadius:16, padding:2, gap:2 }}>
+          {[{ id:'percentile', label:'Percentile' }, { id:'scorePct', label:'Score %' }].map(o => {
+            const active = metric === o.id
+            return (
+              <button key={o.id} onClick={() => setMetric(o.id)} style={{
+                padding:'4px 12px', borderRadius:14, fontSize:10.5, fontWeight:active ? 600 : 500,
+                background: active ? 'white' : 'transparent', color: active ? T1 : T3,
+                border:'none', cursor:'pointer', boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}>{o.label}</button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, padding:'14px 14px 10px' }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
+          <span style={{ fontSize:26, fontWeight:700, color:PD }}>{latest}{metric === 'percentile' ? ordinal(latest) : '%'}</span>
+          {delta != null && (
+            <span style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:11.5, fontWeight:600, color: delta >= 0 ? '#189A57' : '#E5484D' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: delta >= 0 ? 'none' : 'rotate(180deg)' }}>
+                <polyline points="6 15 12 9 18 15"/>
+              </svg>
+              {delta >= 0 ? '+' : ''}{delta} vs last
+            </span>
+          )}
+          <span style={{ marginLeft:'auto', fontSize:10, color:T3 }}>last {n} attempts</span>
+        </div>
+
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="none" style={{ display:'block', overflow:'visible' }}>
+          <defs>
+            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={P} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={P} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0, 50, 100].map(g => (
+            <line key={g} x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke={BD} strokeWidth="1" strokeDasharray="3 3" />
+          ))}
+          <path d={areaPath} fill="url(#trendFill)" />
+          <path d={linePath} fill="none" stroke={P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {pts.map((p, i) => {
+            const last = i === n - 1
+            return (
+              <g key={i}>
+                <circle cx={x(i)} cy={y(vals[i])} r={last ? 4.5 : 3} fill={last ? P : 'white'} stroke={P} strokeWidth="2" />
+                {showLabel(i) && (
+                  <text x={x(i)} y={H - 6} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="9" fill={T3} fontWeight="500">{p.date}</text>
+                )}
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, attemptHistory = [], userTier }) {
   const [previewPhase, setPreviewPhase] = useState(null)
   const [pastTestView, setPastTestView] = useState('full_mock')
 
@@ -77,10 +159,14 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
       </div>
       <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={previewPhase} />
 
-      {/* Your Progress + Recommended for You — surfaced right on Home, not buried inside a
-          one-time results screen. Adaptive-learning research is consistent on this: apps
-          that resurface a student's weak area as an immediate next action (not just report
-          it once and move on) are what actually close the loop. */}
+      {/* Progress trend — score/percentile across recent attempts, so improvement is
+          visible on Home, not just inside a one-off results screen (PW/Aakash pattern). */}
+      {attemptHistory.length >= 2 && <ProgressTrend history={attemptHistory} />}
+
+      {/* Last-attempt detail + Recommended for You — surfaced right on Home, not buried
+          inside a one-time results screen. Adaptive-learning research is consistent on
+          this: apps that resurface a student's weak area as an immediate next action (not
+          just report it once and move on) are what actually close the loop. */}
       {lastAttempt && (
         <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16, marginBottom:24 }}>
           <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Your Last Attempt</div>

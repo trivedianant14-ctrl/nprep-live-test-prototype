@@ -95,6 +95,18 @@ export const DAILY_TESTS = [
   { id: 916, series: 'rrb',    fullName: 'Daily Test — RRB Nursing Core',        sectionId: 'B', date: '22 Jul 2026', ts: new Date('2026-07-22'), dur: '18 min', mks: '20', score: '19',  attempted: true  },
 ]
 
+// ─── Attempt history ────────────────────────────────────────────────────────
+// Powers the Home-page "Your Progress" trend chart (score % + percentile over time —
+// the same dashboard pattern PW/Aakash lead with). Seeded with a few past attempts so
+// the trend is visible on first load; every real attempt (see App.jsx onFinish) appends
+// a new point. Oldest first — the chart plots left→right in this order.
+export const ATTEMPT_HISTORY = [
+  { testName: 'NORCET 7 — Stage I',  date: '28 Jun', scorePct: 54, percentile: 61 },
+  { testName: 'NORCET 8 — Stage I',  date: '7 Jul',  scorePct: 58, percentile: 66 },
+  { testName: 'MSN Preboard',        date: '14 Jul', scorePct: 52, percentile: 59 },
+  { testName: 'NORCET 9 — Stage I',  date: '19 Jul', scorePct: 67, percentile: 74 },
+]
+
 // The featured live test. Real start/end timestamps (not just a display string) so its
 // homepage banner can compute its own lifecycle phase automatically — upcoming, starting
 // soon, live, ended, results — instead of being hardcoded to always say "LIVE".
