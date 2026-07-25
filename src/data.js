@@ -101,10 +101,12 @@ export const DAILY_TESTS = [
 // the trend is visible on first load; every real attempt (see App.jsx onFinish) appends
 // a new point. Oldest first — the chart plots left→right in this order.
 export const ATTEMPT_HISTORY = [
+  { testName: 'Diagnostic Test 3',   date: '18 Jun', scorePct: 48, percentile: 52 },
   { testName: 'NORCET 7 — Stage I',  date: '28 Jun', scorePct: 54, percentile: 61 },
   { testName: 'NORCET 8 — Stage I',  date: '7 Jul',  scorePct: 58, percentile: 66 },
   { testName: 'MSN Preboard',        date: '14 Jul', scorePct: 52, percentile: 59 },
-  { testName: 'NORCET 9 — Stage I',  date: '19 Jul', scorePct: 67, percentile: 74 },
+  { testName: 'FON Preboard',        date: '19 Jul', scorePct: 63, percentile: 70 },
+  { testName: 'NORCET 9 — Stage I',  date: '22 Jul', scorePct: 67, percentile: 74 },
 ]
 
 // The featured live test. Real start/end timestamps (not just a display string) so its
