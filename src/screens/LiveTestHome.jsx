@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, P, T1, T2, T3, BD, seriesById } from '../data'
+import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, P, T1, T2, T3, BD, BG2, seriesById } from '../data'
 import { CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import LiveTestBanner from '../components/LiveTestBanner'
@@ -26,6 +26,7 @@ function testsForTile(map, tile) {
 
 export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, userTier }) {
   const [previewPhase, setPreviewPhase] = useState(null)
+  const [pastTestView, setPastTestView] = useState('full_mock')
 
   // Most time-sensitive tests across every series, sorted by soonest registration
   // deadline — this is the "Upcoming Tests" preview from the wireframe, but instead of
@@ -138,8 +139,27 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
           to open right here (tile label + tagline carry the identity); inside a series
           there are deliberately no further tags or filters to read. */}
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:12 }}>Past Tests</div>
-        {SERIES_GROUPS.map(group => (
+        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Past Tests</div>
+        <div style={{ display:'flex', background:BG2, borderRadius:12, padding:4, gap:4, marginBottom:12 }}>
+          {[
+            { id: 'full_mock', label: 'Full Mock' },
+            { id: 'subject', label: 'Subject-wise' },
+          ].map(opt => {
+            const isActive = pastTestView === opt.id
+            return (
+              <button key={opt.id} onClick={() => setPastTestView(opt.id)} style={{
+                flex:1, padding:'8px 12px', borderRadius:10, border:'none', cursor:'pointer',
+                background: isActive ? 'white' : 'transparent',
+                color: isActive ? T1 : T2,
+                fontSize: 13, fontWeight: isActive ? 600 : 500,
+                boxShadow: isActive ? '0 2px 4px rgba(0,0,0,0.08)' : 'none',
+              }}>
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+        {SERIES_GROUPS.filter(g => g.id === pastTestView).map(group => (
           <div key={group.id} style={{ marginBottom:18 }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
               <span style={{ fontSize:12, fontWeight:700, color:T2 }}>{group.label}</span>
