@@ -49,8 +49,8 @@ export default function SeriesDetail({ seriesId, userTier, registeredIds, onRegi
           <div style={{ fontSize:16, fontWeight:700, color:T1 }}>{series.label}</div>
           <div style={{ fontSize:11, color:T3, marginTop:1 }}>{series.tagline}</div>
         </div>
-        <button onClick={() => onOpenCalendar(sourceSeriesId)} title="View this series' calendar" style={{ flexShrink:0, background:'#EDF4FF', border:'1px solid #93B8F0', borderRadius:9, padding:8, display:'flex', cursor:'pointer' }}>
-          <CalendarIcon size={16} color="#1A56B0" />
+        <button onClick={() => onOpenCalendar(sourceSeriesId)} title="View this series' calendar" style={{ flexShrink:0, background:PL, border:'none', borderRadius:10, padding:9, display:'flex', cursor:'pointer' }}>
+          <CalendarIcon size={16} color={PD} />
         </button>
       </div>
 

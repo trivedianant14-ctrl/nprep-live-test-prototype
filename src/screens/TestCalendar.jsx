@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SERIES, UPCOMING, NORCET_TYPE_LABEL, P, T1, T2, T3, BD } from '../data'
+import { SERIES, UPCOMING, NORCET_TYPE_LABEL, P, PL, PD, T1, T2, T3, BD } from '../data'
 import { ChevronLeft } from '../icons'
 import { UpcomingCard } from '../components/Cards'
 import { brandListForTier } from '../utils/tierBranding'
@@ -69,17 +69,17 @@ export default function TestCalendar({ registeredIds, onRegisterClick, onBack, u
         {monthGroups.map(mg => (
           <div key={mg.month} style={{ marginBottom:28 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18 }}>
-              <span style={{ fontSize:17, fontWeight:800, color:T1 }}>{mg.month}</span>
-              <div style={{ flex:1, height:1.5, background:BD }} />
+              <span style={{ fontSize:16, fontWeight:700, color:T1 }}>{mg.month}</span>
+              <div style={{ flex:1, height:1, background:BD }} />
             </div>
             {mg.dateGroups.map(dg => (
               <div key={dg.date} style={{ marginBottom:20 }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                   <div style={{ display:'flex', alignItems:'baseline', gap:7 }}>
-                    <span style={{ fontSize:26, fontWeight:800, color:T1, lineHeight:1 }}>{dg.dayNum}</span>
+                    <span style={{ fontSize:24, fontWeight:700, color:PD, lineHeight:1 }}>{dg.dayNum}</span>
                     <span style={{ fontSize:13, fontWeight:500, color:T3 }}>{dg.dayName}</span>
                   </div>
-                  <span style={{ fontSize:10, fontWeight:600, color:'#1A56B0', background:'#EDF4FF', border:'1px solid #93B8F0', padding:'3px 9px', borderRadius:20 }}>
+                  <span style={{ fontSize:10.5, fontWeight:600, color:P, background:PL, padding:'4px 10px', borderRadius:20 }}>
                     In {dg.daysOut} {dg.daysOut === 1 ? 'day' : 'days'}
                   </span>
                 </div>

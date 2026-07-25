@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { P, PD, G, GL, GB, A, AL, AB, T1, T2, T3, BD, BG2 } from '../data'
+import { P, PD, G, GL, A, AL, T1, T2, T3, BD, BG2 } from '../data'
 import { ClockIcon, StarIcon, UsersIcon } from '../icons'
 import { getLifecyclePhase, formatCountdown } from '../utils/lifecycle'
 
@@ -7,9 +7,9 @@ import { getLifecyclePhase, formatCountdown } from '../utils/lifecycle'
 // Live -> Live -> Result Out/Missed. ("Scheduled" — before registration opens — isn't
 // modeled by this prototype's single test, which is always at least registering.)
 const PHASE_META = {
-  upcoming:      { label: 'Registering',       bg: '#EDF4FF', color: '#1A56B0', border: '#93B8F0' },
-  starting_soon: { label: 'Countdown to Live', bg: AL,        color: A,        border: AB },
-  ended:         { label: 'Processing',        bg: BG2,       color: T2,       border: BD },
+  upcoming:      { label: 'Registering',       bg: '#F1F4FF', color: '#008DFF' },
+  starting_soon: { label: 'Countdown to Live', bg: AL,        color: A },
+  ended:         { label: 'Processing',        bg: BG2,       color: T2 },
 }
 
 // Renders whichever phase the test is actually in right now, recomputed every second —
@@ -36,7 +36,7 @@ export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride 
 
   if (phase === 'live') {
     return (
-      <div style={{ background:`linear-gradient(135deg, ${P} 0%, ${PD} 100%)`, borderRadius:14, padding:'18px 16px 16px', marginBottom:24, boxShadow:'0 4px 16px rgba(83,74,183,0.28)' }}>
+      <div style={{ background:PD, borderRadius:14, padding:'18px 16px 16px', marginBottom:24, boxShadow:'0 4px 16px rgba(19,27,99,0.25)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700, background:'rgba(255,255,255,0.18)', color:'white', border:'1px solid rgba(255,255,255,0.32)' }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF3B30', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,59,48,0.4)', animation:'livePulse 1.4s ease-in-out infinite' }} />
@@ -52,7 +52,7 @@ export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride 
         </div>
         {/* No re-attempts on a Live Test — once submitted, the CTA retires rather than
             offering to re-enter. */}
-        <button onClick={() => !attempted && onJoin()} disabled={attempted} style={{ width:'100%', padding:'12px', borderRadius:10, background: attempted ? GL : 'white', color: attempted ? G : P, fontSize:14, fontWeight:700, border: attempted ? `1px solid ${GB}` : 'none', cursor: attempted ? 'default' : 'pointer', boxShadow: attempted ? 'none' : '0 2px 8px rgba(0,0,0,0.12)' }}>
+        <button onClick={() => !attempted && onJoin()} disabled={attempted} style={{ width:'100%', padding:'12px', borderRadius:24, background: attempted ? GL : 'white', color: attempted ? G : PD, fontSize:14, fontWeight:600, border:'none', cursor: attempted ? 'default' : 'pointer', boxShadow: attempted ? 'none' : '0 2px 8px rgba(0,0,0,0.12)' }}>
           {attempted ? '✓ Test Submitted' : 'Join Now'}
         </button>
       </div>
@@ -61,19 +61,22 @@ export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride 
 
   if (phase === 'results') {
     const meta = previewAttempted
-      ? { label: 'Result Out', bg: GL, color: G, border: GB }
-      : { label: 'Missed',     bg: BG2, color: T2, border: BD }
+      ? { label: 'Result Out', bg: GL, color: G }
+      : { label: 'Missed',     bg: BG2, color: T3 }
     return (
-      <div style={{ background:'white', border:`1.5px solid ${BD}`, borderLeft:`4px solid ${previewAttempted ? G : T3}`, borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderLeft:`3px solid ${previewAttempted ? G : T3}`, borderRadius:14, padding:'14px 16px', marginBottom:24 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8, gap:8 }}>
-          <span style={{ fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, background:meta.bg, color:meta.color, border:`1px solid ${meta.border}` }}>{meta.label}</span>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, padding:'4px 10px 4px 8px', borderRadius:20, background:meta.bg, color:meta.color }}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:meta.color, display:'inline-block' }} />
+            {meta.label}
+          </span>
           <span style={{ fontSize:11, color:T3 }}>{test.timeLabel}</span>
         </div>
-        <div style={{ fontSize:14, fontWeight:700, color:T1, marginBottom:8, lineHeight:1.4 }}>{test.name}</div>
+        <div style={{ fontSize:13.5, fontWeight:600, color:T1, marginBottom:8, lineHeight:1.4 }}>{test.name}</div>
         {previewAttempted ? (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
             <span style={{ fontSize:12, color:T2 }}>Results are out.</span>
-            <button style={{ flexShrink:0, padding:'7px 14px', borderRadius:8, background:G, color:'white', border:'none', fontSize:12, fontWeight:700, cursor:'pointer' }}>View Result</button>
+            <button style={{ flexShrink:0, padding:'7px 16px', borderRadius:20, background:P, color:'white', border:'none', fontSize:12, fontWeight:600, cursor:'pointer' }}>View Result</button>
           </div>
         ) : (
           <div style={{ fontSize:12, color:T2, lineHeight:1.5 }}>This test has closed and you didn't attempt it. It won't reopen — check Upcoming Tests for what's next.</div>
@@ -83,15 +86,18 @@ export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride 
   }
 
   const meta = PHASE_META[phase]
-  const accent = phase === 'upcoming' ? '#1A56B0' : phase === 'starting_soon' ? A : T3
+  const accent = phase === 'upcoming' ? P : phase === 'starting_soon' ? A : T3
 
   return (
-    <div style={{ background:'white', border:`1.5px solid ${BD}`, borderLeft:`4px solid ${accent}`, borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
+    <div style={{ background:'white', border:`1px solid ${BD}`, borderLeft:`3px solid ${accent}`, borderRadius:14, padding:'14px 16px', marginBottom:24 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8, gap:8 }}>
-        <span style={{ fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, background:meta.bg, color:meta.color, border:`1px solid ${meta.border}` }}>{meta.label}</span>
+        <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, padding:'4px 10px 4px 8px', borderRadius:20, background:meta.bg, color:meta.color }}>
+          <span style={{ width:6, height:6, borderRadius:'50%', background:meta.color, display:'inline-block' }} />
+          {meta.label}
+        </span>
         <span style={{ fontSize:11, color:T3 }}>{test.timeLabel}</span>
       </div>
-      <div style={{ fontSize:14, fontWeight:700, color:T1, marginBottom:8, lineHeight:1.4 }}>{test.name}</div>
+      <div style={{ fontSize:13.5, fontWeight:600, color:T1, marginBottom:8, lineHeight:1.4 }}>{test.name}</div>
 
       {phase === 'upcoming' && (
         <div style={{ fontSize:12, color:T2 }}>Starts in <b style={{ color:T1 }}>{startCountdown}</b> · registration is open</div>

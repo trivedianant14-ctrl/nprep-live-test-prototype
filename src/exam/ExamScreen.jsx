@@ -250,7 +250,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             <polyline points="20,6 9,17 4,12"/>
           </svg>
         </div>
-        <div style={{ fontSize:22, fontWeight:800, color:T1, marginBottom:12, lineHeight:1.3 }}>Test Submitted Successfully</div>
+        <div style={{ fontSize:21, fontWeight:700, color:T1, marginBottom:12, lineHeight:1.3 }}>Test Submitted Successfully</div>
         <div style={{ fontSize:13, color:T2, lineHeight:1.75, maxWidth:290, marginBottom:32 }}>
           Your <span style={{ fontWeight:600, color:HDR }}>{EXAM_META.shortName}</span> responses have been recorded. Results will be declared after the examination window closes.
         </div>
@@ -262,8 +262,8 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
               { label:'Wrong',     value: finalResults.wrong,     color: DIAM },
             ].map(s => (
               <div key={s.label} style={{ flex:1, background:'white', padding:'12px 8px', textAlign:'center' }}>
-                <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
-                <div style={{ fontSize:10, color:T3, marginTop:2, fontWeight:600 }}>{s.label}</div>
+                <div style={{ fontSize:20, fontWeight:700, color:s.color }}>{s.value}</div>
+                <div style={{ fontSize:10, color:T3, marginTop:2, fontWeight:500 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -307,23 +307,23 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
         <div className="scroll" style={{ flex:1, padding:'16px 16px 80px' }}>
           <div style={{ background:'white', borderRadius:12, padding:'24px 20px', marginBottom:10, textAlign:'center', border:`1px solid ${BD}` }}>
             <div style={{ fontSize:10, fontWeight:600, color:T3, letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:14 }}>Your Score</div>
-            <div><span style={{ fontSize:54, fontWeight:900, color:HDR }}>{r.score}</span><span style={{ fontSize:20, color:T3 }}> / {total}</span></div>
+            <div><span style={{ fontSize:52, fontWeight:700, color:HDR }}>{r.score}</span><span style={{ fontSize:20, color:T3 }}> / {total}</span></div>
             <div style={{ marginTop:12, display:'inline-flex', alignItems:'center', background:'#f5f5f5', border:'1px solid #ddd', borderRadius:20, padding:'5px 16px' }}>
               <span style={{ fontSize:13, fontWeight:700, color:ac }}>{accuracy}% Accuracy</span>
             </div>
-            <div style={{ marginTop:10, fontSize:11, color:T3 }}>⏱ {fmtT(r.timeTaken)} taken</div>
+            <div style={{ marginTop:10, fontSize:11, color:T3 }}>{fmtT(r.timeTaken)} taken</div>
           </div>
 
           {/* Estimated percentile / AIR — the trust-building feature every major Indian
               competitive-exam app (Testbook, PW, Aakash) leads with on a results screen */}
           <div style={{ display:'flex', gap:8, marginBottom:16 }}>
             <div style={{ flex:1, background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'12px 10px', textAlign:'center' }}>
-              <div style={{ fontSize:20, fontWeight:800, color:HDR }}>{r.percentile}<span style={{ fontSize:12, fontWeight:600 }}>{ordinal(r.percentile)}</span></div>
-              <div style={{ fontSize:10, color:T3, fontWeight:600, marginTop:2 }}>Est. Percentile</div>
+              <div style={{ fontSize:20, fontWeight:700, color:HDR }}>{r.percentile}<span style={{ fontSize:12, fontWeight:600 }}>{ordinal(r.percentile)}</span></div>
+              <div style={{ fontSize:10, color:T3, fontWeight:500, marginTop:2 }}>Est. Percentile</div>
             </div>
             <div style={{ flex:1, background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'12px 10px', textAlign:'center' }}>
-              <div style={{ fontSize:20, fontWeight:800, color:HDR }}>~{r.air.toLocaleString()}</div>
-              <div style={{ fontSize:10, color:T3, fontWeight:600, marginTop:2 }}>Est. All-India Rank</div>
+              <div style={{ fontSize:20, fontWeight:700, color:HDR }}>~{r.air.toLocaleString()}</div>
+              <div style={{ fontSize:10, color:T3, fontWeight:500, marginTop:2 }}>Est. All-India Rank</div>
             </div>
           </div>
           <div style={{ fontSize:10, color:T3, textAlign:'center', marginTop:-10, marginBottom:16, lineHeight:1.5 }}>
@@ -331,8 +331,10 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           </div>
 
           {/* Weakest section — a data-driven nudge instead of a generic "keep practicing" */}
-          <div style={{ background:PL, border:`1px solid ${PD}22`, borderRadius:10, padding:'13px 14px', marginBottom:16, display:'flex', alignItems:'flex-start', gap:10 }}>
-            <span style={{ fontSize:16, flexShrink:0 }}>🎯</span>
+          <div style={{ background:PL, borderRadius:10, padding:'13px 14px', marginBottom:16, display:'flex', alignItems:'flex-start', gap:10 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, marginTop:1 }}>
+              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+            </svg>
             <div>
               <div style={{ fontSize:12.5, fontWeight:700, color:PD, marginBottom:2 }}>Focus area: {r.weakestSection.name}</div>
               <div style={{ fontSize:11.5, color:T2, lineHeight:1.5 }}>
@@ -344,8 +346,8 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16 }}>
             {[{ label:'Correct', value:r.correct, fg:GRUN }, { label:'Wrong', value:r.wrong, fg:DIAM }, { label:'Skipped', value:r.unattempted, fg:T3 }].map(c => (
               <div key={c.label} style={{ background:'white', border:`1px solid ${BD}`, borderRadius:10, padding:'14px 8px', textAlign:'center' }}>
-                <div style={{ fontSize:26, fontWeight:800, color:c.fg }}>{c.value}</div>
-                <div style={{ fontSize:10, color:c.fg, fontWeight:600, marginTop:3 }}>{c.label}</div>
+                <div style={{ fontSize:24, fontWeight:700, color:c.fg }}>{c.value}</div>
+                <div style={{ fontSize:10, color:c.fg, fontWeight:500, marginTop:3 }}>{c.label}</div>
               </div>
             ))}
           </div>
@@ -441,7 +443,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
                   {sec.id}: {sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}
                 </div>
                 <div style={{ fontSize:10, marginTop:1, fontVariantNumeric:'tabular-nums', color: isLk ? '#ff8080' : st <= 120 ? '#ffcc44' : 'rgba(255,255,255,0.5)' }}>
-                  {isLk ? 'Locked' : `⏱ ${fmtSec(st)}`}
+                  {isLk ? 'Locked' : fmtSec(st)}
                 </div>
               </div>
             )

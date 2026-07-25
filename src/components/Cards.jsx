@@ -1,4 +1,4 @@
-import { P, G, GL, GB, A, AL, AB, T1, T2, T3, BD } from '../data'
+import { P, PL, PD, G, GL, A, AL, T1, T2, T3, BD, BG2 } from '../data'
 import { ClockIcon, StarIcon } from '../icons'
 import { downloadReportCard } from '../utils/reportPdf'
 import { scholarshipAmount } from '../utils/tierBranding'
@@ -20,16 +20,16 @@ function MetaLine({ items, style }) {
 }
 
 // A single status signal per card — registration urgency or "Registered" — instead of
-// stacking a countdown pill, a date pill, and a social-proof pill. Color still carries
-// real meaning (red/amber/green by how soon registration closes); everything else that
-// isn't a status is plain text.
+// stacking a countdown pill, a date pill, and a social-proof pill. NPrep's status
+// language: a dot + label in a soft tint, no border, never a loud pill. Color still
+// carries real meaning (red/amber/green by how soon registration closes).
 function StatusPill({ isRegistered, regCloses }) {
   const urgent = regCloses <= 2, soon = regCloses <= 5
-  const bg     = isRegistered ? GL : urgent ? '#FDECEC' : soon ? AL : GL
-  const color  = isRegistered ? G  : urgent ? '#C53030' : soon ? A  : G
-  const border = isRegistered ? GB : urgent ? '#F5A3A3' : soon ? AB : GB
+  const bg    = isRegistered ? GL : urgent ? '#FDECED' : soon ? AL : GL
+  const color = isRegistered ? G  : urgent ? '#E5484D' : soon ? A  : G
   return (
-    <span style={{ flexShrink:0, fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, background:bg, color, border:`1px solid ${border}`, whiteSpace:'nowrap' }}>
+    <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, padding:'4px 10px 4px 8px', borderRadius:20, background:bg, color, whiteSpace:'nowrap' }}>
+      <span style={{ width:6, height:6, borderRadius:'50%', background:color, flexShrink:0 }} />
       {isRegistered ? 'Registered' : `Closes in ${regCloses}d`}
     </span>
   )
@@ -40,15 +40,15 @@ function StatusPill({ isRegistered, regCloses }) {
 // the first word of a sentence a student already reads top to bottom.
 export function UpcomingCard({ test, isRegistered, onRegisterClick, label }) {
   return (
-    <div style={{ background:'white', border:`1px solid ${test.recommended ? GB : BD}`, borderRadius:12, padding:'14px', marginBottom:10 }}>
+    <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom:10 }}>
       {test.recommended && (
         <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:8 }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill={G} stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-          <span style={{ fontSize:10.5, fontWeight:700, color:G }}>Recommended</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill={P} stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+          <span style={{ fontSize:10.5, fontWeight:600, color:P }}>Recommended</span>
         </div>
       )}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
-        <div style={{ fontSize:14, fontWeight:700, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
+        <div style={{ fontSize:13.5, fontWeight:600, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
         <StatusPill isRegistered={isRegistered} regCloses={test.regCloses} />
       </div>
       <div style={{ fontSize:11.5, color:T3, marginBottom:8 }}>
@@ -64,13 +64,13 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label }) {
         ]}
       />
       {test.deliveryChannel === 'whatsapp' ? (
-        <div style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12, fontWeight:600, background:'#F0FDF4', color:'#166534', border:'1px solid #86EFAC', textAlign:'center' }}>
-          📱 Sent via WhatsApp — no app registration needed
+        <div style={{ width:'100%', padding:'10px', borderRadius:24, fontSize:12, fontWeight:600, background:GL, color:G, textAlign:'center' }}>
+          Sent via WhatsApp — no app registration needed
         </div>
       ) : (
         <button
           onClick={() => !isRegistered && onRegisterClick(test)}
-          style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12.5, fontWeight:700, cursor:isRegistered?'default':'pointer', background:isRegistered?GL:P, color:isRegistered?G:'white', border:isRegistered?`1px solid ${GB}`:'none' }}>
+          style={{ width:'100%', padding:'10px', borderRadius:24, fontSize:13, fontWeight:600, cursor:isRegistered?'default':'pointer', background:isRegistered?GL:P, color:isRegistered?G:'white', border:'none' }}>
           {isRegistered ? '✓ Registered' : 'Register'}
         </button>
       )}
@@ -81,11 +81,11 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label }) {
 export function PastCard({ test, label }) {
   if (test.attempted) {
     return (
-      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, padding:'14px', marginBottom:10 }}>
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom:10 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
-          <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:700, color:G, whiteSpace:'nowrap' }}>
-            <span style={{ width:5, height:5, borderRadius:'50%', background:G, display:'inline-block' }} />
+          <div style={{ fontSize:13.5, fontWeight:600, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
+          <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:G, background:GL, padding:'4px 10px 4px 8px', borderRadius:20, whiteSpace:'nowrap' }}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:G, display:'inline-block' }} />
             Result Out
           </span>
         </div>
@@ -124,21 +124,24 @@ export function PastCard({ test, label }) {
               rows,
             })
           }}
-          style={{ width:'100%', padding:'9px', borderRadius:9, fontSize:12, fontWeight:600, background:'white', color:P, border:`1px solid ${P}`, cursor:'pointer' }}>
+          style={{ width:'100%', padding:'9px', borderRadius:24, fontSize:12.5, fontWeight:600, background:'white', color:P, border:`1px solid ${P}`, cursor:'pointer' }}>
           {test.reportLabel ? `Download ${test.reportLabel}` : 'View Result'}
         </button>
         {test.reportLabel === 'Scholarship Report' && (
-          <div style={{ fontSize:10.5, color:T3, textAlign:'center', marginTop:6 }}>📱 Also sent to your WhatsApp within 15–20 minutes</div>
+          <div style={{ fontSize:10.5, color:T3, textAlign:'center', marginTop:6 }}>Also sent to your WhatsApp within 15–20 minutes</div>
         )}
       </div>
     )
   }
 
   return (
-    <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:12, padding:'14px', marginBottom:10, opacity:0.65 }}>
+    <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:14, padding:'14px', marginBottom:10, opacity:0.65 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
-        <div style={{ fontSize:14, fontWeight:600, color:T2, lineHeight:1.35 }}>{test.fullName}</div>
-        <span style={{ flexShrink:0, fontSize:10, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:0.3, whiteSpace:'nowrap' }}>Missed</span>
+        <div style={{ fontSize:13.5, fontWeight:500, color:T2, lineHeight:1.35 }}>{test.fullName}</div>
+        <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:T3, whiteSpace:'nowrap' }}>
+          <span style={{ width:6, height:6, borderRadius:'50%', background:T3, display:'inline-block' }} />
+          Missed
+        </span>
       </div>
       <div style={{ fontSize:11.5, color:T3, marginBottom:8 }}>
         {label ? `${label} · ` : ''}{test.subtitle}
@@ -150,28 +153,42 @@ export function PastCard({ test, label }) {
 
 // The Past Tests category tiles from the wireframe — the primary fix for "too many
 // tests" and "different exams blended together": pick your exam body first, see a
-// short, unambiguous list second.
+// short, unambiguous list second. NPrep's tile language: white card, hairline
+// border, soft-blue icon tile, navy label — identity is icon + label, never a
+// per-category color block.
+function SeriesGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+      <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/>
+    </svg>
+  )
+}
+
 export function SeriesTile({ series, pastTotal, attempted, upcomingCount, onClick, isLive }) {
   if (series.comingSoon) {
     return (
-      <div style={{ background:series.bg, border:`1.5px dashed ${series.border}`, borderRadius:14, padding:'16px 14px', position:'relative', minHeight:100 }}>
-        <span style={{ position:'absolute', top:10, right:10, fontSize:9, fontWeight:700, color:series.color, background:'white', border:`1px solid ${series.border}`, padding:'2px 8px', borderRadius:20 }}>Coming Soon</span>
-        <div style={{ fontSize:14, fontWeight:700, color:series.color, marginBottom:4, marginTop:10 }}>{series.label}</div>
+      <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:14, padding:'14px', position:'relative', minHeight:112, opacity:0.7 }}>
+        <span style={{ position:'absolute', top:10, right:10, fontSize:9, fontWeight:600, color:T3, background:BG2, padding:'2px 8px', borderRadius:20 }}>Coming Soon</span>
+        <div style={{ fontSize:13, fontWeight:600, color:T2, marginBottom:4, marginTop:12 }}>{series.label}</div>
         <div style={{ fontSize:11, color:T3 }}>{series.tagline}</div>
       </div>
     )
   }
   return (
-    <button onClick={onClick} style={{ textAlign:'left', background:series.bg, border:`1.5px solid ${series.border}`, borderRadius:14, padding:'16px 14px', cursor:'pointer', minHeight:100, display:'flex', flexDirection:'column', position:'relative' }}>
+    <button onClick={onClick} style={{ textAlign:'left', background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', cursor:'pointer', minHeight:112, display:'flex', flexDirection:'column', position:'relative' }}>
       {/* Instagram-Live-style urgency dot: a test in this series is live right now.
           No count, no label — the dot alone reads as "something is happening here". */}
       {isLive && (
-        <span style={{ position:'absolute', top:11, right:11, width:8, height:8, borderRadius:'50%', background:'#FF3B30', boxShadow:'0 0 0 2.5px rgba(255,59,48,0.3)', animation:'livePulse 1.4s ease-in-out infinite' }} />
+        <span style={{ position:'absolute', top:12, right:12, width:8, height:8, borderRadius:'50%', background:'#FF3B30', boxShadow:'0 0 0 2.5px rgba(255,59,48,0.3)', animation:'livePulse 1.4s ease-in-out infinite' }} />
       )}
-      <div style={{ fontSize:14, fontWeight:700, color:series.color, marginBottom:4, paddingRight: isLive ? 14 : 0 }}>{series.label}</div>
-      <div style={{ fontSize:11, color:T3, marginBottom:10, flex:1 }}>{series.tagline}</div>
-      <div style={{ fontSize:10.5, fontWeight:600, color:series.color }}>
-        {pastTotal} past · {attempted} done{upcomingCount > 0 ? ` · ${upcomingCount} upcoming` : ''}
+      <div style={{ width:32, height:32, borderRadius:9, background:PL, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:9, flexShrink:0 }}>
+        <SeriesGlyph />
+      </div>
+      <div style={{ fontSize:13, fontWeight:600, color:T1, marginBottom:3, lineHeight:1.3, paddingRight: isLive ? 12 : 0 }}>{series.label}</div>
+      <div style={{ fontSize:10.5, color:T3, marginBottom:8, flex:1, lineHeight:1.45 }}>{series.tagline}</div>
+      <div style={{ fontSize:10.5, fontWeight:500, color:T2 }}>
+        {pastTotal} past · <span style={{ color:P, fontWeight:600 }}>{attempted} done</span>{upcomingCount > 0 ? ` · ${upcomingCount} upcoming` : ''}
       </div>
     </button>
   )

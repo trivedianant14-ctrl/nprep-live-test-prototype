@@ -1,4 +1,4 @@
-import { DAILY_TESTS, seriesById, G, GL, GB, P, T1, T2, T3, BD, BG2 } from '../data'
+import { DAILY_TESTS, seriesById, G, GL, P, T1, T2, T3, BD, BG2 } from '../data'
 import { ClockIcon, StarIcon } from '../icons'
 
 // The Daily Test feed rule: only the latest 10 tests stay in the feed, plus every test
@@ -17,12 +17,12 @@ function applyRetention(tests, attemptedIds) {
 function DailyCard({ test, attempted, onAttempt }) {
   if (test.liveNow && !attempted) {
     return (
-      <div style={{ background:'white', border:'1.5px solid #F5A3A3', borderLeft:'4px solid #FF3B30', borderRadius:12, padding:'14px', marginBottom:10 }}>
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderLeft:'3px solid #E5484D', borderRadius:14, padding:'14px', marginBottom:10 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
-          <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10, fontWeight:700, color:'#C53030', background:'#FDECEC', border:'1px solid #F5A3A3', padding:'3px 9px', borderRadius:20, whiteSpace:'nowrap' }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF3B30', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,59,48,0.35)', animation:'livePulse 1.4s ease-in-out infinite' }} />
-            LIVE TODAY
+          <div style={{ fontSize:13.5, fontWeight:600, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
+          <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:'#E5484D', background:'#FDECED', padding:'4px 10px 4px 8px', borderRadius:20, whiteSpace:'nowrap' }}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background:'#E5484D', display:'inline-block', boxShadow:'0 0 0 2px rgba(229,72,77,0.3)', animation:'livePulse 1.4s ease-in-out infinite' }} />
+            Live today
           </span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:T2, marginBottom:12 }}>
@@ -30,7 +30,7 @@ function DailyCard({ test, attempted, onAttempt }) {
           <span style={{ display:'inline-flex', alignItems:'center', gap:3 }}><ClockIcon size={11} />{test.dur}</span>
           <span style={{ display:'inline-flex', alignItems:'center', gap:3 }}><StarIcon size={11} />{test.mks} Marks</span>
         </div>
-        <button onClick={() => onAttempt(test)} style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12.5, fontWeight:700, background:P, color:'white', border:'none', cursor:'pointer' }}>
+        <button onClick={() => onAttempt(test)} style={{ width:'100%', padding:'10px', borderRadius:24, fontSize:13, fontWeight:600, background:P, color:'white', border:'none', cursor:'pointer' }}>
           Attempt Now
         </button>
       </div>
@@ -39,27 +39,33 @@ function DailyCard({ test, attempted, onAttempt }) {
 
   if (attempted) {
     return (
-      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:12, padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'center', gap:10 }}>
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:13, fontWeight:600, color:T1, lineHeight:1.35, marginBottom:3 }}>{test.fullName}</div>
           <div style={{ fontSize:10.5, color:T3 }}>{test.date} · {test.dur}</div>
         </div>
         <div style={{ flexShrink:0, textAlign:'right' }}>
           {test.score
-            ? <div style={{ fontSize:14, fontWeight:800, color:G }}>{test.score}<span style={{ fontSize:10.5, fontWeight:600, color:T3 }}>/{test.mks}</span></div>
-            : <span style={{ fontSize:10, fontWeight:700, color:G, background:GL, border:`1px solid ${GB}`, padding:'3px 9px', borderRadius:20 }}>Attempted</span>}
+            ? <div style={{ fontSize:14, fontWeight:700, color:G }}>{test.score}<span style={{ fontSize:10.5, fontWeight:500, color:T3 }}>/{test.mks}</span></div>
+            : <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:G, background:GL, padding:'4px 10px 4px 8px', borderRadius:20 }}>
+                <span style={{ width:6, height:6, borderRadius:'50%', background:G, display:'inline-block' }} />
+                Attempted
+              </span>}
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:12, padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'center', gap:10, opacity:0.6 }}>
+    <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:14, padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'center', gap:10, opacity:0.6 }}>
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:T2, lineHeight:1.35, marginBottom:3 }}>{test.fullName}</div>
+        <div style={{ fontSize:13, fontWeight:500, color:T2, lineHeight:1.35, marginBottom:3 }}>{test.fullName}</div>
         <div style={{ fontSize:10.5, color:T3 }}>{test.date}</div>
       </div>
-      <span style={{ flexShrink:0, fontSize:10, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:0.3 }}>Missed</span>
+      <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:T3 }}>
+        <span style={{ width:6, height:6, borderRadius:'50%', background:T3, display:'inline-block' }} />
+        Missed
+      </span>
     </div>
   )
 }

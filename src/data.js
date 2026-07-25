@@ -1,9 +1,14 @@
 // ─── Design tokens (shared across screens) ─────────────────────────────────
-export const P = '#534AB7', PL = '#EEEDFE', PB = '#AFA9EC', PD = '#3C3489'
-export const G = '#3B6D11', GL = '#EAF3DE', GB = '#97C459'
-export const A = '#633806', AL = '#FAEEDA', AB = '#FAC775'
-export const T1 = '#1a1a2e', T2 = '#5a5a78', T3 = '#9898b0'
-export const BD = '#e8e8f2', BG2 = '#f5f5fb'
+// NPrep production palette, pixel-sampled from the official homepage collaterals —
+// same values as qms-v1/src/theme/nprepTokens.js (the source of truth). Legacy short
+// names kept so every component recolors from this one block:
+//   P = action blue (CTAs, links, active states) · PD = navy (emphasis, avatars)
+//   PL = soft blue tile · PB = soft blue border · T1/T2/T3 = ink/body/label text
+export const P = '#008DFF', PL = '#F1F4FF', PB = '#C9DDF8', PD = '#131B63'
+export const G = '#189A57', GL = '#E9F8F0', GB = '#BDE8D2'
+export const A = '#C98A1B', AL = '#FDF4E3', AB = '#F0DEB4'
+export const T1 = '#16181D', T2 = '#62677D', T3 = '#888CB0'
+export const BD = '#E7EAF2', BG2 = '#F3F9FF'
 
 // ─── Series (the top-level exam-body tiles from the wireframe) ────────────
 // NORCET bundles four related test types under one tile (it's the one exam body

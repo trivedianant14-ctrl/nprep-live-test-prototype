@@ -41,15 +41,15 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
         <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>Prep Mode or Real Exam Mode?</div>
         <div style={{ display:'flex', background:BG2, borderRadius:12, padding:4, gap:4, marginBottom:10 }}>
           {[
-            { id:'nprep',  label:'Prep Mode',      sub:'NPrep · relaxed',       color:P,    colorD:PD },
-            { id:'norcet', label:'Real Exam Mode', sub:'NORCET · strict',       color:NAVY, colorD:NAVY_D },
+            { id:'nprep',  label:'Prep Mode',      sub:'NPrep · relaxed', color:P },
+            { id:'norcet', label:'Real Exam Mode', sub:'NORCET · strict', color:NAVY },
           ].map(opt => {
             const isAct = interfaceMode === opt.id
             return (
               <button key={opt.id} onClick={() => setInterfaceMode(opt.id)} style={{
-                flex:1, padding:'11px 8px', borderRadius:9, border:'none', cursor:'pointer',
-                background: isAct ? `linear-gradient(135deg, ${opt.color}, ${opt.colorD})` : 'transparent',
-                boxShadow: isAct ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                flex:1, padding:'11px 8px', borderRadius:10, border:'none', cursor:'pointer',
+                background: isAct ? opt.color : 'transparent',
+                boxShadow: isAct ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
               }}>
                 <div style={{ fontSize:13, fontWeight:700, color: isAct ? 'white' : T1 }}>{opt.label}</div>
                 <div style={{ fontSize:10, color: isAct ? 'rgba(255,255,255,0.75)' : T3, marginTop:1 }}>{opt.sub}</div>
@@ -85,7 +85,7 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
         <button
           disabled={!agreed}
           onClick={() => agreed && onStart(interfaceMode)}
-          style={{ width:'100%', padding:'14px', borderRadius:12, background: agreed ? P : BG2, color: agreed ? 'white' : T3, border:'none', fontSize:14, fontWeight:700, cursor: agreed ? 'pointer' : 'default' }}>
+          style={{ width:'100%', padding:'14px', borderRadius:24, background: agreed ? P : BG2, color: agreed ? 'white' : T3, border:'none', fontSize:14, fontWeight:600, cursor: agreed ? 'pointer' : 'default' }}>
           I am ready to begin
         </button>
       </div>
@@ -93,7 +93,11 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
       {webPromptOpen && (
         <div className="popup-overlay">
           <div className="popup" style={{ textAlign:'center' }}>
-            <div style={{ fontSize:30, marginBottom:10 }}>🖥️</div>
+            <div style={{ width:52, height:52, borderRadius:14, background:'#F1F4FF', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
             <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:8 }}>Experience the actual exam</div>
             <div style={{ fontSize:13, color:T2, lineHeight:1.65, marginBottom:18 }}>
               You can also attend this test to experience it in the actual exam mode — open it on the web.
@@ -101,12 +105,12 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
             </div>
             <button
               onClick={() => window.open('https://web-test-screen.vercel.app', '_blank', 'noopener')}
-              style={{ width:'100%', padding:'12px', borderRadius:10, background:NAVY, color:'white', border:'none', fontSize:13.5, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+              style={{ width:'100%', padding:'12px', borderRadius:24, background:NAVY, color:'white', border:'none', fontSize:13.5, fontWeight:600, cursor:'pointer', marginBottom:8 }}>
               Open on Web
             </button>
             <button
               onClick={() => setWebPromptOpen(false)}
-              style={{ width:'100%', padding:'11px', borderRadius:10, background:'white', color:T2, border:`1px solid ${BD}`, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+              style={{ width:'100%', padding:'11px', borderRadius:24, background:'white', color:T2, border:`1px solid ${BD}`, fontSize:13, fontWeight:600, cursor:'pointer' }}>
               Continue on App
             </button>
           </div>

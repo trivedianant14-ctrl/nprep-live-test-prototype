@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, PB, P, T1, T2, T3, BD, seriesById } from '../data'
+import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, P, T1, T2, T3, BD, seriesById } from '../data'
 import { CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import LiveTestBanner from '../components/LiveTestBanner'
@@ -42,8 +42,8 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
   // Norcet, wearing a different name depending on who's looking — see SeriesDetail's
   // 'scholarship' special-case for the matching drill-down.
   const scholarshipTile = userTier === 'free'
-    ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · via WhatsApp', bg:'#FDF0F7', color:'#9D174D', border:'#F9A8D4' }
-    : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts', bg:PL, color:PD, border:PB }
+    ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · via WhatsApp' }
+    : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts' }
   const resolveTile = (tile) => {
     if (tile.id === 'scholarship') return { ...tile, ...scholarshipTile }
     if (tile.label) return tile
@@ -88,16 +88,16 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
               <div style={{ fontSize:12, color:T2, marginBottom:10 }}>{lastAttempt.testName}</div>
               <div style={{ display:'flex', gap:8 }}>
                 <div style={{ flex:1, textAlign:'center' }}>
-                  <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.score}</div>
-                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Score</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:PD }}>{lastAttempt.score}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:500, marginTop:2 }}>Score</div>
                 </div>
                 <div style={{ flex:1, textAlign:'center', borderLeft:`1px solid ${BD}`, borderRight:`1px solid ${BD}` }}>
-                  <div style={{ fontSize:18, fontWeight:800, color:P }}>{lastAttempt.percentile}{ordinal(lastAttempt.percentile)}</div>
-                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Percentile</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:PD }}>{lastAttempt.percentile}{ordinal(lastAttempt.percentile)}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:500, marginTop:2 }}>Percentile</div>
                 </div>
                 <div style={{ flex:1, textAlign:'center' }}>
-                  <div style={{ fontSize:18, fontWeight:800, color:P }}>~{lastAttempt.air.toLocaleString()}</div>
-                  <div style={{ fontSize:9.5, color:T3, fontWeight:600, marginTop:2 }}>Est. AIR</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:PD }}>~{lastAttempt.air.toLocaleString()}</div>
+                  <div style={{ fontSize:9.5, color:T3, fontWeight:500, marginTop:2 }}>Est. AIR</div>
                 </div>
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
               <span style={{ fontSize:11.5, color:T2, flex:1, lineHeight:1.5 }}>
                 <span style={{ fontWeight:700, color:T1 }}>{lastAttempt.weakestSection.name}</span> was your weakest section.
               </span>
-              <button onClick={() => onOpenSeries('norcet')} style={{ flexShrink:0, padding:'8px 12px', borderRadius:8, background:P, color:'white', border:'none', fontSize:11.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              <button onClick={() => onOpenSeries('norcet_subject')} style={{ flexShrink:0, padding:'8px 16px', borderRadius:20, background:P, color:'white', border:'none', fontSize:11.5, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>
                 Practice →
               </button>
             </div>
@@ -123,14 +123,15 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
 
       {/* Tests Calendar */}
       <button onClick={onOpenCalendar}
-        style={{ width:'100%', display:'flex', alignItems:'center', gap:12, background:'#EDF4FF', border:'1.5px solid #93B8F0', borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left', marginBottom:24 }}>
-        <div style={{ width:34, height:34, borderRadius:9, background:'#1A56B0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <CalendarIcon size={16} />
+        style={{ width:'100%', display:'flex', alignItems:'center', gap:12, background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'13px 14px', cursor:'pointer', textAlign:'left', marginBottom:24 }}>
+        <div style={{ width:34, height:34, borderRadius:9, background:PL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <CalendarIcon size={16} color={PD} />
         </div>
-        <div>
-          <div style={{ fontSize:12.5, fontWeight:700, color:'#1A56B0' }}>Tests Calendar</div>
-          <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Every upcoming test, by month</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:600, color:T1 }}>Tests Calendar</div>
+          <div style={{ fontSize:10.5, color:T3, marginTop:1 }}>Every upcoming test, by month</div>
         </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T3} strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
       </button>
 
       {/* Past Tests — Full Mock and Subject-wise lanes. A student decides which test

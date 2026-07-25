@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { UPCOMING, LIVE_TEST, DAILY_TESTS, P, T1, T2, T3, BD, BG2 } from './data'
+import { UPCOMING, LIVE_TEST, DAILY_TESTS, P, PD, G, GL, T1, T2, T3, BD, BG2 } from './data'
 import { BellIcon, CalendarIcon } from './icons'
 import { getLifecyclePhase } from './utils/lifecycle'
 import StatusBar from './components/StatusBar'
@@ -27,15 +27,15 @@ const NAV_TABS = [
 ]
 
 const CONFETTI = [
-  { left:'8%',  color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0,    dur:1.8 },
+  { left:'8%',  color:'#E5484D', w:7,  h:7,  round:true,  delay:0,    dur:1.8 },
   { left:'18%', color:'#FFD93D', w:5,  h:12, round:false, delay:0.10, dur:2.0 },
-  { left:'28%', color:'#3B6D11', w:8,  h:8,  round:true,  delay:0.05, dur:1.7 },
-  { left:'38%', color:'#534AB7', w:11, h:5,  round:false, delay:0.15, dur:1.9 },
-  { left:'48%', color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0.20, dur:1.6 },
+  { left:'28%', color:'#189A57', w:8,  h:8,  round:true,  delay:0.05, dur:1.7 },
+  { left:'38%', color:'#008DFF', w:11, h:5,  round:false, delay:0.15, dur:1.9 },
+  { left:'48%', color:'#E5484D', w:7,  h:7,  round:true,  delay:0.20, dur:1.6 },
   { left:'58%', color:'#FFD93D', w:5,  h:11, round:false, delay:0,    dur:2.1 },
-  { left:'68%', color:'#3B6D11', w:7,  h:7,  round:true,  delay:0.08, dur:1.8 },
-  { left:'78%', color:'#534AB7', w:10, h:5,  round:false, delay:0.05, dur:2.0 },
-  { left:'88%', color:'#FF6B6B', w:7,  h:7,  round:true,  delay:0.12, dur:1.7 },
+  { left:'68%', color:'#189A57', w:7,  h:7,  round:true,  delay:0.08, dur:1.8 },
+  { left:'78%', color:'#008DFF', w:10, h:5,  round:false, delay:0.05, dur:2.0 },
+  { left:'88%', color:'#E5484D', w:7,  h:7,  round:true,  delay:0.12, dur:1.7 },
 ]
 
 const initialRegistered = new Set(
@@ -117,7 +117,7 @@ export default function App() {
 
         <div style={{ padding:'8px 20px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:'50%', background:`linear-gradient(135deg, ${P}, #8B82E0)`, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:14 }}>A</div>
+            <div style={{ width:36, height:36, borderRadius:'50%', background:PD, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:600, fontSize:14 }}>A</div>
             <span style={{ fontSize:17, fontWeight:700, color:T1 }}>Tests</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -205,7 +205,7 @@ export default function App() {
         {activeModal?.type === 'confirm' && (
           <div className="popup-overlay">
             <div className="popup">
-              <div style={{ width:44, height:44, borderRadius:12, background:'#EEEDFE', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:'#F1F4FF', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
                 <BellIcon size={22} />
               </div>
               <div style={{ fontSize:16, fontWeight:700, color:T1, marginBottom:8 }}>Confirm Registration</div>
@@ -213,8 +213,8 @@ export default function App() {
                 Register for <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span>? You'll be notified as soon as this test goes live.
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setActiveModal(null)} style={{ flex:1, padding:'11px', borderRadius:10, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
-                <button onClick={handleConfirm} style={{ flex:1, padding:'11px', borderRadius:10, background:P, color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>Confirm</button>
+                <button onClick={() => setActiveModal(null)} style={{ flex:1, padding:'11px', borderRadius:24, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+                <button onClick={handleConfirm} style={{ flex:1, padding:'11px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Confirm</button>
               </div>
             </div>
           </div>
@@ -226,11 +226,11 @@ export default function App() {
               <div key={i} style={{ position:'absolute', top:0, left:c.left, width:c.w, height:c.h, borderRadius:c.round?'50%':2, background:c.color, animation:`confettiFall ${c.dur}s ${c.delay}s ease-in both`, zIndex:0, pointerEvents:'none' }} />
             ))}
             <div className="popup" style={{ textAlign:'center', position:'relative', zIndex:1 }}>
-              <div style={{ width:72, height:72, borderRadius:'50%', background:'#EAF3DE', border:'3px solid #97C459', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', animation:'checkPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3B6D11" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+              <div style={{ width:72, height:72, borderRadius:'50%', background:GL, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', animation:'checkPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
               </div>
-              <div style={{ fontSize:26, fontWeight:800, color:P, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray! 🎉</div>
-              <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:10 }}>You're Registered!</div>
+              <div style={{ fontSize:24, fontWeight:700, color:PD, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray!</div>
+              <div style={{ fontSize:15, fontWeight:600, color:T1, marginBottom:10 }}>You're Registered!</div>
               <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:18 }}>
                 We'll notify you as soon as <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span> goes live. Good luck!
               </div>
@@ -238,23 +238,23 @@ export default function App() {
               {/* Reminder opt-in, captured right at the moment of commitment — the point
                   students are most likely to actually follow through on it. */}
               <div style={{ textAlign:'left', marginBottom:14 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Remind me</div>
+                <div style={{ fontSize:11, fontWeight:600, color:T3, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Remind me</div>
                 <div style={{ display:'flex', gap:8 }}>
-                  {[{ key:'oneDay', label:'🔔 1 day before' }, { key:'oneHour', label:'🔔 1 hour before' }].map(r => (
+                  {[{ key:'oneDay', label:'1 day before' }, { key:'oneHour', label:'1 hour before' }].map(r => (
                     <button key={r.key} onClick={() => toggleReminder(r.key)} style={{
-                      flex:1, padding:'9px 6px', borderRadius:10, fontSize:11.5, fontWeight:600, cursor:'pointer',
-                      background: reminders[r.key] ? '#EAF3DE' : '#F5F5FB',
-                      color: reminders[r.key] ? '#3B6D11' : T2,
-                      border: `1.5px solid ${reminders[r.key] ? '#97C459' : BD}`,
+                      flex:1, padding:'9px 6px', borderRadius:20, fontSize:11.5, fontWeight:600, cursor:'pointer',
+                      background: reminders[r.key] ? GL : BG2,
+                      color: reminders[r.key] ? G : T2,
+                      border: `1px solid ${reminders[r.key] ? G : BD}`,
                     }}>{r.label}</button>
                   ))}
                 </div>
               </div>
 
-              <button onClick={() => downloadIcsForTest(activeModal.test)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px', borderRadius:10, background:'white', color:P, border:`1.5px solid #AFA9EC`, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:10 }}>
-                📅 Add to calendar
+              <button onClick={() => downloadIcsForTest(activeModal.test)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px', borderRadius:24, background:'white', color:P, border:`1px solid ${P}`, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:10 }}>
+                <CalendarIcon size={15} color={P} /> Add to calendar
               </button>
-              <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:12, background:P, color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>Got it</button>
+              <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Got it</button>
             </div>
           </div>
         )}
