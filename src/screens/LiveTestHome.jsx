@@ -15,7 +15,7 @@ const PREVIEW_PHASES = [
   { id: 'results',       label: 'Results' },
 ]
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, joined, onOpenSeries, onOpenCalendar, onCreateTest, lastAttempt, userTier }) {
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, onCreateTest, lastAttempt, userTier }) {
   const [previewPhase, setPreviewPhase] = useState(null)
 
   // Most time-sensitive tests across every series, sorted by soonest registration
@@ -59,7 +59,7 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
           )
         })}
       </div>
-      <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} joined={joined} phaseOverride={previewPhase} />
+      <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={previewPhase} />
 
       {/* Your Progress + Recommended for You — surfaced right on Home, not buried inside a
           one-time results screen. Adaptive-learning research is consistent on this: apps
@@ -90,7 +90,7 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
               <span style={{ fontSize:11.5, color:T2, flex:1, lineHeight:1.5 }}>
                 <span style={{ fontWeight:700, color:T1 }}>{lastAttempt.weakestSection.name}</span> was your weakest section.
               </span>
-              <button onClick={() => onOpenSeries('norcet', 'subject_preboard')} style={{ flexShrink:0, padding:'8px 12px', borderRadius:8, background:P, color:'white', border:'none', fontSize:11.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              <button onClick={() => onOpenSeries('norcet')} style={{ flexShrink:0, padding:'8px 12px', borderRadius:8, background:P, color:'white', border:'none', fontSize:11.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
                 Practice →
               </button>
             </div>

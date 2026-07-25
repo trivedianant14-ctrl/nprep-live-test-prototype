@@ -1,6 +1,7 @@
 import { P, G, GL, GB, A, AL, AB, T1, T2, T3, BD } from '../data'
 import { ClockIcon, StarIcon } from '../icons'
 import { downloadReportCard } from '../utils/reportPdf'
+import { scholarshipAmount } from '../utils/tierBranding'
 
 // Joins meta fragments with a middot, skipping empty ones — used instead of separate
 // pills for each fact so a card reads as one calm line, not a row of colored chips.
@@ -100,20 +101,35 @@ export function PastCard({ test, label }) {
           ]}
         />
         <button
-          onClick={() => test.reportLabel && downloadReportCard({
-            fileName: `${test.reportLabel.replace(/\s+/g, '-')}-${test.fullName.replace(/\s+/g, '-')}.pdf`,
-            title: test.reportLabel,
-            subtitle: test.fullName,
-            rows: [
+          onClick={() => {
+            if (!test.reportLabel) return
+            const isScholarship = test.reportLabel === 'Scholarship Report'
+            const pct = test.score ? Math.round((Number(test.score) / Number(test.mks)) * 100) : null
+            const rows = [
               ['Test', test.subtitle],
               ['Date', test.date],
               ['Duration', test.dur],
-              ['Score', test.score ? `${test.score} / ${test.mks}` : 'Not scored'],
-            ],
-          })}
+              ['Score', test.score ? `${test.score} / ${test.mks} (${pct}%)` : 'Not scored'],
+            ]
+            // Scholarship reports carry the award amount; Diagnostic reports (paid) don't —
+            // same underlying attempt, two different report contents per the ticket.
+            if (isScholarship && pct !== null) {
+              const amount = scholarshipAmount(pct)
+              rows.push(['Scholarship Awarded', amount > 0 ? `Rs. ${amount.toLocaleString('en-IN')}` : 'Not eligible this attempt'])
+            }
+            downloadReportCard({
+              fileName: `${test.reportLabel.replace(/\s+/g, '-')}-${test.fullName.replace(/\s+/g, '-')}.pdf`,
+              title: test.reportLabel,
+              subtitle: test.fullName,
+              rows,
+            })
+          }}
           style={{ width:'100%', padding:'9px', borderRadius:9, fontSize:12, fontWeight:600, background:'white', color:P, border:`1px solid ${P}`, cursor:'pointer' }}>
           {test.reportLabel ? `Download ${test.reportLabel}` : 'View Result'}
         </button>
+        {test.reportLabel === 'Scholarship Report' && (
+          <div style={{ fontSize:10.5, color:T3, textAlign:'center', marginTop:6 }}>📱 Also sent to your WhatsApp within 15–20 minutes</div>
+        )}
       </div>
     )
   }
@@ -122,7 +138,7 @@ export function PastCard({ test, label }) {
     <div style={{ background:'white', border:`1px dashed ${BD}`, borderRadius:12, padding:'14px', marginBottom:10, opacity:0.65 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
         <div style={{ fontSize:14, fontWeight:600, color:T2, lineHeight:1.35 }}>{test.fullName}</div>
-        <span style={{ flexShrink:0, fontSize:10, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:0.3, whiteSpace:'nowrap' }}>Not Attempted</span>
+        <span style={{ flexShrink:0, fontSize:10, fontWeight:700, color:T3, textTransform:'uppercase', letterSpacing:0.3, whiteSpace:'nowrap' }}>Missed</span>
       </div>
       <div style={{ fontSize:11.5, color:T3, marginBottom:8 }}>
         {label ? `${label} · ` : ''}{test.subtitle}

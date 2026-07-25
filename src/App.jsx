@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { UPCOMING, P, T1, T2, T3, BD, BG2 } from './data'
-import { BellIcon } from './icons'
+import { UPCOMING, LIVE_TEST, P, T1, T2, T3, BD, BG2 } from './data'
+import { BellIcon, CalendarIcon } from './icons'
+import { getLifecyclePhase } from './utils/lifecycle'
 import StatusBar from './components/StatusBar'
 import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
@@ -47,17 +48,19 @@ export default function App() {
   const [activeSeriesId, setActiveSeriesId] = useState(null)
   const [registeredIds, setRegisteredIds] = useState(initialRegistered)
   const [activeModal, setActiveModal] = useState(null)
-  const [joined, setJoined] = useState(false)
   const [examInterfaceMode, setExamInterfaceMode] = useState('nprep')
   const [reminders, setReminders] = useState({ oneDay:false, oneHour:false })
   const [lastAttempt, setLastAttempt] = useState(null)
-  const [initialSeriesType, setInitialSeriesType] = useState('all')
+  const [liveTestAttempted, setLiveTestAttempted] = useState(false) // official Live Test only — no re-attempts once true
   const [userTier, setUserTier] = useState('paid')
   const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a student-built one
+  const [calendarFilter, setCalendarFilter] = useState('all')
 
-  const openSeries = (id, type = 'all') => { setActiveSeriesId(id); setInitialSeriesType(type); setScreen('series') }
+  const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
+  const openCalendar = (filter = 'all') => { setCalendarFilter(filter); setScreen('calendar') }
   const goHome = () => setScreen('home')
   const handleCreateTest = (config) => { setCustomTest(buildCustomTest(config)); setScreen('exampretest') }
+  const isLiveNow = getLifecyclePhase(LIVE_TEST) === 'live'
 
   const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
   const handleConfirm = () => {
@@ -83,8 +86,8 @@ export default function App() {
           ) : (
             <ExamScreen
               interfaceMode={examInterfaceMode}
-              onExit={() => { setJoined(true); setCustomTest(null); setScreen('home') }}
-              onFinish={(results) => setLastAttempt(results)}
+              onExit={() => { setCustomTest(null); setScreen('home') }}
+              onFinish={(results) => { setLastAttempt(results); if (!customTest) setLiveTestAttempted(true) }}
               customQuestions={customTest?.questions}
               customSections={customTest?.sections}
               customMeta={customTest?.meta}
@@ -117,6 +120,9 @@ export default function App() {
                 )
               })}
             </div>
+            <button onClick={() => openCalendar('all')} title="Test Calendar" style={{ position:'relative', background:'none', border:'none', color:T2, display:'flex', cursor:'pointer', padding:4 }}>
+              <CalendarIcon size={20} color={T2} />
+            </button>
             <button style={{ position:'relative', background:'none', border:'none', color:T2, display:'flex', cursor:'pointer', padding:4 }}>
               <BellIcon />
             </button>
@@ -125,22 +131,28 @@ export default function App() {
 
         {screen === 'home' && (
           <div style={{ flexShrink:0, borderBottom:`1px solid ${BD}` }}>
-            <div style={{ display:'flex', overflowX:'auto', padding:'0 4px' }}>
-              {CATEGORIES.map(cat => (
-                <button key={cat} onClick={() => setActiveCategory(cat)}
-                  style={{ flexShrink:0, padding:'10px 14px', fontSize:13, fontWeight:activeCategory===cat?700:500, color:activeCategory===cat?P:T2, background:'none', border:'none', borderBottom:`2px solid ${activeCategory===cat?P:'transparent'}`, cursor:'pointer', whiteSpace:'nowrap' }}>
-                  {cat}
-                </button>
-              ))}
+            <div className="scroll" style={{ display:'flex', overflowX:'auto', padding:'0 4px' }}>
+              {CATEGORIES.map(cat => {
+                const isLive = cat === 'Live Test'
+                return (
+                  <button key={cat} onClick={() => setActiveCategory(cat)}
+                    style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, padding:'10px 14px', fontSize:13, fontWeight:activeCategory===cat?700:500, color:activeCategory===cat?P:T2, background:'none', border:'none', borderBottom:`2px solid ${activeCategory===cat?P:'transparent'}`, cursor:'pointer', whiteSpace:'nowrap' }}>
+                    {cat}
+                    {isLive && isLiveNow && (
+                      <span style={{ width:7, height:7, borderRadius:'50%', background:'#FF3B30', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,59,48,0.35)', animation:'livePulse 1.4s ease-in-out infinite' }} />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
 
         <div className="scroll" style={{ flex:1 }}>
           {screen === 'series' ? (
-            <SeriesDetail seriesId={activeSeriesId} initialType={initialSeriesType} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+            <SeriesDetail seriesId={activeSeriesId} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onOpenCalendar={openCalendar} onBack={goHome} />
           ) : screen === 'calendar' ? (
-            <TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onBack={goHome} />
+            <TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} initialFilter={calendarFilter} onBack={goHome} />
           ) : screen === 'createtest' ? (
             <CreateTest onBack={goHome} onCreate={handleCreateTest} />
           ) : activeCategory === 'Live Test' ? (
@@ -148,9 +160,9 @@ export default function App() {
               registeredIds={registeredIds}
               onRegisterClick={handleRegisterClick}
               onJoined={() => setScreen('exampretest')}
-              joined={joined}
+              liveTestAttempted={liveTestAttempted}
               onOpenSeries={openSeries}
-              onOpenCalendar={() => setScreen('calendar')}
+              onOpenCalendar={() => openCalendar('all')}
               onCreateTest={() => setScreen('createtest')}
               lastAttempt={lastAttempt}
               userTier={userTier}

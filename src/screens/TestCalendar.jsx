@@ -7,8 +7,8 @@ import { brandListForTier } from '../utils/tierBranding'
 const MONTH_MAP = { Jan:'January', Feb:'February', Mar:'March', Apr:'April', May:'May', Jun:'June', Jul:'July', Aug:'August', Sep:'September', Oct:'October', Nov:'November', Dec:'December' }
 const DAY_MAP   = { Sun:'Sunday', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday' }
 
-export default function TestCalendar({ registeredIds, onRegisterClick, onBack, userTier }) {
-  const [filter, setFilter] = useState('all')
+export default function TestCalendar({ registeredIds, onRegisterClick, onBack, userTier, initialFilter = 'all' }) {
+  const [filter, setFilter] = useState(initialFilter)
 
   const allUpcoming = brandListForTier(
     Object.entries(UPCOMING).flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId }))),

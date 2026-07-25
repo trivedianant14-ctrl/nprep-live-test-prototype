@@ -3,18 +3,20 @@ import { P, PD, G, GL, GB, A, AL, AB, T1, T2, T3, BD, BG2 } from '../data'
 import { ClockIcon, StarIcon, UsersIcon } from '../icons'
 import { getLifecyclePhase, formatCountdown } from '../utils/lifecycle'
 
+// Labels match the spec's exact lifecycle terms: Scheduled -> Registering -> Countdown to
+// Live -> Live -> Result Out/Missed. ("Scheduled" — before registration opens — isn't
+// modeled by this prototype's single test, which is always at least registering.)
 const PHASE_META = {
-  upcoming:      { label: 'Registration Open', bg: '#EDF4FF', color: '#1A56B0', border: '#93B8F0' },
-  starting_soon: { label: 'Starting Soon',      bg: AL,        color: A,        border: AB },
-  ended:         { label: 'Test Ended',         bg: BG2,       color: T2,       border: BD },
-  results:       { label: 'Results Declared',   bg: GL,        color: G,        border: GB },
+  upcoming:      { label: 'Registering',       bg: '#EDF4FF', color: '#1A56B0', border: '#93B8F0' },
+  starting_soon: { label: 'Countdown to Live', bg: AL,        color: A,        border: AB },
+  ended:         { label: 'Processing',        bg: BG2,       color: T2,       border: BD },
 }
 
 // Renders whichever phase the test is actually in right now, recomputed every second —
 // the banner is "automated" in the sense that nothing here is hardcoded to a phase; it's
 // derived live from test.startAt/endAt, the same way the real product's banner would
 // need to derive it from the test's actual schedule.
-export default function LiveTestBanner({ test, onJoin, joined, phaseOverride }) {
+export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
@@ -30,13 +32,14 @@ export default function LiveTestBanner({ test, onJoin, joined, phaseOverride }) 
   const startCountdown = isPreview ? '1d 14h' : formatCountdown(test.startAt - now)
   const soonCountdown  = isPreview ? '08:42'  : formatCountdown(test.startAt - now)
   const endCountdown   = isPreview ? '45:00'  : formatCountdown(test.endAt - now)
+  const previewAttempted = phaseOverride === 'results' ? true : attempted
 
   if (phase === 'live') {
     return (
       <div style={{ background:`linear-gradient(135deg, ${P} 0%, ${PD} 100%)`, borderRadius:14, padding:'18px 16px 16px', marginBottom:24, boxShadow:'0 4px 16px rgba(83,74,183,0.28)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'3px 10px', borderRadius:20, fontSize:10, fontWeight:700, background:'rgba(255,255,255,0.18)', color:'white', border:'1px solid rgba(255,255,255,0.32)' }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF6B6B', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,107,107,0.4)', animation:'livePulse 1.4s ease-in-out infinite' }} />
+            <span style={{ width:6, height:6, borderRadius:'50%', background:'#FF3B30', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,59,48,0.4)', animation:'livePulse 1.4s ease-in-out infinite' }} />
             LIVE
           </span>
           <span style={{ fontSize:11, color:'rgba(255,255,255,0.72)', fontWeight:500 }}>Ends {endCountdown} from now</span>
@@ -47,15 +50,40 @@ export default function LiveTestBanner({ test, onJoin, joined, phaseOverride }) 
           <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><StarIcon />{test.marks} Marks</span>
           <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'rgba(255,255,255,0.80)', fontWeight:500 }}><UsersIcon />{test.enrolled.toLocaleString()} joined</span>
         </div>
-        <button onClick={onJoin} style={{ width:'100%', padding:'12px', borderRadius:10, background:'white', color:joined?G:P, fontSize:14, fontWeight:700, border:'none', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }}>
-          {joined ? 'Re-enter Test' : 'Join Now'}
+        {/* No re-attempts on a Live Test — once submitted, the CTA retires rather than
+            offering to re-enter. */}
+        <button onClick={() => !attempted && onJoin()} disabled={attempted} style={{ width:'100%', padding:'12px', borderRadius:10, background: attempted ? GL : 'white', color: attempted ? G : P, fontSize:14, fontWeight:700, border: attempted ? `1px solid ${GB}` : 'none', cursor: attempted ? 'default' : 'pointer', boxShadow: attempted ? 'none' : '0 2px 8px rgba(0,0,0,0.12)' }}>
+          {attempted ? '✓ Test Submitted' : 'Join Now'}
         </button>
       </div>
     )
   }
 
+  if (phase === 'results') {
+    const meta = previewAttempted
+      ? { label: 'Result Out', bg: GL, color: G, border: GB }
+      : { label: 'Missed',     bg: BG2, color: T2, border: BD }
+    return (
+      <div style={{ background:'white', border:`1.5px solid ${BD}`, borderLeft:`4px solid ${previewAttempted ? G : T3}`, borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8, gap:8 }}>
+          <span style={{ fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20, background:meta.bg, color:meta.color, border:`1px solid ${meta.border}` }}>{meta.label}</span>
+          <span style={{ fontSize:11, color:T3 }}>{test.timeLabel}</span>
+        </div>
+        <div style={{ fontSize:14, fontWeight:700, color:T1, marginBottom:8, lineHeight:1.4 }}>{test.name}</div>
+        {previewAttempted ? (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+            <span style={{ fontSize:12, color:T2 }}>Results are out.</span>
+            <button style={{ flexShrink:0, padding:'7px 14px', borderRadius:8, background:G, color:'white', border:'none', fontSize:12, fontWeight:700, cursor:'pointer' }}>View Result</button>
+          </div>
+        ) : (
+          <div style={{ fontSize:12, color:T2, lineHeight:1.5 }}>This test has closed and you didn't attempt it. It won't reopen — check Upcoming Tests for what's next.</div>
+        )}
+      </div>
+    )
+  }
+
   const meta = PHASE_META[phase]
-  const accent = phase === 'upcoming' ? '#1A56B0' : phase === 'starting_soon' ? A : phase === 'results' ? G : T3
+  const accent = phase === 'upcoming' ? '#1A56B0' : phase === 'starting_soon' ? A : T3
 
   return (
     <div style={{ background:'white', border:`1.5px solid ${BD}`, borderLeft:`4px solid ${accent}`, borderRadius:12, padding:'14px 16px', marginBottom:24 }}>
@@ -73,12 +101,6 @@ export default function LiveTestBanner({ test, onJoin, joined, phaseOverride }) 
       )}
       {phase === 'ended' && (
         <div style={{ fontSize:12, color:T2, lineHeight:1.5 }}>Your responses are being processed. Results are usually declared within a few hours.</div>
-      )}
-      {phase === 'results' && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
-          <span style={{ fontSize:12, color:T2 }}>Results are out for {test.name}.</span>
-          <button style={{ flexShrink:0, padding:'7px 14px', borderRadius:8, background:G, color:'white', border:'none', fontSize:12, fontWeight:700, cursor:'pointer' }}>View Result</button>
-        </div>
       )}
     </div>
   )

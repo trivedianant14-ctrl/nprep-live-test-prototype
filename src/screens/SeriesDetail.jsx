@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { seriesById, UPCOMING, PAST, NORCET_TYPES, NORCET_TYPE_LABEL, PL, PD, PB, P, G, GL, GB, BG2, T1, T2, T3, BD } from '../data'
-import { ChevronLeft, ChevronUp, ChevronRight } from '../icons'
+import { seriesById, UPCOMING, PAST, NORCET_TYPE_LABEL, PL, PD, PB, G, T1, T2, T3, BD } from '../data'
+import { ChevronLeft, CalendarIcon } from '../icons'
 import { UpcomingCard, PastCard } from '../components/Cards'
 import { brandListForTier } from '../utils/tierBranding'
 
@@ -18,22 +17,20 @@ function resolveSeries(seriesId, userTier) {
   }
 }
 
-export default function SeriesDetail({ seriesId, initialType = 'all', userTier, registeredIds, onRegisterClick, onBack }) {
+// No filter chips, no "show my attempts" toggle to tap — the series tile you came from
+// already narrowed things to one exam body, so the only thing left to do inside it is
+// show what's there. Attempted tests sort first automatically, since that's what a
+// single-attempt student is actually looking for.
+export default function SeriesDetail({ seriesId, userTier, registeredIds, onRegisterClick, onOpenCalendar, onBack }) {
   const { series, sourceSeriesId, lockType } = resolveSeries(seriesId, userTier)
-  const [activeType, setActiveType] = useState(series.hasTypes ? initialType : 'all')
-  const [myAttemptsOnly, setMyAttemptsOnly] = useState(false)
 
   const filterByLock = list => lockType ? list.filter(t => t.type === lockType) : list
-  const upcomingAll = brandListForTier(filterByLock(UPCOMING[sourceSeriesId] || []), userTier)
-  const pastAll     = brandListForTier(filterByLock(PAST[sourceSeriesId] || []), userTier)
-
-  const byType = (list) => activeType === 'all' ? list : list.filter(t => t.type === activeType)
-  const upcoming = byType(upcomingAll)
-  const pastBase = myAttemptsOnly ? pastAll.filter(t => t.attempted) : pastAll
-  const past     = byType(pastBase)
+  const upcoming = brandListForTier(filterByLock(UPCOMING[sourceSeriesId] || []), userTier)
+  const pastAll  = brandListForTier(filterByLock(PAST[sourceSeriesId] || []), userTier)
+  const past = [...pastAll].sort((a, b) => (b.attempted - a.attempted) || (b.ts - a.ts))
 
   const attemptedTotal = pastAll.filter(t => t.attempted).length
-  const showTypeTag = series.hasTypes && activeType === 'all'
+  const showTypeTag = series.hasTypes
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
@@ -41,40 +38,21 @@ export default function SeriesDetail({ seriesId, initialType = 'all', userTier, 
         <button onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', color:T1, padding:0, flexShrink:0 }}>
           <ChevronLeft />
         </button>
-        <div>
+        <div style={{ flex:1 }}>
           <div style={{ fontSize:16, fontWeight:700, color:T1 }}>{series.label}</div>
           <div style={{ fontSize:11, color:T3, marginTop:1 }}>{series.tagline}</div>
         </div>
+        <button onClick={() => onOpenCalendar(sourceSeriesId)} title="View this series' calendar" style={{ flexShrink:0, background:'#EDF4FF', border:'1px solid #93B8F0', borderRadius:9, padding:8, display:'flex', cursor:'pointer' }}>
+          <CalendarIcon size={16} color="#1A56B0" />
+        </button>
       </div>
 
       <div className="scroll" style={{ flex:1, padding:'16px 16px 32px' }}>
 
-        {series.hasTypes && (
-          <div className="scroll" style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:20 }}>
-            {[{ id:'all', label:'All' }, ...NORCET_TYPES].map(t => {
-              const isActive = activeType === t.id
-              const count = t.id === 'all'
-                ? upcomingAll.length + pastAll.length
-                : upcomingAll.filter(x => x.type === t.id).length + pastAll.filter(x => x.type === t.id).length
-              return (
-                <button key={t.id} onClick={() => setActiveType(t.id)} style={{
-                  flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:20,
-                  fontSize:11, fontWeight:isActive?700:500,
-                  background: isActive ? P : 'white', color: isActive ? 'white' : T2,
-                  border:`1.5px solid ${isActive ? P : BD}`, cursor:'pointer', whiteSpace:'nowrap',
-                }}>
-                  {t.label}
-                  <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:10, background:isActive?'rgba(255,255,255,0.25)':BG2, color:isActive?'white':T3 }}>{count}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
         <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Upcoming Tests</div>
           {upcoming.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'20px 0', color:T3, fontSize:13 }}>No upcoming tests in this category right now</div>
+            <div style={{ textAlign:'center', padding:'20px 0', color:T3, fontSize:13 }}>No upcoming tests right now</div>
           ) : (
             upcoming.map(t => (
               <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />
@@ -83,29 +61,12 @@ export default function SeriesDetail({ seriesId, initialType = 'all', userTier, 
         </div>
 
         <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
             <span style={{ fontSize:13, fontWeight:700, color:T1 }}>Past Tests</span>
             <span style={{ fontSize:11, color:T3 }}><span style={{ color:G, fontWeight:700 }}>{attemptedTotal}</span>/{pastAll.length} attempted</span>
           </div>
-          <button onClick={() => setMyAttemptsOnly(v => !v)} style={{
-            width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 14px', borderRadius:10, marginBottom:12,
-            background: myAttemptsOnly ? GL : BG2, border:`1.5px solid ${myAttemptsOnly ? GB : BD}`, cursor:'pointer', textAlign:'left',
-          }}>
-            <div style={{ width:30, height:30, borderRadius:8, background: myAttemptsOnly ? G : 'white', border:`1px solid ${myAttemptsOnly ? G : BD}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={myAttemptsOnly ? 'white' : T3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
-            </div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, color: myAttemptsOnly ? G : T1 }}>
-                {myAttemptsOnly ? 'Showing only tests you attempted' : 'Just find your test'}
-              </div>
-              <div style={{ fontSize:11, color: myAttemptsOnly ? G : T3, marginTop:1 }}>
-                {myAttemptsOnly ? `${pastAll.filter(t => t.attempted).length} test${pastAll.filter(t => t.attempted).length === 1 ? '' : 's'} · tap to show all` : "Filter to only the tests you've taken"}
-              </div>
-            </div>
-            {myAttemptsOnly ? <ChevronUp size={14} /> : <ChevronRight size={14} />}
-          </button>
           {past.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'24px 0', color:T3, fontSize:13 }}>No past tests in this category</div>
+            <div style={{ textAlign:'center', padding:'24px 0', color:T3, fontSize:13 }}>No past tests yet</div>
           ) : (
             past.map(t => <PastCard key={t.id} test={t} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />)
           )}

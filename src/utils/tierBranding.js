@@ -21,3 +21,13 @@ export function brandForTier(test, tier) {
 export function brandListForTier(list, tier) {
   return list.map(t => brandForTier(t, tier))
 }
+
+// Backend logic to auto-map a Scholarship attempt's score to an award amount — bracketed
+// on percentage rather than raw score so it's independent of a test's marks total.
+export function scholarshipAmount(scorePct) {
+  if (scorePct >= 90) return 50000
+  if (scorePct >= 75) return 25000
+  if (scorePct >= 60) return 10000
+  if (scorePct >= 40) return 5000
+  return 0
+}

@@ -35,11 +35,11 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
           <div style={{ fontSize:11, color:T3, marginTop:8 }}>+{m.correctMarks} correct · {m.wrongMarks} incorrect</div>
         </div>
 
-        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>Choose your test-taking interface</div>
+        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>Prep Mode or Real Exam Mode?</div>
         <div style={{ display:'flex', background:BG2, borderRadius:12, padding:4, gap:4, marginBottom:10 }}>
           {[
-            { id:'nprep',  label:'NPrep',  sub:'Modern mobile',  color:P,    colorD:PD },
-            { id:'norcet', label:'NORCET', sub:'Govt. portal',   color:NAVY, colorD:NAVY_D },
+            { id:'nprep',  label:'Prep Mode',      sub:'NPrep · relaxed',       color:P,    colorD:PD },
+            { id:'norcet', label:'Real Exam Mode', sub:'NORCET · strict',       color:NAVY, colorD:NAVY_D },
           ].map(opt => {
             const isAct = interfaceMode === opt.id
             return (
@@ -54,12 +54,23 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
             )
           })}
         </div>
-        <div style={{ fontSize:11, color:T3, lineHeight:1.6, marginBottom:24 }}>
+        <div style={{ fontSize:11, color:T3, lineHeight:1.6, marginBottom:16 }}>
           {interfaceMode === 'nprep'
-            ? "NPrep's own clean, mobile-first exam screen — same questions, same rules, friendlier layout."
+            ? "NPrep's own clean, mobile-first exam screen — same questions, same rules, friendlier layout. No fullscreen lock, so you can step away without penalty."
             : 'A faithful replica of the official government CBT portal — same layout, timer, and question palette students see on exam day.'}
           {' '}You can't switch mid-exam — pick the one you want to practice on.
         </div>
+
+        {interfaceMode === 'norcet' && (
+          <div style={{ background:'#FFF3CD', border:'1px solid #FFC107', borderRadius:10, padding:'11px 13px', marginBottom:16 }}>
+            <div style={{ fontSize:11.5, fontWeight:700, color:'#856404', marginBottom:4 }}>Real Exam Mode enforces exam-day conditions</div>
+            <div style={{ fontSize:11, color:'#856404', lineHeight:1.6 }}>
+              Full-screen is required and the keyboard is disabled — use your mouse or finger only.
+              Pressing a key or leaving full-screen counts as a warning; <b>3 warnings auto-submits your test</b>.
+              {' '}You can also take this test on a larger screen — open it on the web for the most authentic experience.
+            </div>
+          </div>
+        )}
 
         <label style={{ display:'flex', alignItems:'flex-start', gap:10, fontSize:12, color:T2, lineHeight:1.6, cursor:'pointer' }}>
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop:2, flexShrink:0 }} />

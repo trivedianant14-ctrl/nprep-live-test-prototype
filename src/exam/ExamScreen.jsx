@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   QUESTIONS as DEFAULT_QUESTIONS,
   SECTIONS as DEFAULT_SECTIONS,
@@ -7,6 +7,9 @@ import {
 } from './examData'
 import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 import { ordinal } from '../utils/format'
+import { shuffleForAttempt } from './shuffle'
+
+const MAX_WARNINGS = 3
 
 // A compressive curve rather than a straight line — competitive-exam percentile
 // distributions are rarely linear against raw accuracy, and a straight mapping
@@ -57,16 +60,19 @@ const fmtSec = s => {
 }
 
 export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, customQuestions, customSections, customMeta }) {
-  // A student-created test (see CreateTest.jsx) reuses this exact engine — it's just a
-  // different slice of the same question bank, not a separate code path.
-  const QUESTIONS  = customQuestions || DEFAULT_QUESTIONS
-  const SECTIONS   = customSections  || DEFAULT_SECTIONS
-  const EXAM_META  = customMeta      || DEFAULT_EXAM_META
-
   const isNPrep = interfaceMode === 'nprep'
   const HDR = isNPrep ? P : NAVY
   const HDR_D = isNPrep ? PD : NAVY_D
   const hPrim = (x = {}) => ({ ...gBtn(), background: `linear-gradient(${HDR},${HDR_D})`, color: 'white', border: `1px solid ${HDR_D}`, ...x })
+  const EXAM_META  = customMeta || DEFAULT_EXAM_META
+
+  // The "bucket" anti-cheating shuffle — each attempt gets its own question and option
+  // order (see shuffle.js), computed once per mount and memoized so it doesn't reshuffle
+  // on re-render. A student-created test (see CreateTest.jsx) reuses this exact engine —
+  // it's just a different slice of the same question bank, not a separate code path.
+  const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
+    shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
+  )
 
   const [curSec, setCurSec]                       = useState(0)
   const [curQLocal, setCurQLocal]                 = useState(0)
@@ -127,6 +133,56 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     setPhase('submitted')
     onFinish?.(results)
   }
+  // Event listeners below are set up once (see the strict-mode effect) and must never call
+  // a stale, first-render version of this function — a ref always resolves to the latest.
+  const computeAndFinalizeRef = useRef(computeAndFinalize)
+  computeAndFinalizeRef.current = computeAndFinalize
+
+  // Real Exam Mode enforces exam-day conditions: full-screen required, keyboard input
+  // disabled (mouse/touch only), any violation is a warning, 3 warnings auto-submits.
+  const strictMode = interfaceMode === 'norcet'
+  const [warnings, setWarnings]     = useState(0)
+  const [warningMsg, setWarningMsg] = useState(null)
+
+  useEffect(() => {
+    if (!strictMode || phase !== 'test') return
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {})
+
+    const registerWarning = (reason) => {
+      setWarnings(prev => {
+        const next = prev + 1
+        if (next >= MAX_WARNINGS) {
+          setWarningMsg(`Warning ${next}/${MAX_WARNINGS}: ${reason}. Auto-submitting…`)
+          setTimeout(() => computeAndFinalizeRef.current(), 1200)
+        } else {
+          setWarningMsg(`Warning ${next}/${MAX_WARNINGS}: ${reason}.`)
+        }
+        return next
+      })
+    }
+    const onKeydown = (e) => { e.preventDefault(); registerWarning('keyboard input is not allowed in Real Exam Mode') }
+    const onFullscreenChange = () => { if (!document.fullscreenElement) registerWarning('you exited full-screen') }
+
+    document.addEventListener('keydown', onKeydown, true)
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => {
+      document.removeEventListener('keydown', onKeydown, true)
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+    }
+  }, [strictMode, phase])
+
+  useEffect(() => {
+    if (!warningMsg) return
+    const id = setTimeout(() => setWarningMsg(null), 3000)
+    return () => clearTimeout(id)
+  }, [warningMsg])
+
+  useEffect(() => {
+    if (phase !== 'test' && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+  }, [phase])
+
+  // Leave full-screen behind on exit/unmount too (e.g. the student taps Exit mid-test)
+  useEffect(() => () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}) }, [])
 
   // Tick current section's timer
   useEffect(() => {
@@ -323,7 +379,14 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
 
   // ── Main test screen ─────────────────────────────────────────────────────
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'white', position:'relative' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'white', position:'relative', userSelect: strictMode ? 'none' : 'auto' }}>
+
+      {/* Real Exam Mode violation toast — keyboard input or exiting full-screen */}
+      {warningMsg && (
+        <div style={{ position:'absolute', top:10, left:12, right:12, zIndex:80, background:'#DC2626', color:'white', borderRadius:10, padding:'10px 14px', fontSize:12, fontWeight:600, boxShadow:'0 4px 14px rgba(0,0,0,0.25)', textAlign:'center' }}>
+          ⚠️ {warningMsg}
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ flexShrink:0, background:HDR }}>
