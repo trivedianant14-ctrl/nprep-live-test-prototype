@@ -1,36 +1,43 @@
-import { seriesById, UPCOMING, PAST, NORCET_TYPE_LABEL, PL, PD, PB, G, T1, T2, T3, BD } from '../data'
+import { seriesById, UPCOMING, PAST, PL, PD, PB, G, T1, T2, T3, BD } from '../data'
 import { ChevronLeft, CalendarIcon } from '../icons'
 import { UpcomingCard, PastCard } from '../components/Cards'
 import { brandListForTier } from '../utils/tierBranding'
 
-// 'scholarship' isn't a real content series — it's the same Norcet Diagnostic tests,
-// wearing a different name depending on the viewer's tier. See tierBranding.js.
+// The home screen's Full Mock / Subject-wise tiles include virtual series — slices of
+// norcet's content by type, not standalone data. This resolves each tile id to its
+// display identity plus which types of the source series it shows. 'scholarship' is
+// the same Norcet Diagnostic tests wearing a tier-based name (see tierBranding.js).
 function resolveSeries(seriesId, userTier) {
-  if (seriesId !== 'scholarship') return { series: seriesById(seriesId), sourceSeriesId: seriesId, lockType: null }
-  const isFree = userTier === 'free'
-  return {
-    series: isFree
-      ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · Sent via WhatsApp', bg:'#FDF0F7', color:'#9D174D', border:'#F9A8D4', hasTypes:false }
-      : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts',    bg:PL,        color:PD,        border:PB,        hasTypes:false },
-    sourceSeriesId: 'norcet',
-    lockType: 'diagnostic',
+  if (seriesId === 'norcet_full') return {
+    series: { label:'NASHTA for NORCET', tagline:'Full-length NORCET simulations & preboards' },
+    sourceSeriesId: 'norcet', lockTypes: ['nashta_mains', 'third_year'],
   }
+  if (seriesId === 'norcet_subject') return {
+    series: { label:'NORCET Subject Preboards', tagline:'One subject at a time — FON, MSN, CHN & more' },
+    sourceSeriesId: 'norcet', lockTypes: ['subject_preboard'],
+  }
+  if (seriesId === 'scholarship') return {
+    series: userTier === 'free'
+      ? { label:'Scholarship Test', tagline:'Free eligibility screening · Sent via WhatsApp' }
+      : { label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts' },
+    sourceSeriesId: 'norcet', lockTypes: ['diagnostic'],
+  }
+  return { series: seriesById(seriesId), sourceSeriesId: seriesId, lockTypes: null }
 }
 
-// No filter chips, no "show my attempts" toggle to tap — the series tile you came from
-// already narrowed things to one exam body, so the only thing left to do inside it is
-// show what's there. Attempted tests sort first automatically, since that's what a
-// single-attempt student is actually looking for.
+// No filter chips, no toggles, no per-card type tags — the tile a student came from
+// already told them exactly what lives here (which exam body, full mock vs subject-wise),
+// so inside there's nothing left to decode. Attempted tests sort first automatically,
+// since that's what a single-attempt student is actually looking for.
 export default function SeriesDetail({ seriesId, userTier, registeredIds, onRegisterClick, onOpenCalendar, onBack }) {
-  const { series, sourceSeriesId, lockType } = resolveSeries(seriesId, userTier)
+  const { series, sourceSeriesId, lockTypes } = resolveSeries(seriesId, userTier)
 
-  const filterByLock = list => lockType ? list.filter(t => t.type === lockType) : list
+  const filterByLock = list => lockTypes ? list.filter(t => lockTypes.includes(t.type)) : list
   const upcoming = brandListForTier(filterByLock(UPCOMING[sourceSeriesId] || []), userTier)
   const pastAll  = brandListForTier(filterByLock(PAST[sourceSeriesId] || []), userTier)
   const past = [...pastAll].sort((a, b) => (b.attempted - a.attempted) || (b.ts - a.ts))
 
   const attemptedTotal = pastAll.filter(t => t.attempted).length
-  const showTypeTag = series.hasTypes
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
@@ -55,7 +62,7 @@ export default function SeriesDetail({ seriesId, userTier, registeredIds, onRegi
             <div style={{ textAlign:'center', padding:'20px 0', color:T3, fontSize:13 }}>No upcoming tests right now</div>
           ) : (
             upcoming.map(t => (
-              <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />
+              <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} />
             ))
           )}
         </div>
@@ -68,7 +75,7 @@ export default function SeriesDetail({ seriesId, userTier, registeredIds, onRegi
           {past.length === 0 ? (
             <div style={{ textAlign:'center', padding:'24px 0', color:T3, fontSize:13 }}>No past tests yet</div>
           ) : (
-            past.map(t => <PastCard key={t.id} test={t} label={showTypeTag ? NORCET_TYPE_LABEL[t.type] : null} />)
+            past.map(t => <PastCard key={t.id} test={t} />)
           )}
         </div>
 

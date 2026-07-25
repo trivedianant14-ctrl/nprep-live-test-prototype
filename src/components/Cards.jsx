@@ -151,7 +151,7 @@ export function PastCard({ test, label }) {
 // The Past Tests category tiles from the wireframe — the primary fix for "too many
 // tests" and "different exams blended together": pick your exam body first, see a
 // short, unambiguous list second.
-export function SeriesTile({ series, pastTotal, attempted, upcomingCount, onClick }) {
+export function SeriesTile({ series, pastTotal, attempted, upcomingCount, onClick, isLive }) {
   if (series.comingSoon) {
     return (
       <div style={{ background:series.bg, border:`1.5px dashed ${series.border}`, borderRadius:14, padding:'16px 14px', position:'relative', minHeight:100 }}>
@@ -162,8 +162,13 @@ export function SeriesTile({ series, pastTotal, attempted, upcomingCount, onClic
     )
   }
   return (
-    <button onClick={onClick} style={{ textAlign:'left', background:series.bg, border:`1.5px solid ${series.border}`, borderRadius:14, padding:'16px 14px', cursor:'pointer', minHeight:100, display:'flex', flexDirection:'column' }}>
-      <div style={{ fontSize:14, fontWeight:700, color:series.color, marginBottom:4 }}>{series.label}</div>
+    <button onClick={onClick} style={{ textAlign:'left', background:series.bg, border:`1.5px solid ${series.border}`, borderRadius:14, padding:'16px 14px', cursor:'pointer', minHeight:100, display:'flex', flexDirection:'column', position:'relative' }}>
+      {/* Instagram-Live-style urgency dot: a test in this series is live right now.
+          No count, no label — the dot alone reads as "something is happening here". */}
+      {isLive && (
+        <span style={{ position:'absolute', top:11, right:11, width:8, height:8, borderRadius:'50%', background:'#FF3B30', boxShadow:'0 0 0 2.5px rgba(255,59,48,0.3)', animation:'livePulse 1.4s ease-in-out infinite' }} />
+      )}
+      <div style={{ fontSize:14, fontWeight:700, color:series.color, marginBottom:4, paddingRight: isLive ? 14 : 0 }}>{series.label}</div>
       <div style={{ fontSize:11, color:T3, marginBottom:10, flex:1 }}>{series.tagline}</div>
       <div style={{ fontSize:10.5, fontWeight:600, color:series.color }}>
         {pastTotal} past · {attempted} done{upcomingCount > 0 ? ` · ${upcomingCount} upcoming` : ''}

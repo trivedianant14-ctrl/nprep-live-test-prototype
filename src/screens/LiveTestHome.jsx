@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { LIVE_TEST, SERIES, UPCOMING, PAST, PL, PD, PB, P, T1, T2, T3, BD } from '../data'
-import { CalendarIcon, PlusIcon } from '../icons'
+import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, PB, P, T1, T2, T3, BD, seriesById } from '../data'
+import { CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import LiveTestBanner from '../components/LiveTestBanner'
 import { ordinal } from '../utils/format'
+import { getLifecyclePhase } from '../utils/lifecycle'
 import { brandListForTier } from '../utils/tierBranding'
 
 const PREVIEW_PHASES = [
@@ -15,7 +16,15 @@ const PREVIEW_PHASES = [
   { id: 'results',       label: 'Results' },
 ]
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, onCreateTest, lastAttempt, userTier }) {
+// Slices a series' tests down to what one home tile represents — either the whole
+// series (rrb/kgmu) or one type-lane of norcet (full mocks, subject preboards,
+// diagnostics), matching how SeriesDetail resolves the same virtual ids.
+function testsForTile(map, tile) {
+  const list = map[tile.sourceSeriesId] || []
+  return tile.types ? list.filter(t => tile.types.includes(t.type)) : list
+}
+
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, userTier }) {
   const [previewPhase, setPreviewPhase] = useState(null)
 
   // Most time-sensitive tests across every series, sorted by soonest registration
@@ -29,15 +38,21 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
     userTier
   )
 
-  // The 4th Past-Tests tile is the same Diagnostic content living inside Norcet, just
-  // wearing a different name depending on who's looking — see SeriesDetail's
+  // The Scholarship/Diagnostic tile is the same Diagnostic content living inside
+  // Norcet, wearing a different name depending on who's looking — see SeriesDetail's
   // 'scholarship' special-case for the matching drill-down.
-  const diagUpcoming = (UPCOMING.norcet || []).filter(t => t.type === 'diagnostic')
-  const diagPast = (PAST.norcet || []).filter(t => t.type === 'diagnostic')
   const scholarshipTile = userTier === 'free'
     ? { id:'scholarship', label:'Scholarship Test', tagline:'Free eligibility screening · via WhatsApp', bg:'#FDF0F7', color:'#9D174D', border:'#F9A8D4' }
     : { id:'scholarship', label:'Diagnostic Test',  tagline:'Baseline assessment before your prep starts', bg:PL, color:PD, border:PB }
-  const displaySeries = SERIES.map(s => s.id === 'scholarship' ? scholarshipTile : s)
+  const resolveTile = (tile) => {
+    if (tile.id === 'scholarship') return { ...tile, ...scholarshipTile }
+    if (tile.label) return tile
+    return { ...tile, ...seriesById(tile.id), id: tile.id }
+  }
+
+  // The official live test is a NORCET full mock — while it's live, its home tile
+  // carries the red blinking dot so the series lights up, not just the banner.
+  const officialLive = getLifecyclePhase(LIVE_TEST) === 'live'
 
   return (
     <div style={{ padding:'16px 16px 32px' }}>
@@ -106,48 +121,49 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
         ))}
       </div>
 
-      {/* Tests Calendar + Create Your Own Test */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
-        <button onClick={onOpenCalendar}
-          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8, background:'#EDF4FF', border:'1.5px solid #93B8F0', borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left' }}>
-          <div style={{ width:34, height:34, borderRadius:9, background:'#1A56B0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <CalendarIcon size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize:12.5, fontWeight:700, color:'#1A56B0' }}>Tests Calendar</div>
-            <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Every upcoming test, by month</div>
-          </div>
-        </button>
-        <button onClick={onCreateTest}
-          style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8, background:'#EEEDFE', border:`1.5px dashed ${PB}`, borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left' }}>
-          <div style={{ width:34, height:34, borderRadius:9, background:P, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <PlusIcon size={16} color="white" />
-          </div>
-          <div>
-            <div style={{ fontSize:12.5, fontWeight:700, color:PD }}>Create Your Own Test</div>
-            <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Full mock or subject-wise</div>
-          </div>
-        </button>
-      </div>
+      {/* Tests Calendar */}
+      <button onClick={onOpenCalendar}
+        style={{ width:'100%', display:'flex', alignItems:'center', gap:12, background:'#EDF4FF', border:'1.5px solid #93B8F0', borderRadius:12, padding:'13px 14px', cursor:'pointer', textAlign:'left', marginBottom:24 }}>
+        <div style={{ width:34, height:34, borderRadius:9, background:'#1A56B0', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <CalendarIcon size={16} />
+        </div>
+        <div>
+          <div style={{ fontSize:12.5, fontWeight:700, color:'#1A56B0' }}>Tests Calendar</div>
+          <div style={{ fontSize:10.5, color:T2, marginTop:1 }}>Every upcoming test, by month</div>
+        </div>
+      </button>
 
-      {/* Past Tests — series tiles */}
+      {/* Past Tests — Full Mock and Subject-wise lanes. A student decides which test
+          to open right here (tile label + tagline carry the identity); inside a series
+          there are deliberately no further tags or filters to read. */}
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>
         <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:12 }}>Past Tests</div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          {displaySeries.map(s => {
-            const isScholarship = s.id === 'scholarship'
-            return (
-              <SeriesTile
-                key={s.id}
-                series={s}
-                pastTotal={isScholarship ? diagPast.length : (PAST[s.id] || []).length}
-                attempted={isScholarship ? diagPast.filter(t => t.attempted).length : (PAST[s.id] || []).filter(t => t.attempted).length}
-                upcomingCount={isScholarship ? diagUpcoming.length : (UPCOMING[s.id] || []).length}
-                onClick={() => onOpenSeries(s.id)}
-              />
-            )
-          })}
-        </div>
+        {SERIES_GROUPS.map(group => (
+          <div key={group.id} style={{ marginBottom:18 }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
+              <span style={{ fontSize:12, fontWeight:700, color:T2 }}>{group.label}</span>
+              <span style={{ fontSize:10.5, color:T3 }}>{group.sub}</span>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {group.tiles.map(rawTile => {
+                const tile = resolveTile(rawTile)
+                const past = testsForTile(PAST, rawTile)
+                const upcoming = testsForTile(UPCOMING, rawTile)
+                return (
+                  <SeriesTile
+                    key={tile.id}
+                    series={tile}
+                    pastTotal={past.length}
+                    attempted={past.filter(t => t.attempted).length}
+                    upcomingCount={upcoming.length}
+                    isLive={officialLive && tile.id === 'norcet_full'}
+                    onClick={() => onOpenSeries(tile.id)}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
     </div>

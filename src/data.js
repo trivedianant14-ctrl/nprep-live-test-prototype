@@ -39,6 +39,57 @@ export const NORCET_TYPES = [
 ]
 export const NORCET_TYPE_LABEL = NORCET_TYPES.reduce((acc, t) => { acc[t.id] = t.label; return acc }, {})
 
+// ─── Home-screen navigation: Full Mock vs Subject-wise ─────────────────────
+// The top-level split a student navigates by: full-length simulations in one lane,
+// one-subject tests in the other. NORCET's content divides across both lanes (its
+// full mocks and its subject preboards are different products to a student), so two
+// virtual tiles slice the same norcet data by type — same pattern as the existing
+// 'scholarship' tile, which is norcet's diagnostic tests wearing a tier-based name.
+export const SERIES_GROUPS = [
+  {
+    id: 'full_mock', label: 'Full Mock Live Tests', sub: 'Full-length, all subjects, real exam pattern',
+    tiles: [
+      { id: 'norcet_full', label: 'NASHTA for NORCET', tagline: 'Full-length NORCET simulations & preboards', bg: PL, color: PD, border: PB, sourceSeriesId: 'norcet', types: ['nashta_mains', 'third_year'] },
+      { id: 'rrb',  sourceSeriesId: 'rrb' },
+      { id: 'kgmu', sourceSeriesId: 'kgmu' },
+      { id: 'scholarship', sourceSeriesId: 'norcet', types: ['diagnostic'] },
+    ],
+  },
+  {
+    id: 'subject', label: 'Subject-wise Live Tests', sub: 'One subject at a time',
+    tiles: [
+      { id: 'norcet_subject', label: 'NORCET Subject Preboards', tagline: 'FON, MSN, CHN, OBG & more — one subject per test', bg: '#FFF4EC', color: '#9A3E12', border: '#F5B78F', sourceSeriesId: 'norcet', types: ['subject_preboard'] },
+    ],
+  },
+]
+
+// ─── Daily tests ────────────────────────────────────────────────────────────
+// One short subject test per day, organized by series like everything else. The feed
+// rule (see DailyTests.jsx): only the latest 10 stay visible, plus anything the student
+// attempted — older unattempted tests auto-hide. `sectionId` maps the test onto one
+// section of the exam engine's question bank so "Attempt" runs the real engine.
+// The most recent test is live right now — it drives the red dot on the Daily Test tab.
+export const DAILY_TESTS = [
+  { id: 901, series: 'norcet', fullName: 'Daily Test — Pediatric Nursing',       sectionId: 'C', date: '25 Jul 2026', ts: new Date('2026-07-25'), dur: '18 min', mks: '20', score: null,  attempted: false, liveNow: true },
+  { id: 902, series: 'norcet', fullName: 'Daily Test — Nursing Foundations',     sectionId: 'A', date: '24 Jul 2026', ts: new Date('2026-07-24'), dur: '18 min', mks: '20', score: '16',  attempted: true  },
+  { id: 903, series: 'norcet', fullName: 'Daily Test — Medical Surgical',        sectionId: 'B', date: '23 Jul 2026', ts: new Date('2026-07-23'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 904, series: 'norcet', fullName: 'Daily Test — Community Health',        sectionId: 'D', date: '22 Jul 2026', ts: new Date('2026-07-22'), dur: '18 min', mks: '20', score: '14',  attempted: true  },
+  { id: 905, series: 'norcet', fullName: 'Daily Test — GK & Aptitude',           sectionId: 'E', date: '21 Jul 2026', ts: new Date('2026-07-21'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 906, series: 'norcet', fullName: 'Daily Test — Mental Health Nursing',   sectionId: 'D', date: '20 Jul 2026', ts: new Date('2026-07-20'), dur: '18 min', mks: '20', score: '18',  attempted: true  },
+  { id: 907, series: 'norcet', fullName: 'Daily Test — Pharmacology',            sectionId: 'B', date: '19 Jul 2026', ts: new Date('2026-07-19'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 908, series: 'norcet', fullName: 'Daily Test — Child Health Nursing',    sectionId: 'C', date: '18 Jul 2026', ts: new Date('2026-07-18'), dur: '18 min', mks: '20', score: '15',  attempted: true  },
+  { id: 909, series: 'norcet', fullName: 'Daily Test — Anatomy & Physiology',    sectionId: 'A', date: '17 Jul 2026', ts: new Date('2026-07-17'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 910, series: 'norcet', fullName: 'Daily Test — Microbiology',            sectionId: 'A', date: '16 Jul 2026', ts: new Date('2026-07-16'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  // Older than the latest 10 — the two attempted ones below stay visible (appended after
+  // the feed); the two unattempted ones are auto-hidden by the retention rule.
+  { id: 911, series: 'norcet', fullName: 'Daily Test — OBG Nursing',             sectionId: 'C', date: '15 Jul 2026', ts: new Date('2026-07-15'), dur: '18 min', mks: '20', score: '17',  attempted: true  },
+  { id: 912, series: 'norcet', fullName: 'Daily Test — Nutrition',               sectionId: 'D', date: '14 Jul 2026', ts: new Date('2026-07-14'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 913, series: 'norcet', fullName: 'Daily Test — Nursing Research',        sectionId: 'A', date: '13 Jul 2026', ts: new Date('2026-07-13'), dur: '18 min', mks: '20', score: '13',  attempted: true  },
+  { id: 914, series: 'norcet', fullName: 'Daily Test — First Aid & Emergency',   sectionId: 'B', date: '12 Jul 2026', ts: new Date('2026-07-12'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 915, series: 'rrb',    fullName: 'Daily Test — RRB Science Mix',         sectionId: 'E', date: '24 Jul 2026', ts: new Date('2026-07-24'), dur: '18 min', mks: '20', score: null,  attempted: false },
+  { id: 916, series: 'rrb',    fullName: 'Daily Test — RRB Nursing Core',        sectionId: 'B', date: '22 Jul 2026', ts: new Date('2026-07-22'), dur: '18 min', mks: '20', score: '19',  attempted: true  },
+]
+
 // The featured live test. Real start/end timestamps (not just a display string) so its
 // homepage banner can compute its own lifecycle phase automatically — upcoming, starting
 // soon, live, ended, results — instead of being hardcoded to always say "LIVE".

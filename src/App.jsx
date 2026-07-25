@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { UPCOMING, LIVE_TEST, P, T1, T2, T3, BD, BG2 } from './data'
+import { UPCOMING, LIVE_TEST, DAILY_TESTS, P, T1, T2, T3, BD, BG2 } from './data'
 import { BellIcon, CalendarIcon } from './icons'
 import { getLifecyclePhase } from './utils/lifecycle'
 import StatusBar from './components/StatusBar'
 import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
-import CreateTest from './screens/CreateTest'
+import DailyTests from './screens/DailyTests'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
 import { buildCustomTest } from './exam/customTest'
@@ -53,14 +53,21 @@ export default function App() {
   const [lastAttempt, setLastAttempt] = useState(null)
   const [liveTestAttempted, setLiveTestAttempted] = useState(false) // official Live Test only — no re-attempts once true
   const [userTier, setUserTier] = useState('paid')
-  const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a student-built one
+  const [customTest, setCustomTest] = useState(null) // null = official live test; otherwise a daily test slice
+  const [dailyAttemptedIds, setDailyAttemptedIds] = useState(new Set())
   const [calendarFilter, setCalendarFilter] = useState('all')
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
   const openCalendar = (filter = 'all') => { setCalendarFilter(filter); setScreen('calendar') }
   const goHome = () => setScreen('home')
-  const handleCreateTest = (config) => { setCustomTest(buildCustomTest(config)); setScreen('exampretest') }
+  // A daily test is a one-section slice of the same question bank, run through the
+  // same exam engine (and the same anti-cheating shuffle) as the official live test.
+  const handleDailyAttempt = (test) => {
+    setCustomTest({ ...buildCustomTest({ mode:'subject', selectedSectionIds:[test.sectionId], testName: test.fullName }), dailyTestId: test.id })
+    setScreen('exampretest')
+  }
   const isLiveNow = getLifecyclePhase(LIVE_TEST) === 'live'
+  const dailyLiveNow = DAILY_TESTS.some(t => t.liveNow && !t.attempted && !dailyAttemptedIds.has(t.id))
 
   const handleRegisterClick = (test) => setActiveModal({ type:'confirm', test })
   const handleConfirm = () => {
@@ -82,12 +89,17 @@ export default function App() {
               sectionCount={customTest ? customTest.sections.length : 5}
               sectionMinutes={18}
               totalMarks={customTest?.meta.totalMarks}
+              showWebPrompt={!customTest}
             />
           ) : (
             <ExamScreen
               interfaceMode={examInterfaceMode}
               onExit={() => { setCustomTest(null); setScreen('home') }}
-              onFinish={(results) => { setLastAttempt(results); if (!customTest) setLiveTestAttempted(true) }}
+              onFinish={(results) => {
+                setLastAttempt(results)
+                if (!customTest) setLiveTestAttempted(true)
+                else if (customTest.dailyTestId) setDailyAttemptedIds(prev => new Set([...prev, customTest.dailyTestId]))
+              }}
               customQuestions={customTest?.questions}
               customSections={customTest?.sections}
               customMeta={customTest?.meta}
@@ -133,12 +145,14 @@ export default function App() {
           <div style={{ flexShrink:0, borderBottom:`1px solid ${BD}` }}>
             <div className="scroll" style={{ display:'flex', overflowX:'auto', padding:'0 4px' }}>
               {CATEGORIES.map(cat => {
-                const isLive = cat === 'Live Test'
+                // Instagram-Live-style urgency: any tab with a test running right now
+                // carries the red blinking dot — scoped to Daily/Mini/Live tests.
+                const hasLiveDot = (cat === 'Live Test' && isLiveNow) || (cat === 'Daily Test' && dailyLiveNow)
                 return (
                   <button key={cat} onClick={() => setActiveCategory(cat)}
                     style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, padding:'10px 14px', fontSize:13, fontWeight:activeCategory===cat?700:500, color:activeCategory===cat?P:T2, background:'none', border:'none', borderBottom:`2px solid ${activeCategory===cat?P:'transparent'}`, cursor:'pointer', whiteSpace:'nowrap' }}>
                     {cat}
-                    {isLive && isLiveNow && (
+                    {hasLiveDot && (
                       <span style={{ width:7, height:7, borderRadius:'50%', background:'#FF3B30', display:'inline-block', boxShadow:'0 0 0 2px rgba(255,59,48,0.35)', animation:'livePulse 1.4s ease-in-out infinite' }} />
                     )}
                   </button>
@@ -153,8 +167,6 @@ export default function App() {
             <SeriesDetail seriesId={activeSeriesId} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onOpenCalendar={openCalendar} onBack={goHome} />
           ) : screen === 'calendar' ? (
             <TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} initialFilter={calendarFilter} onBack={goHome} />
-          ) : screen === 'createtest' ? (
-            <CreateTest onBack={goHome} onCreate={handleCreateTest} />
           ) : activeCategory === 'Live Test' ? (
             <LiveTestHome
               registeredIds={registeredIds}
@@ -163,10 +175,11 @@ export default function App() {
               liveTestAttempted={liveTestAttempted}
               onOpenSeries={openSeries}
               onOpenCalendar={() => openCalendar('all')}
-              onCreateTest={() => setScreen('createtest')}
               lastAttempt={lastAttempt}
               userTier={userTier}
             />
+          ) : activeCategory === 'Daily Test' ? (
+            <DailyTests dailyAttemptedIds={dailyAttemptedIds} onAttempt={handleDailyAttempt} />
           ) : (
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60%', color:T3, gap:10 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>

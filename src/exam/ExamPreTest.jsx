@@ -8,9 +8,12 @@ const NAVY = '#1f3a68', NAVY_D = '#162d52'
 // meta/sectionCount/sectionMinutes default to the official live test, but a
 // student-created test (see CreateTest.jsx) passes its own — same pretest screen,
 // same interface choice, different content underneath.
-export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, sectionMinutes = 18, totalMarks }) {
+export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, sectionMinutes = 18, totalMarks, showWebPrompt = false }) {
   const [interfaceMode, setInterfaceMode] = useState('nprep')
   const [agreed, setAgreed] = useState(false)
+  // Shown once when a major live test opens — the spec's exact prompt, offering the
+  // web version (full-screen, keyboard-locked) for the most exam-authentic run.
+  const [webPromptOpen, setWebPromptOpen] = useState(showWebPrompt)
   const m = meta || DEFAULT_EXAM_META
   const marks = totalMarks ?? m.totalMarks
   const totalMinutes = sectionCount * sectionMinutes
@@ -86,6 +89,29 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
           I am ready to begin
         </button>
       </div>
+
+      {webPromptOpen && (
+        <div className="popup-overlay">
+          <div className="popup" style={{ textAlign:'center' }}>
+            <div style={{ fontSize:30, marginBottom:10 }}>🖥️</div>
+            <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:8 }}>Experience the actual exam</div>
+            <div style={{ fontSize:13, color:T2, lineHeight:1.65, marginBottom:18 }}>
+              You can also attend this test to experience it in the actual exam mode — open it on the web.
+              The web version runs full-screen with the keyboard locked, exactly like exam day.
+            </div>
+            <button
+              onClick={() => window.open('https://web-test-screen.vercel.app', '_blank', 'noopener')}
+              style={{ width:'100%', padding:'12px', borderRadius:10, background:NAVY, color:'white', border:'none', fontSize:13.5, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+              Open on Web
+            </button>
+            <button
+              onClick={() => setWebPromptOpen(false)}
+              style={{ width:'100%', padding:'11px', borderRadius:10, background:'white', color:T2, border:`1px solid ${BD}`, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+              Continue on App
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
