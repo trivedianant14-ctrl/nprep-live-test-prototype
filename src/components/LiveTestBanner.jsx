@@ -53,7 +53,7 @@ export default function LiveTestBanner({ test, onJoin, attempted, phaseOverride 
         {/* No re-attempts on a Live Test — once submitted, the CTA retires rather than
             offering to re-enter. */}
         <button onClick={() => !attempted && onJoin()} disabled={attempted} style={{ width:'100%', padding:'12px', borderRadius:24, background: attempted ? GL : 'white', color: attempted ? G : PD, fontSize:14, fontWeight:600, border:'none', cursor: attempted ? 'default' : 'pointer', boxShadow: attempted ? 'none' : '0 2px 8px rgba(0,0,0,0.12)' }}>
-          {attempted ? '✓ Test Submitted' : 'Join Now'}
+          {attempted ? '✓ Test Submitted' : 'Start Attempt'}
         </button>
       </div>
     )
