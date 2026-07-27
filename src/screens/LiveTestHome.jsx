@@ -69,7 +69,8 @@ function TrendChart({ pts, vals, metric }) {
 // view PW/Aakash lead with). Kept collapsed behind a dropdown so it doesn't crowd Home;
 // only opens on tap. A "Preview" row lets us demo every attempt-count state (0–6): the
 // empty prompt at 0, a single reading at 1, and the growing trend from 2 up.
-function ProgressTrend({ history }) {
+// Exported so the desktop layout (desktop/DesktopTests.jsx) reuses the same widget.
+export function ProgressTrend({ history }) {
   const [open, setOpen] = useState(false)
   const [metric, setMetric] = useState('percentile') // 'percentile' | 'scorePct'
   const [previewCount, setPreviewCount] = useState(null) // null = Auto (real attempt count)

@@ -7,6 +7,7 @@ import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
 import DailyTests from './screens/DailyTests'
+import DesktopTests from './desktop/DesktopTests'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
 import { buildCustomTest } from './exam/customTest'
@@ -42,6 +43,32 @@ const initialRegistered = new Set(
   Object.values(UPCOMING).flat().filter(t => t.registered).map(t => t.id)
 )
 
+// Prototype affordance: switch between the phone mock and the desktop layout. Floats
+// above both shells so it's reachable in either view.
+function ViewToggle({ mode, setMode }) {
+  const opts = [
+    { id:'mobile',  label:'Mobile',  icon:<><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></> },
+    { id:'desktop', label:'Desktop', icon:<><rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></> },
+  ]
+  return (
+    <div style={{ position:'fixed', top:8, left:'50%', transform:'translateX(-50%)', zIndex:200, display:'inline-flex', background:'white', border:`1px solid ${BD}`, borderRadius:20, padding:3, gap:2, boxShadow:'0 4px 16px rgba(0,0,0,0.14)' }}>
+      {opts.map(o => {
+        const active = mode === o.id
+        return (
+          <button key={o.id} onClick={() => setMode(o.id)} style={{
+            display:'inline-flex', alignItems:'center', gap:6, padding:'5px 14px', borderRadius:16,
+            fontSize:12, fontWeight: active ? 600 : 500, background: active ? P : 'transparent',
+            color: active ? 'white' : T2, border:'none', cursor:'pointer',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{o.icon}</svg>
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function App() {
   const [activeCategory, setActiveCategory] = useState('Live Test')
   const [screen, setScreen] = useState('home') // 'home' | 'series' | 'calendar' | 'exampretest' | 'exam'
@@ -60,6 +87,7 @@ export default function App() {
   const [pausedDaily, setPausedDaily] = useState({})   // dailyTestId -> { customTest, snapshot, interfaceMode }
   const [resumeSnapshot, setResumeSnapshot] = useState(null)
   const [calendarFilter, setCalendarFilter] = useState('all')
+  const [viewMode, setViewMode] = useState('mobile') // 'mobile' | 'desktop'
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
   const openCalendar = (filter = 'all') => { setCalendarFilter(filter); setScreen('calendar') }
@@ -97,6 +125,97 @@ export default function App() {
     setActiveModal({ type:'success', test: activeModal.test })
   }
   const toggleReminder = (key) => setReminders(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // Registration confirm/success modals — shared by the mobile and desktop layouts.
+  const modalNodes = (
+    <>
+      {activeModal?.type === 'confirm' && (
+        <div className="popup-overlay">
+          <div className="popup">
+            <div style={{ width:44, height:44, borderRadius:12, background:'#F1F4FF', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+              <BellIcon size={22} />
+            </div>
+            <div style={{ fontSize:16, fontWeight:700, color:T1, marginBottom:8 }}>Confirm Registration</div>
+            <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:20 }}>
+              Register for <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span>? You'll be notified as soon as this test goes live.
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setActiveModal(null)} style={{ flex:1, padding:'11px', borderRadius:24, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+              <button onClick={handleConfirm} style={{ flex:1, padding:'11px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal?.type === 'success' && (
+        <div className="popup-overlay" style={{ overflow:'hidden' }}>
+          {CONFETTI.map((c, i) => (
+            <div key={i} style={{ position:'absolute', top:0, left:c.left, width:c.w, height:c.h, borderRadius:c.round?'50%':2, background:c.color, animation:`confettiFall ${c.dur}s ${c.delay}s ease-in both`, zIndex:0, pointerEvents:'none' }} />
+          ))}
+          <div className="popup" style={{ textAlign:'center', position:'relative', zIndex:1 }}>
+            <div style={{ width:72, height:72, borderRadius:'50%', background:GL, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', animation:'checkPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+            </div>
+            <div style={{ fontSize:24, fontWeight:700, color:PD, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray!</div>
+            <div style={{ fontSize:15, fontWeight:600, color:T1, marginBottom:10 }}>You're Registered!</div>
+            <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:18 }}>
+              We'll notify you as soon as <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span> goes live. Good luck!
+            </div>
+            <div style={{ textAlign:'left', marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:T3, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Remind me</div>
+              <div style={{ display:'flex', gap:8 }}>
+                {[{ key:'oneDay', label:'1 day before' }, { key:'oneHour', label:'1 hour before' }].map(r => (
+                  <button key={r.key} onClick={() => toggleReminder(r.key)} style={{
+                    flex:1, padding:'9px 6px', borderRadius:20, fontSize:11.5, fontWeight:600, cursor:'pointer',
+                    background: reminders[r.key] ? GL : BG2, color: reminders[r.key] ? G : T2,
+                    border: `1px solid ${reminders[r.key] ? G : BD}`,
+                  }}>{r.label}</button>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => downloadIcsForTest(activeModal.test)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px', borderRadius:24, background:'white', color:P, border:`1px solid ${P}`, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:10 }}>
+              <CalendarIcon size={15} color={P} /> Add to calendar
+            </button>
+            <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Got it</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+
+  // ── Desktop layout ─────────────────────────────────────────────────────────
+  // Same data and handlers, laid out for a wide screen (sidebar + top bar + grid).
+  // Exam screens fall through to the shared phone flow below (a focused, narrow UI).
+  if (viewMode === 'desktop' && screen !== 'exampretest' && screen !== 'exam') {
+    const desktopFrame = (child) => (
+      <div style={{ position:'fixed', inset:0, background:BG2, overflowY:'auto', padding:'56px 0 40px' }}>
+        <div style={{ width:'100%', maxWidth:460, height:'82vh', margin:'0 auto', background:'white', border:`1px solid ${BD}`, borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>{child}</div>
+      </div>
+    )
+    return (
+      <>
+        <ViewToggle mode={viewMode} setMode={setViewMode} />
+        {screen === 'series' ? (
+          desktopFrame(<SeriesDetail seriesId={activeSeriesId} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onOpenCalendar={openCalendar} onBack={goHome} />)
+        ) : screen === 'calendar' ? (
+          desktopFrame(<TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} initialFilter={calendarFilter} onBack={goHome} />)
+        ) : (
+          <DesktopTests
+            activeCategory={activeCategory} setActiveCategory={setActiveCategory}
+            registeredIds={registeredIds} onRegisterClick={handleRegisterClick}
+            onJoined={() => setScreen('exampretest')} liveTestAttempted={liveTestAttempted}
+            onOpenSeries={openSeries} onOpenCalendar={openCalendar}
+            lastAttempt={lastAttempt} attemptHistory={attemptHistory}
+            userTier={userTier} setUserTier={setUserTier}
+            dailyAttemptedIds={dailyAttemptedIds} dailyResults={dailyResults}
+            pausedIds={new Set(Object.keys(pausedDaily).map(Number))}
+            onDailyAttempt={handleDailyAttempt} onDailyResume={handleDailyResume}
+          />
+        )}
+        {modalNodes}
+      </>
+    )
+  }
 
   if (screen === 'exampretest' || screen === 'exam') {
     return (
@@ -143,6 +262,8 @@ export default function App() {
   }
 
   return (
+    <>
+    <ViewToggle mode={viewMode} setMode={setViewMode} />
     <div className="phone-wrapper" style={{ width:'100%', height:'100%' }}>
       <div className="phone">
         <StatusBar />
@@ -241,64 +362,10 @@ export default function App() {
           })}
         </div>
 
-        {activeModal?.type === 'confirm' && (
-          <div className="popup-overlay">
-            <div className="popup">
-              <div style={{ width:44, height:44, borderRadius:12, background:'#F1F4FF', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
-                <BellIcon size={22} />
-              </div>
-              <div style={{ fontSize:16, fontWeight:700, color:T1, marginBottom:8 }}>Confirm Registration</div>
-              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:20 }}>
-                Register for <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span>? You'll be notified as soon as this test goes live.
-              </div>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setActiveModal(null)} style={{ flex:1, padding:'11px', borderRadius:24, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
-                <button onClick={handleConfirm} style={{ flex:1, padding:'11px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Confirm</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeModal?.type === 'success' && (
-          <div className="popup-overlay" style={{ overflow:'hidden' }}>
-            {CONFETTI.map((c, i) => (
-              <div key={i} style={{ position:'absolute', top:0, left:c.left, width:c.w, height:c.h, borderRadius:c.round?'50%':2, background:c.color, animation:`confettiFall ${c.dur}s ${c.delay}s ease-in both`, zIndex:0, pointerEvents:'none' }} />
-            ))}
-            <div className="popup" style={{ textAlign:'center', position:'relative', zIndex:1 }}>
-              <div style={{ width:72, height:72, borderRadius:'50%', background:GL, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px', animation:'checkPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
-              </div>
-              <div style={{ fontSize:24, fontWeight:700, color:PD, marginBottom:4, animation:'hooraySlide 0.4s 0.25s ease-out forwards', opacity:0 }}>Hooray!</div>
-              <div style={{ fontSize:15, fontWeight:600, color:T1, marginBottom:10 }}>You're Registered!</div>
-              <div style={{ fontSize:13, color:T2, lineHeight:1.6, marginBottom:18 }}>
-                We'll notify you as soon as <span style={{ fontWeight:600, color:T1 }}>{activeModal.test.fullName}</span> goes live. Good luck!
-              </div>
-
-              {/* Reminder opt-in, captured right at the moment of commitment — the point
-                  students are most likely to actually follow through on it. */}
-              <div style={{ textAlign:'left', marginBottom:14 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:T3, textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Remind me</div>
-                <div style={{ display:'flex', gap:8 }}>
-                  {[{ key:'oneDay', label:'1 day before' }, { key:'oneHour', label:'1 hour before' }].map(r => (
-                    <button key={r.key} onClick={() => toggleReminder(r.key)} style={{
-                      flex:1, padding:'9px 6px', borderRadius:20, fontSize:11.5, fontWeight:600, cursor:'pointer',
-                      background: reminders[r.key] ? GL : BG2,
-                      color: reminders[r.key] ? G : T2,
-                      border: `1px solid ${reminders[r.key] ? G : BD}`,
-                    }}>{r.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={() => downloadIcsForTest(activeModal.test)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'11px', borderRadius:24, background:'white', color:P, border:`1px solid ${P}`, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:10 }}>
-                <CalendarIcon size={15} color={P} /> Add to calendar
-              </button>
-              <button onClick={() => setActiveModal(null)} style={{ width:'100%', padding:'13px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Got it</button>
-            </div>
-          </div>
-        )}
+        {modalNodes}
 
       </div>
     </div>
+    </>
   )
 }
