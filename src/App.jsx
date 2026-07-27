@@ -92,6 +92,10 @@ export default function App() {
   const [resumeSnapshot, setResumeSnapshot] = useState(null)
   const [calendarFilter, setCalendarFilter] = useState('all')
   const [viewMode, setViewMode] = useState('mobile') // 'mobile' | 'desktop'
+  const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
+
+  const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]))
+  const goDaily = () => { setScreen('home'); setActiveCategory('Daily Test') }
 
   const openSeries = (id) => { setActiveSeriesId(id); setScreen('series') }
   const openCalendar = (filter = 'all') => { setCalendarFilter(filter); setScreen('calendar') }
@@ -247,6 +251,7 @@ export default function App() {
               onOpenSeries={openSeries} onOpenCalendar={openCalendar}
               lastAttempt={lastAttempt} attemptHistory={attemptHistory}
               userTier={userTier}
+              dailyLiveNow={dailyLiveNow} dismissedAlerts={dismissedAlerts} onDismissAlert={dismissAlert} onGoDaily={goDaily}
               dailyAttemptedIds={dailyAttemptedIds} dailyResults={dailyResults}
               pausedIds={new Set(Object.keys(pausedDaily).map(Number))}
               onDailyAttempt={handleDailyAttempt} onDailyResume={handleDailyResume}
@@ -360,6 +365,10 @@ export default function App() {
               lastAttempt={lastAttempt}
               attemptHistory={attemptHistory}
               userTier={userTier}
+              dailyLiveNow={dailyLiveNow}
+              dismissedAlerts={dismissedAlerts}
+              onDismissAlert={dismissAlert}
+              onGoDaily={goDaily}
             />
           ) : activeCategory === 'Daily Test' ? (
             <DailyTests

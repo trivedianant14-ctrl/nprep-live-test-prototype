@@ -3,9 +3,11 @@ import { LIVE_TEST, SERIES, SERIES_GROUPS, UPCOMING, PAST, PL, PD, P, T1, T2, T3
 import { CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import LiveTestBanner from '../components/LiveTestBanner'
+import AlertsStrip from '../components/AlertsStrip'
 import { ordinal } from '../utils/format'
 import { getLifecyclePhase } from '../utils/lifecycle'
 import { brandListForTier } from '../utils/tierBranding'
+import { computeAlerts } from '../utils/alerts'
 
 const PREVIEW_PHASES = [
   { id: null,            label: 'Auto' },
@@ -174,9 +176,14 @@ export function ProgressTrend({ history }) {
   )
 }
 
-export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, attemptHistory = [], userTier }) {
+export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, attemptHistory = [], userTier, dailyLiveNow, dismissedAlerts = new Set(), onDismissAlert = () => {}, onGoDaily }) {
   const [previewPhase, setPreviewPhase] = useState(null)
   const [pastTestView, setPastTestView] = useState('full_mock')
+
+  const alertList = computeAlerts({
+    upcoming: Object.entries(UPCOMING).flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId }))),
+    registeredIds, dailyLive: dailyLiveNow, userTier,
+  })
 
   // Most time-sensitive tests across every series, sorted by soonest registration
   // deadline — this is the "Upcoming Tests" preview from the wireframe, but instead of
@@ -226,6 +233,9 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
         })}
       </div>
       <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={previewPhase} />
+
+      {/* Actionable alerts — registration deadlines closing soon, live daily test, etc. */}
+      <AlertsStrip alerts={alertList} dismissed={dismissedAlerts} onDismiss={onDismissAlert} onRegister={onRegisterClick} onGoDaily={onGoDaily} style={{ marginTop: 14 }} />
 
       {/* Progress trend — score/percentile across recent attempts, so improvement is
           visible on Home, not just inside a one-off results screen (PW/Aakash pattern).

@@ -4,10 +4,12 @@ import { CalendarIcon } from '../icons'
 import { UpcomingCard, SeriesTile } from '../components/Cards'
 import { ProgressTrend } from '../screens/LiveTestHome'
 import LiveTestBanner from '../components/LiveTestBanner'
+import AlertsStrip from '../components/AlertsStrip'
 import DailyTests from '../screens/DailyTests'
 import { ordinal } from '../utils/format'
 import { getLifecyclePhase } from '../utils/lifecycle'
 import { brandListForTier } from '../utils/tierBranding'
+import { computeAlerts } from '../utils/alerts'
 
 // Same virtual-tile resolution the mobile home uses (see LiveTestHome for the annotated original).
 function testsForTile(map, tile) {
@@ -21,11 +23,13 @@ function testsForTile(map, tile) {
 export default function DesktopTests({
   activeCategory, registeredIds, onRegisterClick, onJoined, liveTestAttempted,
   onOpenSeries, onOpenCalendar, lastAttempt, attemptHistory, userTier,
+  dailyLiveNow, dismissedAlerts = new Set(), onDismissAlert = () => {}, onGoDaily,
   dailyAttemptedIds, dailyResults, pausedIds, onDailyAttempt, onDailyResume,
 }) {
   const [pastTestView, setPastTestView] = useState('full_mock')
 
   const allUpcoming = Object.entries(UPCOMING).flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId })))
+  const alertList = computeAlerts({ upcoming: allUpcoming, registeredIds, dailyLive: dailyLiveNow, userTier })
   const topUpcoming = brandListForTier([...allUpcoming].sort((a, b) => a.regCloses - b.regCloses).slice(0, 3), userTier)
 
   const scholarshipTile = userTier === 'free'
@@ -58,7 +62,9 @@ export default function DesktopTests({
   }
 
   return (
-    <div style={{ maxWidth:1180, margin:'0 auto', display:'grid', gridTemplateColumns:'minmax(0, 2.1fr) minmax(300px, 1fr)', gap:24, alignItems:'start' }}>
+    <div style={{ maxWidth:1180, margin:'0 auto' }}>
+      <AlertsStrip alerts={alertList} dismissed={dismissedAlerts} onDismiss={onDismissAlert} onRegister={onRegisterClick} onGoDaily={onGoDaily} style={{ marginBottom:20 }} />
+      <div style={{ display:'grid', gridTemplateColumns:'minmax(0, 2.1fr) minmax(300px, 1fr)', gap:24, alignItems:'start' }}>
       {/* Main column */}
       <div>
         <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={null} />
@@ -139,6 +145,7 @@ export default function DesktopTests({
           ))}
         </div>
       </aside>
+      </div>
     </div>
   )
 }
