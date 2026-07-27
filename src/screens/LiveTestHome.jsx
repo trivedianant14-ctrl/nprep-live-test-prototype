@@ -289,11 +289,12 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T3} strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
       </button>
 
-      {/* Past Tests — Full Mock and Subject-wise lanes. A student decides which test
-          to open right here (tile label + tagline carry the identity); inside a series
-          there are deliberately no further tags or filters to read. */}
+      {/* Test Series — Full Mock and Subject-wise lanes. Named "Test Series" (not "Past
+          Tests") because each tile opens a series holding upcoming, live and past tests,
+          not only past ones. A student decides which series to open right here (tile label
+          + tagline carry the identity); inside there are no further tags or filters. */}
       <div style={{ borderTop:`1px solid ${BD}`, paddingTop:16 }}>
-        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Past Tests</div>
+        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Test Series</div>
         <div style={{ display:'flex', background:BG2, borderRadius:12, padding:4, gap:4, marginBottom:12 }}>
           {[
             { id: 'full_mock', label: 'Full Mock' },
@@ -315,10 +316,7 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
         </div>
         {SERIES_GROUPS.filter(g => g.id === pastTestView).map(group => (
           <div key={group.id} style={{ marginBottom:18 }}>
-            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
-              <span style={{ fontSize:12, fontWeight:700, color:T2 }}>{group.label}</span>
-              <span style={{ fontSize:10.5, color:T3 }}>{group.sub}</span>
-            </div>
+            <div style={{ fontSize:10.5, color:T3, marginBottom:10 }}>{group.sub}</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               {group.tiles.map(rawTile => {
                 const tile = resolveTile(rawTile)
