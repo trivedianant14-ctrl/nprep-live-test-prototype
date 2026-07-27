@@ -182,7 +182,7 @@ const FILTERS = [
   { id:'paused',      label:'Paused' },
 ]
 
-export default function DailyTests({ dailyAttemptedIds, dailyResults, pausedIds, onAttempt, onResume }) {
+export default function DailyTests({ dailyAttemptedIds, dailyResults, pausedIds, onAttempt, onResume, wide = false }) {
   const [filter, setFilter] = useState('all')
   const [report, setReport] = useState(null) // { test, results }
 
@@ -214,9 +214,11 @@ export default function DailyTests({ dailyAttemptedIds, dailyResults, pausedIds,
 
   const openReport = (test) => setReport({ test, results: dailyResults[test.id] || null })
   const nothingToShow = !heroVisible && sections.length === 0
+  // On the web view, past-test rows flow into a responsive grid instead of a single column.
+  const rowsWrap = wide ? { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(330px, 1fr))', gap:8 } : undefined
 
   return (
-    <div style={{ padding:'14px 16px 32px' }}>
+    <div style={{ padding: wide ? 0 : '14px 16px 32px' }}>
 
       <div className="scroll" style={{ display:'flex', gap:7, overflowX:'auto', marginBottom:14 }}>
         {FILTERS.map(f => {
@@ -252,9 +254,11 @@ export default function DailyTests({ dailyAttemptedIds, dailyResults, pausedIds,
         return (
           <div key={seriesId} style={{ marginBottom:18 }}>
             <div style={{ fontSize:11.5, fontWeight:600, color:T2, marginBottom:8 }}>{series ? series.label.replace(' Test Series', '') : seriesId} Daily</div>
-            {rows.map(t => (
-              <PastRow key={t.id} test={t} attempted={isAttempted(t)} onOpenReport={() => openReport(t)} />
-            ))}
+            <div style={rowsWrap}>
+              {rows.map(t => (
+                <PastRow key={t.id} test={t} attempted={isAttempted(t)} onOpenReport={() => openReport(t)} />
+              ))}
+            </div>
             {filter === 'all' && hiddenCount > 0 && (
               <div style={{ fontSize:10, color:T3, padding:'2px 4px 0' }}>
                 {hiddenCount} older unattempted {hiddenCount === 1 ? 'test' : 'tests'} auto-removed

@@ -7,7 +7,10 @@ import LiveTestHome from './screens/LiveTestHome'
 import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
 import DailyTests from './screens/DailyTests'
+import DesktopShell from './desktop/DesktopShell'
 import DesktopTests from './desktop/DesktopTests'
+import DesktopSeriesDetail from './desktop/DesktopSeriesDetail'
+import DesktopCalendar from './desktop/DesktopCalendar'
 import DesktopExam from './desktop/DesktopExam'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
@@ -218,34 +221,38 @@ export default function App() {
   }
 
   // ── Desktop layout ─────────────────────────────────────────────────────────
-  // Same data and handlers, laid out for a wide screen (sidebar + top bar + grid).
-  // Exam screens use the dedicated desktop CBT flow above.
+  // Every web-view screen (home, daily, series detail, calendar) lives inside the same
+  // DesktopShell (sidebar + top bar + category tabs) so the whole flow is one coherent
+  // web app. Exam screens use the dedicated desktop CBT flow above.
   if (viewMode === 'desktop' && screen !== 'exampretest' && screen !== 'exam') {
-    const desktopFrame = (child) => (
-      <div style={{ position:'fixed', inset:0, background:BG2, overflowY:'auto', padding:'56px 0 40px' }}>
-        <div style={{ width:'100%', maxWidth:460, height:'82vh', margin:'0 auto', background:'white', border:`1px solid ${BD}`, borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 4px 24px rgba(0,0,0,0.06)' }}>{child}</div>
-      </div>
-    )
     return (
       <>
         <ViewToggle mode={viewMode} setMode={setViewMode} />
-        {screen === 'series' ? (
-          desktopFrame(<SeriesDetail seriesId={activeSeriesId} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onOpenCalendar={openCalendar} onBack={goHome} />)
-        ) : screen === 'calendar' ? (
-          desktopFrame(<TestCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} initialFilter={calendarFilter} onBack={goHome} />)
-        ) : (
-          <DesktopTests
-            activeCategory={activeCategory} setActiveCategory={setActiveCategory}
-            registeredIds={registeredIds} onRegisterClick={handleRegisterClick}
-            onJoined={() => setScreen('exampretest')} liveTestAttempted={liveTestAttempted}
-            onOpenSeries={openSeries} onOpenCalendar={openCalendar}
-            lastAttempt={lastAttempt} attemptHistory={attemptHistory}
-            userTier={userTier} setUserTier={setUserTier}
-            dailyAttemptedIds={dailyAttemptedIds} dailyResults={dailyResults}
-            pausedIds={new Set(Object.keys(pausedDaily).map(Number))}
-            onDailyAttempt={handleDailyAttempt} onDailyResume={handleDailyResume}
-          />
-        )}
+        <DesktopShell
+          activeCategory={activeCategory}
+          onSelectCategory={(cat) => { setScreen('home'); setActiveCategory(cat) }}
+          userTier={userTier} setUserTier={setUserTier}
+          onOpenCalendar={openCalendar}
+          dailyAttemptedIds={dailyAttemptedIds}
+        >
+          {screen === 'series' ? (
+            <DesktopSeriesDetail seriesId={activeSeriesId} userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} onOpenCalendar={openCalendar} onBack={goHome} />
+          ) : screen === 'calendar' ? (
+            <DesktopCalendar userTier={userTier} registeredIds={registeredIds} onRegisterClick={handleRegisterClick} initialFilter={calendarFilter} onBack={goHome} />
+          ) : (
+            <DesktopTests
+              activeCategory={activeCategory}
+              registeredIds={registeredIds} onRegisterClick={handleRegisterClick}
+              onJoined={() => setScreen('exampretest')} liveTestAttempted={liveTestAttempted}
+              onOpenSeries={openSeries} onOpenCalendar={openCalendar}
+              lastAttempt={lastAttempt} attemptHistory={attemptHistory}
+              userTier={userTier}
+              dailyAttemptedIds={dailyAttemptedIds} dailyResults={dailyResults}
+              pausedIds={new Set(Object.keys(pausedDaily).map(Number))}
+              onDailyAttempt={handleDailyAttempt} onDailyResume={handleDailyResume}
+            />
+          )}
+        </DesktopShell>
         {modalNodes}
       </>
     )
