@@ -1,0 +1,512 @@
+import { useState, useEffect, useRef } from 'react'
+import {
+  QUESTIONS as DEFAULT_QUESTIONS,
+  SECTIONS as DEFAULT_SECTIONS,
+  SECTION_DURATION,
+  EXAM_META as DEFAULT_EXAM_META,
+} from '../exam/examData'
+import { LIVE_TEST } from '../data'
+import { shuffleForAttempt } from '../exam/shuffle'
+
+// ── AIIMS NORCET CBT portal palette (faithful to web-test-screen.vercel.app) ──
+const NAVY = '#1a3a6b', NAVY_D = '#0f2347', NAVY_L = '#2a5298'
+const CYAN = '#27b7cd', CYAN_D = '#17829a'
+const GREEN = '#25a943', RED = '#e4474d', PURPLE = '#8c5bd3'
+const RED_TXT = '#cc0000'
+
+const estimatePercentile = (accuracy) => Math.min(99, Math.max(1, Math.round(100 * (1 - Math.exp(-accuracy / 32)))))
+const fmtSec = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
+// Question-palette status glyphs — the exact NORCET convention (grey square / green
+// house / red diamond / purple circle / purple circle + green tick), numbers upright.
+function PaletteCell({ status, num, isCurrent, onClick }) {
+  const base = {
+    width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, position: 'relative',
+    userSelect: 'none', outline: isCurrent ? '2.5px solid #ff8800' : 'none', outlineOffset: 1,
+  }
+  if (status === 'answered')
+    return <div onClick={onClick} style={{ ...base, background: GREEN, color: '#fff', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }}>{num}</div>
+  if (status === 'notanswered')
+    return <div onClick={onClick} style={{ ...base, background: RED, color: '#fff', clipPath: 'polygon(50% 0,100% 50%,50% 100%,0 50%)' }}>{num}</div>
+  if (status === 'marked')
+    return <div onClick={onClick} style={{ ...base, background: PURPLE, color: '#fff', borderRadius: '50%' }}>{num}</div>
+  if (status === 'answeredmarked')
+    return (
+      <div onClick={onClick} style={{ ...base, background: PURPLE, color: '#fff', borderRadius: '50%' }}>
+        {num}
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, background: GREEN, borderRadius: '50%', border: '1.5px solid #fff' }} />
+      </div>
+    )
+  return <div onClick={onClick} style={{ ...base, background: '#ddd', color: '#222', border: '1px solid #aaa' }}>{num}</div>
+}
+
+const legendItems = [
+  { cls: 'notvisited',   label: 'Not Visited' },
+  { cls: 'notanswered',  label: 'Not Answered' },
+  { cls: 'answered',     label: 'Answered' },
+  { cls: 'marked',       label: 'Marked for Review' },
+  { cls: 'answeredmarked', label: 'Answered & Marked (will be evaluated)' },
+]
+
+const cbtBtn = (x = {}) => ({ padding: '9px 16px', fontSize: 13, fontWeight: 600, border: '1px solid #999', background: 'linear-gradient(#fafafa,#dcdcdc)', cursor: 'pointer', borderRadius: 3, color: '#1a1a1a', ...x })
+
+export default function DesktopExam({ onExit, onFinish, customQuestions, customSections, customMeta }) {
+  const META = customMeta || DEFAULT_EXAM_META
+  const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
+    shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
+  )
+
+  const [phase, setPhase] = useState('landing') // landing | instructions | exam | submitted | analysis
+  const [agreed, setAgreed] = useState(false)
+  const [curSec, setCurSec] = useState(0)
+  const [curQLocal, setCurQLocal] = useState(0)
+  const [sectionTimers, setSectionTimers] = useState(() => SECTIONS.map(() => SECTION_DURATION))
+  const [sectionLocked, setSectionLocked] = useState(() => SECTIONS.map(() => false))
+  const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
+  const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
+  const [visited, setVisited] = useState(() => Array(QUESTIONS.length).fill(false))
+  const [showSubmit, setShowSubmit] = useState(false)
+  const [results, setResults] = useState(null)
+  const [paletteOpen, setPaletteOpen] = useState(true)
+
+  const section = SECTIONS[curSec]
+  const curGlobalIdx = section.ids[curQLocal]
+  const q = QUESTIONS[curGlobalIdx]
+  const selected = answers[curGlobalIdx]
+  const isLocked = sectionLocked[curSec]
+  const isLastQInSec = curQLocal === section.ids.length - 1
+  const isLastSec = curSec === SECTIONS.length - 1
+
+  const getStatus = (gIdx) => {
+    const ans = answers[gIdx] !== null, mrk = marked[gIdx]
+    if (ans && mrk) return 'answeredmarked'
+    if (ans) return 'answered'
+    if (mrk) return 'marked'
+    if (visited[gIdx]) return 'notanswered'
+    return 'notvisited'
+  }
+  const counts = { answered: 0, notanswered: 0, marked: 0, answeredmarked: 0, notvisited: 0 }
+  QUESTIONS.forEach((_, i) => { counts[getStatus(i)]++ })
+
+  const computeAndFinalize = () => {
+    let correct = 0, wrong = 0, unattempted = 0
+    const sectionStats = SECTIONS.map(sec => ({ name: sec.name, correct: 0, wrong: 0, unattempted: 0 }))
+    QUESTIONS.forEach((qi, gIdx) => {
+      const si = SECTIONS.findIndex(s => s.ids.includes(gIdx))
+      if (answers[gIdx] === null) { unattempted++; sectionStats[si].unattempted++ }
+      else if (answers[gIdx] === qi.answer) { correct++; sectionStats[si].correct++ }
+      else { wrong++; sectionStats[si].wrong++ }
+    })
+    const score = parseFloat((correct * META.correctMarks + wrong * META.wrongMarks).toFixed(2))
+    const accuracy = Math.round((correct / QUESTIONS.length) * 100)
+    const percentile = estimatePercentile(accuracy)
+    const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
+    const weakestSection = [...sectionStats].sort((a, b) => a.correct - b.correct)[0]
+    const timeTaken = SECTIONS.length * SECTION_DURATION - sectionTimers.reduce((a, b) => a + b, 0)
+    const r = { correct, wrong, unattempted, score, accuracy, timeTaken, sectionStats, percentile, air, weakestSection, testName: META.shortName }
+    setResults(r); setShowSubmit(false); setPhase('submitted'); onFinish?.(r)
+  }
+  const finalizeRef = useRef(computeAndFinalize)
+  finalizeRef.current = computeAndFinalize
+
+  // Tick the active section's timer
+  useEffect(() => {
+    if (phase !== 'exam') return
+    const id = setInterval(() => setSectionTimers(prev => {
+      const next = [...prev]; if (next[curSec] > 0) next[curSec]--; return next
+    }), 1000)
+    return () => clearInterval(id)
+  }, [curSec, phase])
+
+  // Lock expired sections; auto-submit when every section has run out
+  useEffect(() => {
+    if (phase !== 'exam') return
+    let changed = false
+    const next = [...sectionLocked]
+    sectionTimers.forEach((t, i) => { if (t === 0 && !next[i]) { next[i] = true; changed = true } })
+    if (changed) setSectionLocked(next)
+    if (sectionTimers.every(t => t === 0)) finalizeRef.current()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionTimers, phase])
+
+  useEffect(() => {
+    setVisited(prev => { if (prev[curGlobalIdx]) return prev; const n = [...prev]; n[curGlobalIdx] = true; return n })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [curSec, curQLocal])
+
+  const goNext = () => {
+    if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
+    else if (!isLastSec) { setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0) }
+  }
+  const goPrev = () => {
+    if (curQLocal > 0) setCurQLocal(l => l - 1)
+    else if (curSec > 0) { const ps = curSec - 1; setCurSec(ps); setCurQLocal(SECTIONS[ps].ids.length - 1) }
+  }
+  const selectOption = (i) => { if (!isLocked) setAnswers(prev => { const n = [...prev]; n[curGlobalIdx] = i; return n }) }
+  const clearResponse = () => { if (!isLocked) setAnswers(prev => { const n = [...prev]; n[curGlobalIdx] = null; return n }) }
+  const markNext = () => { if (!isLocked) setMarked(prev => { const n = [...prev]; n[curGlobalIdx] = !n[curGlobalIdx]; return n }); goNext() }
+  const saveNext = () => { if (isLastQInSec && isLastSec) setShowSubmit(true); else goNext() }
+  const jumpTo = (gIdx) => { const li = section.ids.indexOf(gIdx); if (li >= 0) setCurQLocal(li) }
+  const switchSection = (si) => { if (!sectionLocked[si]) { setCurSec(si); setCurQLocal(0) } }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN 1 — Landing (candidate details)
+  // ─────────────────────────────────────────────────────────────────────────
+  if (phase === 'landing') {
+    const rows = [
+      ['Candidate Name', META.candidate], ['Roll Number', META.rollNo], ['Exam Date', META.examDate],
+      ['Test Name', META.shortName], ['Duration', `${SECTIONS.length * 18} Minutes (${SECTIONS.length} section${SECTIONS.length > 1 ? 's' : ''} × 18 min each)`],
+      ['Subject', 'Nursing Officer'], ['Test Centre', 'AIIMS New Delhi — Examination Hall 1'],
+    ]
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#e8ecf0', overflowY: 'auto', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
+        <header style={{ background: `linear-gradient(135deg, ${NAVY_D} 0%, ${NAVY} 60%, ${NAVY_L} 100%)`, color: '#fff', padding: '16px 40px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, paddingBottom: 14 }}>
+            <div style={{ width: 62, height: 62, borderRadius: '50%', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>AIIMS</div>
+            <div>
+              <div style={{ fontSize: 23, fontWeight: 700 }}>All India Institute of Medical Sciences, New Delhi</div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>Assessment &amp; Examination Registration Portal</div>
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 4, padding: '9px 16px', margin: '0 -8px', fontSize: 14, fontWeight: 600 }}>
+            Nursing Officer Recruitment Common Eligibility Test — {META.shortName}
+          </div>
+          <div style={{ height: 14 }} />
+        </header>
+
+        <div style={{ maxWidth: 620, margin: '40px auto', padding: '0 20px' }}>
+          <div style={{ background: '#fff', border: '1px solid #ccc', borderRadius: 4, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+            <div style={{ background: NAVY, color: '#fff', padding: '12px 22px', fontSize: 16, fontWeight: 700 }}>Candidate Details</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {rows.map(([label, val], i) => (
+                  <tr key={label} style={{ borderBottom: i < rows.length - 1 ? '1px solid #eee' : 'none' }}>
+                    <td style={{ padding: '11px 22px', color: '#555', width: 170 }}>{label}</td>
+                    <td style={{ padding: '11px 8px', color: '#888', width: 10 }}>:</td>
+                    <td style={{ padding: '11px 8px', fontWeight: 700 }}>{val}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 30 }}>
+            <p style={{ color: '#666', marginBottom: 18, fontSize: 14 }}>Please verify your details above before proceeding.</p>
+            <button onClick={() => setPhase('instructions')} style={{ background: `linear-gradient(135deg, ${CYAN} 0%, ${CYAN_D} 100%)`, color: '#fff', border: 'none', borderRadius: 4, padding: '15px 34px', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 10px rgba(23,130,154,0.35)' }}>
+              Click Here to Proceed →
+            </button>
+          </div>
+        </div>
+        <footer style={{ textAlign: 'center', color: '#888', fontSize: 12, padding: '30px 0', borderTop: '1px solid #ddd', background: '#fff' }}>© AIIMS New Delhi &nbsp;|&nbsp; All rights reserved</footer>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN 2 — General instructions
+  // ─────────────────────────────────────────────────────────────────────────
+  if (phase === 'instructions') {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#f3f8fb', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '28px 40px' }}>
+            <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>General Instructions:</h2>
+            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }}>
+              <li style={{ marginBottom: 10 }}>The clock is set at the server. The countdown timer at the top will display the remaining time for the current section. When it reaches zero, that section ends by itself.</li>
+              <li style={{ marginBottom: 10 }}>The Question Palette on the right shows the status of each question using the symbols below:</li>
+            </ol>
+            <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '14px 18px', margin: '12px 0 18px' }}>
+              {legendItems.map(it => (
+                <div key={it.cls} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0', fontSize: 13.5, color: '#333' }}>
+                  <PaletteCell status={it.cls} num="" isCurrent={false} onClick={() => {}} />
+                  {it.label}
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: '#333', marginBottom: 14 }}>
+              <strong>Mark For Review</strong> indicates you would like to look at the question again. An answered &amp; marked question is still evaluated.
+            </p>
+            <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Answering a Question:</h3>
+            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={3}>
+              <li style={{ marginBottom: 8 }}>Choose one of the 4 options (A–D) by clicking the bubble before it. Click again or use <strong>Clear Response</strong> to deselect.</li>
+              <li style={{ marginBottom: 8 }}>You MUST click <strong>Save &amp; Next</strong> to save your answer. Jumping via the palette does not save the current answer.</li>
+              <li style={{ marginBottom: 8 }}>Sections appear on the top bar. Clicking a section shows its questions; you can shuffle between sections at any time.</li>
+            </ol>
+            <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
+            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={6}>
+              <li style={{ marginBottom: 8 }}>Click <strong>Submit</strong> on the right panel to view a section-wise summary and confirm submission.</li>
+              <li style={{ marginBottom: 8 }}>The test is submitted automatically when time expires.</li>
+            </ol>
+            <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is a practice replica of the official AIIMS NORCET CBT interface.</p>
+          </div>
+
+          <aside style={{ width: 220, flexShrink: 0, background: '#fff', borderLeft: '1px solid #ddd', padding: '28px 20px', textAlign: 'center' }}>
+            <div style={{ width: 96, height: 96, borderRadius: 6, margin: '0 auto 14px', background: `radial-gradient(circle at 50% 35%, #1b3a6b 0 14%, transparent 15%), linear-gradient(135deg,#5bb8d4 0%,#1b5f8f 44%,#f5efec 45%,#c07a50 100%)`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 30 }}>{META.candidate?.[0] || 'A'}</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{META.candidate}</div>
+            <div style={{ fontSize: 12.5, color: '#666', marginTop: 2 }}>Roll No: {META.rollNo}</div>
+          </aside>
+        </div>
+
+        <div style={{ flexShrink: 0, background: '#fff', borderTop: '2px solid #ccc' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 40px', fontSize: 12, color: '#555', borderBottom: '1px solid #eee', flexWrap: 'wrap', gap: 8 }}>
+            <strong style={{ fontSize: 12.5 }}>{META.name}</strong>
+            <span style={{ display: 'flex', gap: 16 }}>
+              <span>Total Questions: <strong>{QUESTIONS.length}</strong></span>
+              <span>Duration: <strong>{SECTIONS.length * 18} Min</strong></span>
+              <span>Max Marks: <strong>{META.totalMarks}</strong></span>
+              <span style={{ color: '#1a8c36' }}>+ve: <strong>{META.correctMarks}</strong></span>
+              <span style={{ color: RED_TXT }}>–ve: <strong>{Math.abs(META.wrongMarks)}</strong></span>
+            </span>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 40px', fontSize: 13.5, cursor: 'pointer' }}>
+            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 16, height: 16 }} />
+            I have read all the instructions carefully and I agree to abide by the terms.
+          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 40px 16px' }}>
+            <button onClick={() => setPhase('landing')} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Previous</button>
+            <button disabled={!agreed} onClick={() => setPhase('exam')} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>
+              I am ready to begin
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN 4 — Submitted / analysis
+  // ─────────────────────────────────────────────────────────────────────────
+  if (phase === 'submitted' || phase === 'analysis') {
+    const r = results
+    if (phase === 'submitted') {
+      return (
+        <div style={{ position: 'fixed', inset: 0, background: '#e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ background: '#fff', borderRadius: 6, padding: '44px 48px', textAlign: 'center', maxWidth: 480, boxShadow: '0 6px 30px rgba(0,0,0,0.15)' }}>
+            <div style={{ width: 74, height: 74, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, margin: '0 auto 20px' }}>✓</div>
+            <h2 style={{ fontSize: 22, color: '#1a1a1a', marginBottom: 10 }}>Test Submitted Successfully</h2>
+            <p style={{ fontSize: 14, color: '#555', lineHeight: 1.7, marginBottom: 24 }}>Your {META.shortName} responses have been recorded. Results will be declared after the examination window closes.</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setPhase('analysis')} style={{ padding: '12px 22px', border: 'none', borderRadius: 4, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View Detailed Analysis</button>
+              <button onClick={onExit} style={{ ...cbtBtn({ padding: '12px 22px', fontSize: 14 }) }}>Back to Tests</button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    const total = QUESTIONS.length
+    const ac = r.accuracy >= 60 ? GREEN : r.accuracy >= 40 ? '#b8860b' : RED
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#eef2f6', overflowY: 'auto', fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ background: NAVY, color: '#fff', padding: '18px 40px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button onClick={onExit} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 22 }}>←</button>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>Test Results</div>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>{META.shortName}</div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '24px 20px 60px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Your Score</div>
+              <div><span style={{ fontSize: 40, fontWeight: 700, color: NAVY }}>{r.score}</span><span style={{ fontSize: 18, color: '#999' }}> / {META.totalMarks}</span></div>
+              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: ac }}>{r.accuracy}% Accuracy</div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, color: NAVY }}>{r.percentile}</div>
+              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Est. Percentile</div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, color: NAVY }}>~{r.air.toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Est. All-India Rank</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
+            {[{ l: 'Correct', v: r.correct, c: GREEN }, { l: 'Wrong', v: r.wrong, c: RED }, { l: 'Skipped', v: r.unattempted, c: '#888' }].map(s => (
+              <div key={s.l} style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: s.c }}>{s.v}</div>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Section Performance</div>
+          {r.sectionStats.map(s => {
+            const tt = s.correct + s.wrong + s.unattempted
+            const pct = tt ? Math.round((s.correct / tt) * 100) : 0
+            const fg = pct >= 60 ? GREEN : pct >= 40 ? '#b8860b' : RED
+            return (
+              <div key={s.name} style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '14px 18px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
+                  <span style={{ fontWeight: 600 }}>{s.name}</span><span style={{ fontWeight: 700, color: fg }}>{pct}%</span>
+                </div>
+                <div style={{ height: 6, background: '#eef2f6', borderRadius: 3 }}><div style={{ height: '100%', width: `${pct}%`, background: fg, borderRadius: 3 }} /></div>
+              </div>
+            )
+          })}
+          <button onClick={onExit} style={{ width: '100%', marginTop: 20, padding: '14px', border: 'none', borderRadius: 6, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Tests</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SCREEN 3 — Exam
+  // ─────────────────────────────────────────────────────────────────────────
+  const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F']
+  return (
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#fff', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
+      {/* Title bar */}
+      <div style={{ background: NAVY, color: '#fff', padding: '9px 18px', fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <span>{META.name}</span>
+      </div>
+
+      {/* Candidate strip */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 18px', background: '#fafafa', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+        <div style={{ width: 52, height: 60, background: '#e6e6e6', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#888' }}>Photo</div>
+        <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
+          <div><strong>Candidate Name:</strong> {META.candidate}</div>
+          <div><strong>Roll No:</strong> {META.rollNo} &nbsp;&nbsp; <strong>Subject:</strong> Nursing Officer</div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: 13, lineHeight: 1.6 }}>
+          <div><strong>Section Time Remaining:</strong> <span style={{ color: RED_TXT, fontWeight: 700, fontSize: 15 }}>{fmtSec(sectionTimers[curSec])}</span></div>
+          <div><strong>Exam Date:</strong> {META.examDate}</div>
+        </div>
+      </div>
+
+      {/* Section tabs */}
+      <div style={{ display: 'flex', height: 50, background: '#d0d0d0', borderBottom: '1px solid #b0b0b0', flexShrink: 0, overflowX: 'auto' }}>
+        {SECTIONS.map((s, i) => {
+          const active = i === curSec, expired = sectionLocked[i]
+          return (
+            <button key={s.id} onClick={() => switchSection(i)} disabled={expired && !active} style={{
+              flex: 1, minWidth: 120, border: 'none', borderRight: '1px solid #b0b0b0', textAlign: 'left', padding: '4px 12px',
+              background: active ? '#fff' : expired ? '#c8c8c8' : '#d0d0d0', color: expired ? '#666' : '#111',
+              fontWeight: active ? 700 : 500, cursor: expired ? 'default' : 'pointer',
+              boxShadow: active ? `inset 0 -3px 0 ${NAVY}` : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
+            }}>
+              <span style={{ fontSize: 12 }}>Section {s.id}</span>
+              <span style={{ fontSize: 12, color: expired ? '#888' : RED_TXT, fontWeight: 700 }}>{expired ? 'Closed' : fmtSec(sectionTimers[i])}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {/* Question pane */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #c0c0c0', overflow: 'hidden' }}>
+          <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px', borderBottom: '1px solid #e0e0e0', fontSize: 14, background: '#fafafa', flexShrink: 0 }}>
+            <span>Question No. <strong>{curSec * 20 + curQLocal + 1}</strong></span>
+            <span>Marks: <span style={{ color: '#1a8c36', fontWeight: 700 }}>+{META.correctMarks}</span> | <span style={{ color: RED_TXT, fontWeight: 700 }}>{META.wrongMarks}</span></span>
+          </div>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{section.fullName}</div>
+            <p style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 22 }}>{q.text}</p>
+            {q.image && (
+              <img src={q.image} alt="" style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 380 : 240, border: '1px solid #ddd', borderRadius: 4, marginBottom: 20, display: 'block' }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {q.options.map((opt, i) => (
+                <label key={i} onClick={() => selectOption(i)} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, minHeight: 50, padding: '8px 12px', cursor: isLocked ? 'default' : 'pointer',
+                  borderRadius: 4, fontSize: 16, background: selected === i ? '#eaf4fb' : 'transparent',
+                }}>
+                  <input type="radio" checked={selected === i} readOnly style={{ width: 16, height: 16, accentColor: NAVY, cursor: 'pointer' }} />
+                  <span style={{ fontWeight: 600, color: '#555', minWidth: 18 }}>{optionLetters[i]}.</span>
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
+            {isLocked && <div style={{ marginTop: 16, color: RED_TXT, fontSize: 13, fontWeight: 600 }}>This section's time has ended — responses are locked.</div>}
+          </div>
+        </div>
+
+        {/* Palette collapse strip */}
+        <button onClick={() => setPaletteOpen(o => !o)} title="Toggle Question Palette" style={{ width: 16, flexShrink: 0, border: 'none', borderLeft: '1px solid #b8b8b8', background: '#d8d8d8', cursor: 'pointer', color: '#444', fontSize: 9 }}>
+          {paletteOpen ? '▶' : '◀'}
+        </button>
+
+        {/* Palette */}
+        {paletteOpen && (
+          <aside style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f0f0f0' }}>
+            <div style={{ height: 36, display: 'flex', alignItems: 'center', padding: '0 14px', background: NAVY, color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Question Palette</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', padding: '10px 12px', background: '#fff', borderBottom: '1px solid #ddd', fontSize: 12.5, flexShrink: 0 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: GREEN, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)', padding: '2px 0' }}>{counts.answered}</b> Answered</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: RED, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', padding: '2px 0' }}>{counts.notanswered}</b> Not Answered</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: '#ddd', color: '#222', minWidth: 22, textAlign: 'center', border: '1px solid #aaa', padding: '1px 0' }}>{counts.notvisited}</b> Not Visited</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.marked}</b> Marked</span>
+              <span style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.answeredmarked}</b> Answered &amp; Marked (evaluated)</span>
+            </div>
+            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: '#e6ebf2', flexShrink: 0 }}>{section.fullName}</div>
+            <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, justifyItems: 'center' }}>
+                {section.ids.map((gIdx, li) => (
+                  <PaletteCell key={gIdx} status={getStatus(gIdx)} num={curSec * 20 + li + 1} isCurrent={li === curQLocal} onClick={() => jumpTo(gIdx)} />
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: 12, borderTop: '1px solid #ddd', flexShrink: 0 }}>
+              <button onClick={() => setShowSubmit(true)} style={{ width: '100%', padding: '11px', border: 'none', borderRadius: 3, background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)`, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Submit</button>
+            </div>
+          </aside>
+        )}
+      </div>
+
+      {/* Footer actions */}
+      <footer style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 18px', borderTop: '1px solid #ccc', background: '#f7f7f7', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={markNext} style={cbtBtn()}>Mark for Review &amp; Next</button>
+          <button onClick={clearResponse} style={cbtBtn()}>Clear Response</button>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={goPrev} style={cbtBtn()}>« Previous</button>
+          <button onClick={saveNext} style={cbtBtn({ background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)`, color: '#fff', border: `1px solid ${CYAN_D}` })}>Save &amp; Next</button>
+        </div>
+      </footer>
+
+      {/* Submit summary modal */}
+      {showSubmit && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 6, width: '100%', maxWidth: 620, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ background: NAVY, color: '#fff', padding: '12px 20px', fontSize: 15, fontWeight: 700 }}>Exam Summary — Confirm Submission</div>
+            <div style={{ padding: '18px 22px' }}>
+              <p style={{ fontSize: 14, marginBottom: 14 }}>You have chosen to <strong>End the Test</strong>. Are you sure you want to submit?</p>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ background: '#f2f4f6' }}>
+                    {['Section', 'Total', 'Answered', 'Not Ans.', 'Marked', 'Not Visited'].map(h => (
+                      <th key={h} style={{ padding: '7px 8px', border: '1px solid #ddd', textAlign: 'center', fontSize: 11.5 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SECTIONS.map(s => {
+                    const ans = s.ids.filter(i => answers[i] !== null && !marked[i]).length
+                    const am = s.ids.filter(i => answers[i] !== null && marked[i]).length
+                    const na = s.ids.filter(i => answers[i] === null && visited[i] && !marked[i]).length
+                    const mk = s.ids.filter(i => answers[i] === null && marked[i]).length
+                    const nv = s.ids.filter(i => !visited[i] && answers[i] === null && !marked[i]).length
+                    return (
+                      <tr key={s.id}>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee' }}>Section {s.id}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee', textAlign: 'center' }}>{s.ids.length}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee', textAlign: 'center', color: GREEN, fontWeight: 700 }}>{ans + am}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee', textAlign: 'center', color: RED, fontWeight: 700 }}>{na}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee', textAlign: 'center', color: PURPLE, fontWeight: 700 }}>{mk}</td>
+                        <td style={{ padding: '6px 8px', border: '1px solid #eee', textAlign: 'center', color: '#888' }}>{nv}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <p style={{ color: RED_TXT, fontSize: 13, marginTop: 14 }}>Once submitted, you will not be able to modify your answers.</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 22px', borderTop: '1px solid #eee' }}>
+              <button onClick={() => setShowSubmit(false)} style={{ ...cbtBtn({ padding: '10px 18px' }) }}>No, Continue Test</button>
+              <button onClick={computeAndFinalize} style={{ padding: '10px 20px', border: 'none', borderRadius: 3, background: GREEN, color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>Yes, Submit Test</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

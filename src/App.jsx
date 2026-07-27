@@ -8,6 +8,7 @@ import SeriesDetail from './screens/SeriesDetail'
 import TestCalendar from './screens/TestCalendar'
 import DailyTests from './screens/DailyTests'
 import DesktopTests from './desktop/DesktopTests'
+import DesktopExam from './desktop/DesktopExam'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
 import { buildCustomTest } from './exam/customTest'
@@ -126,6 +127,21 @@ export default function App() {
   }
   const toggleReminder = (key) => setReminders(prev => ({ ...prev, [key]: !prev[key] }))
 
+  // Shared post-exam handler — records the attempt, appends a progress-trend point, and
+  // updates live/daily completion. Used by both the mobile ExamScreen and desktop CBT exam.
+  const handleExamFinish = (results) => {
+    setLastAttempt(results)
+    const today = new Date().toLocaleString('en-US', { day: 'numeric', month: 'short' })
+    setAttemptHistory(prev => [...prev, { testName: results.testName, date: today, scorePct: results.accuracy, percentile: results.percentile }])
+    if (!customTest) setLiveTestAttempted(true)
+    else if (customTest.dailyTestId) {
+      const id = customTest.dailyTestId
+      setDailyAttemptedIds(prev => new Set([...prev, id]))
+      setDailyResults(prev => ({ ...prev, [id]: results }))
+      setPausedDaily(prev => { const next = { ...prev }; delete next[id]; return next })
+    }
+  }
+
   // Registration confirm/success modals — shared by the mobile and desktop layouts.
   const modalNodes = (
     <>
@@ -183,9 +199,27 @@ export default function App() {
     </>
   )
 
+  // ── Desktop exam ─────────────────────────────────────────────────────────
+  // On the web, taking a test launches the full AIIMS NORCET CBT flow (candidate
+  // details → instructions → wide exam layout → summary → results) — the authentic
+  // large-screen experience, replacing the phone-sized exam.
+  if (viewMode === 'desktop' && (screen === 'exampretest' || screen === 'exam')) {
+    return (
+      <>
+        <DesktopExam
+          onExit={() => { setCustomTest(null); setResumeSnapshot(null); setScreen('home') }}
+          onFinish={handleExamFinish}
+          customQuestions={customTest?.questions}
+          customSections={customTest?.sections}
+          customMeta={customTest?.meta}
+        />
+      </>
+    )
+  }
+
   // ── Desktop layout ─────────────────────────────────────────────────────────
   // Same data and handlers, laid out for a wide screen (sidebar + top bar + grid).
-  // Exam screens fall through to the shared phone flow below (a focused, narrow UI).
+  // Exam screens use the dedicated desktop CBT flow above.
   if (viewMode === 'desktop' && screen !== 'exampretest' && screen !== 'exam') {
     const desktopFrame = (child) => (
       <div style={{ position:'fixed', inset:0, background:BG2, overflowY:'auto', padding:'56px 0 40px' }}>
@@ -235,19 +269,7 @@ export default function App() {
             <ExamScreen
               interfaceMode={examInterfaceMode}
               onExit={() => { setCustomTest(null); setResumeSnapshot(null); setScreen('home') }}
-              onFinish={(results) => {
-                setLastAttempt(results)
-                // Append a point to the Home progress trend (score % + percentile over time)
-                const today = new Date().toLocaleString('en-US', { day: 'numeric', month: 'short' })
-                setAttemptHistory(prev => [...prev, { testName: results.testName, date: today, scorePct: results.accuracy, percentile: results.percentile }])
-                if (!customTest) setLiveTestAttempted(true)
-                else if (customTest.dailyTestId) {
-                  const id = customTest.dailyTestId
-                  setDailyAttemptedIds(prev => new Set([...prev, id]))
-                  setDailyResults(prev => ({ ...prev, [id]: results }))
-                  setPausedDaily(prev => { const next = { ...prev }; delete next[id]; return next })
-                }
-              }}
+              onFinish={handleExamFinish}
               onPause={customTest?.dailyTestId ? handleDailyPause : undefined}
               exitLabel={customTest?.dailyTestId ? 'Back to Daily Tests' : 'Back to Live Tests'}
               initialSnapshot={resumeSnapshot}
