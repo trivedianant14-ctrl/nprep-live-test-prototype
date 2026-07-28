@@ -28,7 +28,7 @@ function PaletteCell({ status, num, isCurrent, onClick }) {
   if (status === 'answered')
     return <div onClick={onClick} style={{ ...base, background: GREEN, color: '#fff', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }}>{num}</div>
   if (status === 'notanswered')
-    return <div onClick={onClick} style={{ ...base, background: RED, color: '#fff', clipPath: 'polygon(50% 0,100% 50%,50% 100%,0 50%)' }}>{num}</div>
+    return <div onClick={onClick} style={{ ...base, background: RED, color: '#fff', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)' }}>{num}</div>
   if (status === 'marked')
     return <div onClick={onClick} style={{ ...base, background: PURPLE, color: '#fff', borderRadius: '50%' }}>{num}</div>
   if (status === 'answeredmarked')
@@ -69,6 +69,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
   const [showSubmit, setShowSubmit] = useState(false)
   const [results, setResults] = useState(null)
   const [paletteOpen, setPaletteOpen] = useState(true)
+  const [toast, setToast] = useState(null)
 
   const section = SECTIONS[curSec]
   const curGlobalIdx = section.ids[curQLocal]
@@ -119,36 +120,52 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
     return () => clearInterval(id)
   }, [curSec, phase])
 
-  // Lock expired sections; auto-submit when every section has run out
+  // Real NORCET rule: each section is a strict 18-minute window presented in sequence.
+  // When the current section's timer expires it closes permanently and the exam
+  // auto-advances to the next section (or submits after the last). No going back.
   useEffect(() => {
     if (phase !== 'exam') return
-    let changed = false
-    const next = [...sectionLocked]
-    sectionTimers.forEach((t, i) => { if (t === 0 && !next[i]) { next[i] = true; changed = true } })
-    if (changed) setSectionLocked(next)
-    if (sectionTimers.every(t => t === 0)) finalizeRef.current()
+    if (sectionTimers[curSec] === 0 && !sectionLocked[curSec]) {
+      setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n })
+      if (curSec < SECTIONS.length - 1) {
+        const nextSec = curSec + 1
+        setToast(`Time up for ${SECTIONS[curSec].name} — moving to ${SECTIONS[nextSec].name}`)
+        setCurSec(nextSec); setCurQLocal(0)
+      } else {
+        finalizeRef.current()
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sectionTimers, phase])
+  }, [sectionTimers, curSec, phase])
+
+  useEffect(() => {
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(id)
+  }, [toast])
 
   useEffect(() => {
     setVisited(prev => { if (prev[curGlobalIdx]) return prev; const n = [...prev]; n[curGlobalIdx] = true; return n })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curSec, curQLocal])
 
+  // Advancing to the next section closes the current one for good (no going back —
+  // the core NORCET rule). Reached either by finishing the section or the timer expiring.
+  const advanceSection = () => {
+    setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n })
+    setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0)
+  }
   const goNext = () => {
     if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
-    else if (!isLastSec) { setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0) }
+    else if (!isLastSec) advanceSection()
   }
-  const goPrev = () => {
-    if (curQLocal > 0) setCurQLocal(l => l - 1)
-    else if (curSec > 0) { const ps = curSec - 1; setCurSec(ps); setCurQLocal(SECTIONS[ps].ids.length - 1) }
-  }
+  // Previous is confined to the current section — a closed section can't be revisited.
+  const goPrev = () => { if (curQLocal > 0) setCurQLocal(l => l - 1) }
   const selectOption = (i) => { if (!isLocked) setAnswers(prev => { const n = [...prev]; n[curGlobalIdx] = i; return n }) }
   const clearResponse = () => { if (!isLocked) setAnswers(prev => { const n = [...prev]; n[curGlobalIdx] = null; return n }) }
   const markNext = () => { if (!isLocked) setMarked(prev => { const n = [...prev]; n[curGlobalIdx] = !n[curGlobalIdx]; return n }); goNext() }
   const saveNext = () => { if (isLastQInSec && isLastSec) setShowSubmit(true); else goNext() }
-  const jumpTo = (gIdx) => { const li = section.ids.indexOf(gIdx); if (li >= 0) setCurQLocal(li) }
-  const switchSection = (si) => { if (!sectionLocked[si]) { setCurSec(si); setCurQLocal(0) } }
+  const jumpTo = (gIdx) => { const li = section.ids.indexOf(gIdx); if (li >= 0) setCurQLocal(li) } // within current section only
 
   // ─────────────────────────────────────────────────────────────────────────
   // SCREEN 1 — Landing (candidate details)
@@ -230,7 +247,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
             <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={3}>
               <li style={{ marginBottom: 8 }}>Choose one of the 4 options (A–D) by clicking the bubble before it. Click again or use <strong>Clear Response</strong> to deselect.</li>
               <li style={{ marginBottom: 8 }}>You MUST click <strong>Save &amp; Next</strong> to save your answer. Jumping via the palette does not save the current answer.</li>
-              <li style={{ marginBottom: 8 }}>Sections appear on the top bar. Clicking a section shows its questions; you can shuffle between sections at any time.</li>
+              <li style={{ marginBottom: 8 }}>Sections are attempted in a fixed sequence. Only the current section is active; when its 18-minute timer ends it closes and the next section opens automatically. <strong>You cannot return to a completed section.</strong></li>
             </ol>
             <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
             <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={6}>
@@ -372,20 +389,26 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
         </div>
       </div>
 
-      {/* Section tabs */}
+      {/* Section tabs — locked, non-clickable status indicators. Sections are attempted in
+          strict sequence: the current one is active, past ones are closed, future ones are
+          locked until the current section's time ends. */}
       <div style={{ display: 'flex', height: 50, background: '#d0d0d0', borderBottom: '1px solid #b0b0b0', flexShrink: 0, overflowX: 'auto' }}>
         {SECTIONS.map((s, i) => {
-          const active = i === curSec, expired = sectionLocked[i]
+          const active = i === curSec
+          const past = i < curSec, future = i > curSec
+          const bg = active ? '#fff' : past ? '#d0e8d0' : '#d0d0d0'
+          const nameColor = past ? '#2a6e2a' : future ? '#888' : '#111'
           return (
-            <button key={s.id} onClick={() => switchSection(i)} disabled={expired && !active} style={{
-              flex: 1, minWidth: 120, border: 'none', borderRight: '1px solid #b0b0b0', textAlign: 'left', padding: '4px 12px',
-              background: active ? '#fff' : expired ? '#c8c8c8' : '#d0d0d0', color: expired ? '#666' : '#111',
-              fontWeight: active ? 700 : 500, cursor: expired ? 'default' : 'pointer',
+            <div key={s.id} title={active ? 'Current section — attempt all questions' : past ? 'Closed — this section is permanently locked' : 'Locked — complete the current section first'} style={{
+              flex: 1, minWidth: 130, borderRight: '1px solid #b0b0b0', textAlign: 'left', padding: '4px 12px', cursor: 'default',
+              background: bg, color: nameColor, fontWeight: active ? 700 : 500,
               boxShadow: active ? `inset 0 -3px 0 ${NAVY}` : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
             }}>
-              <span style={{ fontSize: 12 }}>Section {s.id}</span>
-              <span style={{ fontSize: 12, color: expired ? '#888' : RED_TXT, fontWeight: 700 }}>{expired ? 'Closed' : fmtSec(sectionTimers[i])}</span>
-            </button>
+              <span style={{ fontSize: 12 }}>{past ? '✓ ' : future ? '🔒 ' : ''}Section {s.id}</span>
+              <span style={{ fontSize: 12, color: past ? '#888' : future ? '#999' : RED_TXT, fontWeight: 700 }}>
+                {past ? 'Closed' : future ? 'Locked' : fmtSec(sectionTimers[i])}
+              </span>
+            </div>
           )
         })}
       </div>
@@ -396,7 +419,10 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #c0c0c0', overflow: 'hidden' }}>
           <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px', borderBottom: '1px solid #e0e0e0', fontSize: 14, background: '#fafafa', flexShrink: 0 }}>
             <span>Question No. <strong>{curSec * 20 + curQLocal + 1}</strong></span>
-            <span>Marks: <span style={{ color: '#1a8c36', fontWeight: 700 }}>+{META.correctMarks}</span> | <span style={{ color: RED_TXT, fontWeight: 700 }}>{META.wrongMarks}</span></span>
+            <span style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+              <span style={{ fontSize: 12.5, color: '#555' }}>Question Type: <strong>Multiple Choice</strong></span>
+              <span>Marks: <span style={{ color: '#1a8c36', fontWeight: 700 }}>+{META.correctMarks}</span> | <span style={{ color: RED_TXT, fontWeight: 700 }}>{META.wrongMarks}</span></span>
+            </span>
           </div>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
             <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{section.fullName}</div>
@@ -431,7 +457,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
             <div style={{ height: 36, display: 'flex', alignItems: 'center', padding: '0 14px', background: NAVY, color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Question Palette</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', padding: '10px 12px', background: '#fff', borderBottom: '1px solid #ddd', fontSize: 12.5, flexShrink: 0 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: GREEN, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)', padding: '2px 0' }}>{counts.answered}</b> Answered</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: RED, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', padding: '2px 0' }}>{counts.notanswered}</b> Not Answered</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: RED, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)', padding: '2px 0' }}>{counts.notanswered}</b> Not Answered</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: '#ddd', color: '#222', minWidth: 22, textAlign: 'center', border: '1px solid #aaa', padding: '1px 0' }}>{counts.notvisited}</b> Not Visited</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.marked}</b> Marked</span>
               <span style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.answeredmarked}</b> Answered &amp; Marked (evaluated)</span>
@@ -450,6 +476,13 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
           </aside>
         )}
       </div>
+
+      {/* Section auto-advance toast */}
+      {toast && (
+        <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: '#1a1a1a', color: '#fff', padding: '11px 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600, boxShadow: '0 6px 24px rgba(0,0,0,0.3)' }}>
+          ⏱ {toast}
+        </div>
+      )}
 
       {/* Footer actions */}
       <footer style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 18px', borderTop: '1px solid #ccc', background: '#f7f7f7', flexShrink: 0 }}>
