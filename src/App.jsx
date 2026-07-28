@@ -12,6 +12,8 @@ import DesktopTests from './desktop/DesktopTests'
 import DesktopSeriesDetail from './desktop/DesktopSeriesDetail'
 import DesktopCalendar from './desktop/DesktopCalendar'
 import DesktopExam from './desktop/DesktopExam'
+import DesktopExamNPrep from './desktop/DesktopExamNPrep'
+import DesktopExamChooser from './desktop/DesktopExamChooser'
 import ExamPreTest from './exam/ExamPreTest'
 import ExamScreen from './exam/ExamScreen'
 import { buildCustomTest } from './exam/customTest'
@@ -93,6 +95,7 @@ export default function App() {
   const [calendarFilter, setCalendarFilter] = useState('all')
   const [viewMode, setViewMode] = useState('mobile') // 'mobile' | 'desktop'
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set())
+  const [desktopExamMode, setDesktopExamMode] = useState(null) // null = show chooser; 'nprep' | 'norcet'
 
   const dismissAlert = (id) => setDismissedAlerts(prev => new Set([...prev, id]))
   const goDaily = () => { setScreen('home'); setActiveCategory('Daily Test') }
@@ -211,17 +214,11 @@ export default function App() {
   // details → instructions → wide exam layout → summary → results) — the authentic
   // large-screen experience, replacing the phone-sized exam.
   if (viewMode === 'desktop' && (screen === 'exampretest' || screen === 'exam')) {
-    return (
-      <>
-        <DesktopExam
-          onExit={() => { setCustomTest(null); setResumeSnapshot(null); setScreen('home') }}
-          onFinish={handleExamFinish}
-          customQuestions={customTest?.questions}
-          customSections={customTest?.sections}
-          customMeta={customTest?.meta}
-        />
-      </>
-    )
+    const exitExam = () => { setCustomTest(null); setResumeSnapshot(null); setDesktopExamMode(null); setScreen('home') }
+    const examProps = { onExit: exitExam, onFinish: handleExamFinish, customQuestions: customTest?.questions, customSections: customTest?.sections, customMeta: customTest?.meta }
+    if (desktopExamMode === 'nprep') return <DesktopExamNPrep {...examProps} />
+    if (desktopExamMode === 'norcet') return <DesktopExam {...examProps} />
+    return <DesktopExamChooser meta={customTest?.meta} onPick={setDesktopExamMode} onBack={exitExam} />
   }
 
   // ── Desktop layout ─────────────────────────────────────────────────────────
