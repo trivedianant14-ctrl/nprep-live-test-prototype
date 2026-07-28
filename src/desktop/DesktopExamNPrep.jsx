@@ -165,9 +165,9 @@ export default function DesktopExamNPrep({ onExit, onFinish, customQuestions, cu
 
   // ── Quiz ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
+    <div style={{ position: 'fixed', inset: 0, background: BG2, display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
       {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${BD}` }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${BD}`, background: '#fff' }}>
         <button onClick={onExit} title="Exit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: T2, display: 'flex', padding: 2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -183,13 +183,16 @@ export default function DesktopExamNPrep({ onExit, onFinish, customQuestions, cu
       </div>
 
       {/* Palette row */}
-      <div className="scroll" style={{ flexShrink: 0, display: 'flex', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${BD}`, overflowX: 'auto', alignItems: 'center' }}>
-        {section.ids.map((_, i) => <Pill key={i} localIdx={i} />)}
+      <div style={{ flexShrink: 0, borderBottom: `1px solid ${BD}`, background: '#fff' }}>
+        <div className="scroll" style={{ maxWidth: 720, margin: '0 auto', display: 'flex', gap: 6, padding: '12px 20px', overflowX: 'auto', alignItems: 'center' }}>
+          {section.ids.map((_, i) => <Pill key={i} localIdx={i} />)}
+        </div>
       </div>
 
       {/* Question body */}
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '22px 24px 40px' }}>
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: BG2 }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 40px' }}>
+          <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '22px 26px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: T1 }}>Question {globalNum}/{total}</span>
             {tags.map(t => <span key={t} style={{ fontSize: 10, fontWeight: 600, color: AMBER, background: '#FDF4E3', padding: '3px 8px', borderRadius: 6 }}>{t}</span>)}
@@ -217,7 +220,7 @@ export default function DesktopExamNPrep({ onExit, onFinish, customQuestions, cu
           )}
 
           <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.5, marginBottom: 20 }}>{q.text}</p>
-          {q.image && <img src={q.image} alt="" style={{ maxWidth: q.imageLarge ? '100%' : 320, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
+          {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 320, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
 
           {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -270,17 +273,20 @@ export default function DesktopExamNPrep({ onExit, onFinish, customQuestions, cu
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderTop: `1px solid ${BD}` }}>
-        <button onClick={goPrev} disabled={globalNum === 1} style={{ width: 46, height: 46, borderRadius: '50%', border: `1px solid ${BD}`, background: '#fff', cursor: globalNum === 1 ? 'default' : 'pointer', color: globalNum === 1 ? T3 : T1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-        </button>
-        <button onClick={goNext} style={{ flex: 1, padding: '14px', borderRadius: 12, background: PD, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-          {isLast ? 'Finish' : 'Next'}
-        </button>
+      <div style={{ flexShrink: 0, borderTop: `1px solid ${BD}`, background: '#fff' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px' }}>
+          <button onClick={goPrev} disabled={globalNum === 1} style={{ width: 46, height: 46, borderRadius: '50%', border: `1px solid ${BD}`, background: '#fff', cursor: globalNum === 1 ? 'default' : 'pointer', color: globalNum === 1 ? T3 : T1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <button onClick={goNext} style={{ flex: 1, padding: '14px', borderRadius: 12, background: PD, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+            {isLast ? 'Finish' : 'Next'}
+          </button>
+        </div>
       </div>
 
       {/* Full grid overlay */}
