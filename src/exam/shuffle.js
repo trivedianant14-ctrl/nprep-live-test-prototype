@@ -14,7 +14,9 @@ function shuffled(arr) {
 export function shuffleForAttempt(questions, sections) {
   const shuffledQuestions = questions.map(q => {
     const order = shuffled(q.options.map((_, i) => i))
-    return { ...q, options: order.map(i => q.options[i]), answer: order.indexOf(q.answer) }
+    const nq = { ...q, options: order.map(i => q.options[i]), answer: order.indexOf(q.answer) }
+    if (q.hi?.options) nq.hi = { ...q.hi, options: order.map(i => q.hi.options[i]) } // keep bilingual options aligned
+    return nq
   })
   const shuffledSections = sections.map(sec => ({ ...sec, ids: shuffled(sec.ids) }))
   return { questions: shuffledQuestions, sections: shuffledSections }

@@ -27,6 +27,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   const [curSec, setCurSec] = useState(0)
   const [cur, setCur] = useState(sections[0].ids[0])
   const [reveal, setReveal] = useState(false) // reveal the correct answer + solution (your own pick always shows)
+  const [palOpen, setPalOpen] = useState(true) // collapsible section palette (full-page like the attempt view)
   const isNprep = style === 'nprep'
   const testName = meta?.series ? `${meta.series} ${meta.stage || ''}`.trim() : (meta?.shortName || 'Test')
 
@@ -208,7 +209,12 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
           </div>
         </div>
+        {/* Palette collapse toggle — lets the review go full-page like the attempt view */}
+        <button onClick={() => setPalOpen(o => !o)} title={palOpen ? 'Hide sections' : 'Show sections'} style={{ width: 22, flexShrink: 0, border: 'none', borderLeft: `1px solid ${BD}`, background: '#F5F8FF', cursor: 'pointer', color: P, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: palOpen ? 'none' : 'rotate(180deg)' }}><polyline points="9 6 15 12 9 18" /></svg>
+        </button>
         {/* Question grid — NPrep edtech style, sections in a collapsible accordion */}
+        {palOpen && (
         <aside style={{ width: 280, flexShrink: 0, background: '#FAFBFF', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
           {/* Attempt summary */}
           <div style={{ padding: '16px 18px 15px', background: '#fff', borderBottom: `1px solid ${BD}` }}>
@@ -260,6 +266,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             })}
           </div>
         </aside>
+        )}
       </div>
     </div>
     )

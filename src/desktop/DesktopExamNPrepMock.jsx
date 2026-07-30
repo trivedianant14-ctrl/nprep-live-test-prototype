@@ -64,6 +64,11 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const [showSummary, setShowSummary] = useState(false) // per-section summary popover
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [results, setResults] = useState(null)
+  const [lang, setLang] = useState('en')                // bilingual EN | हिं (tier-2/3 core need)
+  const [timerOn, setTimerOn] = useState(true)          // hide-timer option (exam-anxiety research)
+  const [eliminated, setEliminated] = useState({})      // { [gIdx]: number[] } struck-out options (UWorld pattern)
+  const [showReport, setShowReport] = useState(false)   // report-question sheet
+  const [reportToast, setReportToast] = useState('')
 
   const section = SECTIONS[curSec]
   const gIdx = section.ids[curQLocal]
@@ -111,13 +116,42 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     return () => clearInterval(id)
   }, [phase])
   useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
+  // Keyboard shortcuts (NPrep mock is lenient — keyboard allowed): A–D / 1–4 answer, ← → navigate.
+  useEffect(() => {
+    if (phase !== 'exam') return
+    const onKey = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (showSubmit || showReport || showExit) return
+      const k = e.key.toLowerCase()
+      const letterIdx = ['a', 'b', 'c', 'd', 'e'].indexOf(k)
+      const numIdx = ['1', '2', '3', '4', '5'].indexOf(k)
+      const optIdx = letterIdx >= 0 ? letterIdx : numIdx
+      if (optIdx >= 0 && optIdx < q.options.length) { select(optIdx); e.preventDefault() }
+      else if (e.key === 'ArrowRight') { goNext(); e.preventDefault() }
+      else if (e.key === 'ArrowLeft') { goPrev(); e.preventDefault() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phase, gIdx, q, curQLocal, showSubmit, showReport, showExit])
 
   // Navigation is confined to the current section (sequential model).
   const goNext = () => { if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1) }
   const goPrev = () => { if (curQLocal > 0) setCurQLocal(l => l - 1) }
-  const select = (i) => setAnswers(prev => { const n = [...prev]; n[gIdx] = i; return n })
+  const select = (i) => {
+    setAnswers(prev => { const n = [...prev]; n[gIdx] = i; return n })
+    setEliminated(prev => { const cur = prev[gIdx] || []; return cur.includes(i) ? { ...prev, [gIdx]: cur.filter(x => x !== i) } : prev }) // picking a struck option restores it
+  }
   const clear = () => setAnswers(prev => { const n = [...prev]; n[gIdx] = null; return n })
+  const elimOf = (i) => (eliminated[gIdx] || []).includes(i)
+  const toggleElim = (i) => {
+    const cur = eliminated[gIdx] || []
+    const willStrike = !cur.includes(i)
+    setEliminated(prev => ({ ...prev, [gIdx]: willStrike ? [...cur, i] : cur.filter(x => x !== i) }))
+    if (willStrike && chosen === i) clear() // striking your chosen option deselects it
+  }
   const markNext = () => { setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n }); goNext() }
+  const L = (en, hi) => (lang === 'hi' ? hi : en)          // interface translation helper
+  const submitReport = (reason) => { setShowReport(false); setReportToast(L('Thanks — reported. Our team will review it.', 'धन्यवाद — रिपोर्ट भेज दी गई। हमारी टीम समीक्षा करेगी।')); setTimeout(() => setReportToast(''), 2600) }
   const jumpTo = (localIdx) => setCurQLocal(localIdx)
   // Submitting a section moves to the next; the last section submits the whole test.
   const submitSection = () => {
@@ -269,23 +303,30 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ width: 30, height: 30, borderRadius: 8, background: PD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>N</div>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
-        {/* Per-section progress summary */}
+        {/* Language toggle — bilingual is the core need for Hindi-medium tier-2/3 aspirants */}
+        <div style={{ display: 'inline-flex', background: BG2, borderRadius: 20, padding: 3 }}>
+          {[['en', 'EN'], ['hi', 'हिं']].map(([id, l]) => {
+            const on = lang === id
+            return <button key={id} onClick={() => setLang(id)} style={{ padding: '5px 13px', borderRadius: 15, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: on ? 700 : 500, background: on ? P : 'transparent', color: on ? '#fff' : T2 }}>{l}</button>
+          })}
+        </div>
+        {/* Per-section summary */}
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowSummary(s => !s)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 20, background: BG2, color: T1, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" /><rect x="12" y="8" width="3" height="10" /><rect x="17" y="5" width="3" height="13" /></svg>
-            Summary
+            {L('Summary', 'सारांश')}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showSummary ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
           </button>
           {showSummary && (
             <div style={{ position: 'absolute', top: 42, right: 0, width: 250, background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.14)', padding: '12px 14px', zIndex: 30 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: T1, marginBottom: 10 }}>Attempted per section</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T1, marginBottom: 10 }}>{L('Attempted per section', 'हर सेक्शन में हल किए')}</div>
               {SECTIONS.map((s, i) => {
                 const at = answeredIn(s), pct = Math.round((at / s.ids.length) * 100)
                 const state = i < curSec ? 'done' : i === curSec ? 'active' : 'upcoming'
                 return (
                   <div key={s.id} style={{ marginBottom: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, marginBottom: 4 }}>
-                      <span style={{ color: state === 'active' ? P : T2, fontWeight: state === 'active' ? 600 : 500 }}>Section {s.id}{state === 'done' ? ' ✓' : state === 'upcoming' ? ' · locked' : ''}</span>
+                      <span style={{ color: state === 'active' ? P : T2, fontWeight: state === 'active' ? 600 : 500 }}>{L('Section', 'सेक्शन')} {s.id}{state === 'done' ? ' ✓' : state === 'upcoming' ? L(' · locked', ' · बंद') : ''}</span>
                       <span style={{ color: T3 }}>{at}/{s.ids.length}</span>
                     </div>
                     <div style={{ height: 5, background: BG2, borderRadius: 3 }}><div style={{ height: '100%', width: `${pct}%`, background: state === 'upcoming' ? BD : G, borderRadius: 3 }} /></div>
@@ -293,14 +334,21 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 )
               })}
               <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 8, fontSize: 11.5, color: T2, display: 'flex', justifyContent: 'space-between' }}>
-                <span>Total answered</span><span style={{ fontWeight: 700, color: T1 }}>{attemptedTotal}/{total}</span>
+                <span>{L('Total answered', 'कुल हल किए')}</span><span style={{ fontWeight: 700, color: T1 }}>{attemptedTotal}/{total}</span>
               </div>
             </div>
           )}
         </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: lowTime ? RED : PD, fontSize: 15, fontWeight: 700 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: timerOn ? (lowTime ? RED : PD) : T3, fontSize: 15, fontWeight: 700 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-          <span style={{ minWidth: 72, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{fmt(timeLeft)}</span>
+          {timerOn
+            ? <span style={{ minWidth: 72, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{fmt(timeLeft)}</span>
+            : <span style={{ minWidth: 72, textAlign: 'right', fontSize: 12.5, fontWeight: 600 }}>{L('Hidden', 'छिपा हुआ')}</span>}
+          <button onClick={() => setTimerOn(t => !t)} title={timerOn ? L('Hide timer', 'टाइमर छिपाएँ') : L('Show timer', 'टाइमर दिखाएँ')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, display: 'flex', padding: 2 }}>
+            {timerOn
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>}
+          </button>
         </div>
       </div>
       <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
@@ -315,7 +363,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
               background: active ? P : done ? GL : BG2, color: active ? '#fff' : done ? G : T3, border: `1px solid ${active ? P : 'transparent'}`, fontSize: 12.5, fontWeight: 600,
             }}>
               {done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-              Section {s.id}
+              {L('Section', 'सेक्शन')} {s.id}
             </div>
           )
         })}
@@ -329,42 +377,54 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             <div style={{ maxWidth: 1040 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
                 <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>Question {globalNum}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>{L('Question', 'प्रश्न')} {globalNum}</span>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => setShowReport(true)} title={L('Report a problem with this question', 'इस प्रश्न में समस्या बताएँ')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: T3, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
+                  {L('Report', 'रिपोर्ट')}
+                </button>
               </div>
-              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24, maxWidth: 800 }}>{q.text}</p>
+              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 22, maxWidth: 820 }}>{lang === 'hi' && q.hi?.text ? q.hi.text : q.text}</p>
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {q.options.map((opt, i) => {
-                  const on = chosen === i
+                  const on = chosen === i, struck = elimOf(i)
+                  const label = lang === 'hi' && q.hi?.options ? q.hi.options[i] : opt
                   return (
-                    <button key={i} onClick={() => select(i)} style={{
-                      display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
-                      background: on ? PL : '#fff', border: `1px solid ${on ? P : '#E4E8F1'}`, boxShadow: on ? `inset 3px 0 0 ${P}` : 'none',
-                      transition: 'background .12s, border-color .12s',
+                    <div key={i} onClick={() => select(i)} style={{
+                      display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, cursor: 'pointer',
+                      background: on ? PL : (struck ? '#FAFBFC' : '#fff'), border: `1px solid ${on ? P : '#E4E8F1'}`, boxShadow: on ? `inset 3px 0 0 ${P}` : 'none',
+                      transition: 'background .12s, border-color .12s', opacity: struck && !on ? 0.6 : 1,
                     }}>
                       <span style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: on ? P : '#F1F3F9', color: on ? '#fff' : T2 }}>{LETTERS[i]}</span>
-                      <span style={{ flex: 1, fontSize: 15.5, fontWeight: on ? 600 : 500, color: on ? PD : '#2A3244' }}>{opt}</span>
-                    </button>
+                      <span style={{ flex: 1, fontSize: 15.5, fontWeight: on ? 600 : 500, color: on ? PD : '#2A3244', textDecoration: struck ? 'line-through' : 'none', textDecorationColor: '#C0392B' }}>{label}</span>
+                      <button onClick={(e) => { e.stopPropagation(); toggleElim(i) }} title={struck ? L('Bring back', 'वापस लाएँ') : L('Cross out', 'काटें')} style={{ background: struck ? '#FDE7E4' : 'none', borderRadius: 6, border: 'none', cursor: 'pointer', color: struck ? '#C0392B' : '#B7BECC', display: 'flex', padding: 5, flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                      </button>
+                    </div>
                   )
                 })}
+              </div>
+              <div style={{ marginTop: 15, fontSize: 12, color: T3, lineHeight: 1.6 }}>
+                {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest. Press A–D to answer, ← → to move.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी पर ध्यान दे सकें। उत्तर के लिए A–D, आगे-पीछे के लिए ← → दबाएँ।')}
               </div>
             </div>
           </div>
           {/* Footer actions */}
           <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${BD}`, display: 'flex', justifyContent: 'space-between', padding: '12px 22px', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={markNext} style={btn()}>Mark for Review &amp; Next</button>
-              <button onClick={clear} style={btn()}>Clear Response</button>
+              <button onClick={markNext} style={btn()}>{L('Mark for Review', 'समीक्षा हेतु चिह्नित')}</button>
+              <button onClick={clear} style={btn()}>{L('Clear Response', 'उत्तर हटाएँ')}</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={goPrev} disabled={curQLocal === 0} style={btn({ opacity: curQLocal === 0 ? 0.5 : 1 })}>« Previous</button>
-              <button onClick={goNext} disabled={curQLocal === section.ids.length - 1} style={{ ...pillBtn({ padding: '10px 24px', background: P, color: '#fff', opacity: curQLocal === section.ids.length - 1 ? 0.5 : 1 }) }}>Save &amp; Next</button>
+              <button onClick={goPrev} disabled={curQLocal === 0} style={btn({ opacity: curQLocal === 0 ? 0.5 : 1 })}>« {L('Previous', 'पिछला')}</button>
+              <button onClick={goNext} disabled={curQLocal === section.ids.length - 1} style={{ ...pillBtn({ padding: '10px 24px', background: P, color: '#fff', opacity: curQLocal === section.ids.length - 1 ? 0.5 : 1 }) }}>{L('Save & Next', 'सेव और आगे')} »</button>
             </div>
           </div>
         </div>
 
         {/* Palette collapse toggle */}
-        <button onClick={() => setPaletteOpen(o => !o)} title={paletteOpen ? 'Hide palette' : 'Show palette'} style={{ width: 22, flexShrink: 0, border: 'none', borderLeft: `1px solid ${BD}`, background: '#F5F8FF', cursor: 'pointer', color: P, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => setPaletteOpen(o => !o)} title={paletteOpen ? L('Hide palette', 'सूची छिपाएँ') : L('Show palette', 'सूची दिखाएँ')} style={{ width: 22, flexShrink: 0, border: 'none', borderLeft: `1px solid ${BD}`, background: '#F5F8FF', cursor: 'pointer', color: P, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: paletteOpen ? 'none' : 'rotate(180deg)' }}><polyline points="9 6 15 12 9 18" /></svg>
         </button>
 
@@ -372,9 +432,9 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         {paletteOpen && (
         <aside style={{ width: 292, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '16px 18px 15px', borderBottom: `1px solid ${BD}` }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>Question Palette</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>{L('Question Palette', 'प्रश्न सूची')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '11px 14px' }}>
-              {[['answered', 'Answered', counts.answered, G, GL], ['notanswered', 'Not Answered', counts.notanswered, RED, '#FDECED'], ['marked', 'Marked', counts.marked, A, '#FBF4DE'], ['notvisited', 'Not Visited', counts.notvisited, '#C7CEDD', BG2]].map(([st, lbl, n, col, soft]) => (
+              {[['answered', L('Answered', 'हल किए'), counts.answered, G, GL], ['notanswered', L('Not Answered', 'नहीं किए'), counts.notanswered, RED, '#FDECED'], ['marked', L('Marked', 'चिह्नित'), counts.marked, A, '#FBF4DE'], ['notvisited', L('Not Visited', 'नहीं देखे'), counts.notvisited, '#C7CEDD', BG2]].map(([st, lbl, n, col, soft]) => (
                 <span key={st} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: T2 }}>
                   <span style={{ minWidth: 24, textAlign: 'center', background: soft, color: st === 'notvisited' ? T2 : col, fontSize: 11, fontWeight: 700, borderRadius: 7, padding: '2px 6px', border: st === 'notvisited' ? `1px solid ${BD}` : 'none' }}>{n}</span>
                   {lbl}
@@ -384,7 +444,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '15px 18px 6px', flexShrink: 0 }}>
             <span style={{ width: 3, height: 14, borderRadius: 2, background: P }} />
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: PD, textTransform: 'uppercase' }}>Section {section.id}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: PD, textTransform: 'uppercase' }}>{L('Section', 'सेक्शन')} {section.id}</span>
           </div>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 18px 18px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 11, justifyItems: 'center' }}>
@@ -392,11 +452,32 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
           </div>
           <div style={{ padding: 14, borderTop: `1px solid ${BD}` }}>
-            <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? 'Submit Test' : 'Submit Section'}</button>
+            <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? L('Submit Test', 'टेस्ट सबमिट करें') : L('Submit Section', 'सेक्शन सबमिट करें')}</button>
           </div>
         </aside>
         )}
       </div>
+
+      {/* Report-question sheet */}
+      {showReport && (
+        <div onClick={() => setShowReport(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 400, overflow: 'hidden' }}>
+            <div style={{ padding: '20px 22px 4px', fontSize: 16, fontWeight: 700, color: T1 }}>{L('Report a problem', 'समस्या बताएँ')}</div>
+            <div style={{ padding: '0 22px 14px', fontSize: 12.5, color: T2, lineHeight: 1.55 }}>{L('What’s wrong with this question? Your feedback helps us fix it.', 'इस प्रश्न में क्या गलत है? आपकी प्रतिक्रिया से हम इसे ठीक करेंगे।')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 22px 18px' }}>
+              {[['wrong', L('Wrong answer', 'उत्तर गलत है')], ['unclear', L('Question is unclear', 'प्रश्न स्पष्ट नहीं है')], ['typo', L('Typo / spelling', 'वर्तनी / टाइपो')], ['image', L('Image / option issue', 'चित्र / विकल्प में समस्या')]].map(([id, l]) => (
+                <button key={id} onClick={() => submitReport(id)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 10, border: `1px solid ${BD}`, background: '#fff', color: T1, fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}>{l}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 22px 18px' }}>
+              <button onClick={() => setShowReport(false)} style={{ ...btn({ padding: '9px 16px' }) }}>{L('Cancel', 'रद्द करें')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {reportToast && (
+        <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: PD, color: '#fff', padding: '12px 20px', borderRadius: 24, fontSize: 13, fontWeight: 600, boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}>{reportToast}</div>
+      )}
 
       {/* Submit-section confirm */}
       {showSubmit && (
