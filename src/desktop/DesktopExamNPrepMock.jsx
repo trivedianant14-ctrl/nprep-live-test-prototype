@@ -8,7 +8,7 @@ import {
 import { LIVE_TEST, P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from '../exam/shuffle'
-import SolutionView from './SolutionView'
+import AnalysisView from './AnalysisView'
 
 const RED = '#E5484D', RED_L = '#FDECED'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -176,9 +176,9 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     )
   }
 
-  // ── Solutions ──────────────────────────────────────────────────────────────
-  if (phase === 'solutions') {
-    return <SolutionView questions={QUESTIONS} sections={SECTIONS} answers={answers} meta={META} interface="nprep" onBack={() => setPhase('results')} />
+  // ── Analysis (Career-Launcher-style tabbed review) ─────────────────────────
+  if (phase === 'analysis') {
+    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} interface="nprep" onBack={onExit} />
   }
 
   // ── Thank-you / summary ────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onExit} style={{ ...btn({ flex: 1, padding: '13px' }) }}>Back to Tests</button>
-              <button onClick={() => setPhase('results')} style={{ ...pillBtn({ flex: 1, padding: '13px', background: P, color: '#fff' }) }}>View Result</button>
+              <button onClick={() => setPhase('analysis')} style={{ ...pillBtn({ flex: 1, padding: '13px', background: P, color: '#fff' }) }}>View Analysis</button>
             </div>
           </div>
         </div>
@@ -227,53 +227,6 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     )
   }
 
-  // ── Results ────────────────────────────────────────────────────────────────
-  if (phase === 'results') {
-    const r = results, ac = r.accuracy >= 60 ? G : r.accuracy >= 40 ? A : RED
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif" }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 20px 60px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-            <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2 }) }}>← Back to Tests</button>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T1 }}>Result — {seriesName} Mock</div>
-            <div style={{ flex: 1 }} />
-            <button onClick={() => setPhase('solutions')} style={{ ...pillBtn({ padding: '9px 18px', background: P, color: '#fff' }) }}>View Solutions</button>
-          </div>
-          <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '26px', textAlign: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: T3, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Your Score</div>
-            <div><span style={{ fontSize: 44, fontWeight: 700, color: PD }}>{r.score}</span><span style={{ fontSize: 18, color: T3 }}> / {META.totalMarks}</span></div>
-            <div style={{ marginTop: 8, fontSize: 13.5, fontWeight: 700, color: ac }}>{r.accuracy}% Accuracy · {fmt(r.timeTaken)} taken</div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
-            {[{ l: 'Correct', v: r.correct, c: G }, { l: 'Wrong', v: r.wrong, c: RED }, { l: 'Skipped', v: r.unattempted, c: T3 }].map(s => (
-              <div key={s.l} style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: s.c }}>{s.v}</div><div style={{ fontSize: 11, color: T3, marginTop: 3 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-            <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: PD }}>{r.percentile}{ordinal(r.percentile)}</div><div style={{ fontSize: 11, color: T3, marginTop: 3 }}>Est. Percentile</div>
-            </div>
-            <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: PD }}>~{r.air.toLocaleString()}</div><div style={{ fontSize: 11, color: T3, marginTop: 3 }}>Est. All-India Rank</div>
-            </div>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T2, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Section Performance</div>
-          {r.sectionStats.map(s => {
-            const tt = s.correct + s.wrong + s.unattempted, pct = tt ? Math.round((s.correct / tt) * 100) : 0
-            const fg = pct >= 60 ? G : pct >= 40 ? A : RED
-            return (
-              <div key={s.name} style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, padding: '14px 18px', marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}><span style={{ fontWeight: 600 }}>{s.name}</span><span style={{ fontWeight: 700, color: fg }}>{pct}%</span></div>
-                <div style={{ height: 6, background: BG2, borderRadius: 3 }}><div style={{ height: '100%', width: `${pct}%`, background: fg, borderRadius: 3 }} /></div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
 
   const lowTime = timeLeft <= 300
   const answeredPct = Math.round((attemptedTotal / total) * 100)

@@ -7,7 +7,7 @@ import {
 } from '../exam/examData'
 import { LIVE_TEST } from '../data'
 import { shuffleForAttempt } from '../exam/shuffle'
-import SolutionView from './SolutionView'
+import AnalysisView from './AnalysisView'
 
 // ── AIIMS NORCET CBT portal palette (faithful to web-test-screen.vercel.app) ──
 const NAVY = '#1a3a6b', NAVY_D = '#0f2347', NAVY_L = '#2a5298'
@@ -261,17 +261,16 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
     )
   }
 
-  // ── Solutions (NORCET-styled review of the attempt) ────────────────────────
-  if (phase === 'solutions') {
-    return <SolutionView questions={QUESTIONS} sections={SECTIONS} answers={answers} meta={META} interface="norcet" onBack={() => setPhase('analysis')} />
+  // ── Analysis (Career-Launcher-style tabbed review, NORCET-styled) ──────────
+  if (phase === 'analysis') {
+    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} interface="norcet" onBack={onExit} />
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // SCREEN 4 — Submitted / analysis
   // ─────────────────────────────────────────────────────────────────────────
-  if (phase === 'submitted' || phase === 'analysis') {
-    const r = results
-    if (phase === 'submitted') {
+  if (phase === 'submitted') {
+    {
       const attempted = answers.filter(a => a !== null).length
       const markedCount = marked.filter(Boolean).length
       // Duration-mode tests run over several days — the result is declared later, so the
@@ -327,62 +326,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
         </div>
       )
     }
-    const total = QUESTIONS.length
-    const ac = r.accuracy >= 60 ? GREEN : r.accuracy >= 40 ? '#b8860b' : RED
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: '#eef2f6', overflowY: 'auto', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ background: NAVY, color: '#fff', padding: '18px 40px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onExit} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 22 }}>←</button>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>Test Results</div>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>{META.shortName}</div>
-          </div>
-        </div>
-        <div style={{ maxWidth: 780, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
-            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Your Score</div>
-              <div><span style={{ fontSize: 40, fontWeight: 700, color: NAVY }}>{r.score}</span><span style={{ fontSize: 18, color: '#999' }}> / {META.totalMarks}</span></div>
-              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: ac }}>{r.accuracy}% Accuracy</div>
-            </div>
-            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
-              <div style={{ fontSize: 30, fontWeight: 700, color: NAVY }}>{r.percentile}</div>
-              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Est. Percentile</div>
-            </div>
-            <div style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '22px', textAlign: 'center' }}>
-              <div style={{ fontSize: 30, fontWeight: 700, color: NAVY }}>~{r.air.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>Est. All-India Rank</div>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
-            {[{ l: 'Correct', v: r.correct, c: GREEN }, { l: 'Wrong', v: r.wrong, c: RED }, { l: 'Skipped', v: r.unattempted, c: '#888' }].map(s => (
-              <div key={s.l} style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: s.c }}>{s.v}</div>
-                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#555', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Section Performance</div>
-          {r.sectionStats.map(s => {
-            const tt = s.correct + s.wrong + s.unattempted
-            const pct = tt ? Math.round((s.correct / tt) * 100) : 0
-            const fg = pct >= 60 ? GREEN : pct >= 40 ? '#b8860b' : RED
-            return (
-              <div key={s.name} style={{ background: '#fff', border: '1px solid #dde3ea', borderRadius: 8, padding: '14px 18px', marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                  <span style={{ fontWeight: 600 }}>{s.name}</span><span style={{ fontWeight: 700, color: fg }}>{pct}%</span>
-                </div>
-                <div style={{ height: 6, background: '#eef2f6', borderRadius: 3 }}><div style={{ height: '100%', width: `${pct}%`, background: fg, borderRadius: 3 }} /></div>
-              </div>
-            )
-          })}
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-            <button onClick={onExit} style={{ flex: 1, padding: '14px', border: `1px solid ${NAVY}`, borderRadius: 6, background: '#fff', color: NAVY, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Tests</button>
-            <button onClick={() => setPhase('solutions')} style={{ flex: 1, padding: '14px', border: 'none', borderRadius: 6, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View Solutions</button>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   // ─────────────────────────────────────────────────────────────────────────
