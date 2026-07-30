@@ -167,7 +167,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
-            <div style={{ maxWidth: 1040 }}>
+            <div style={{ width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
                 <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>Question {curNum}</span>
@@ -177,7 +177,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                   {reveal ? 'Hide answer' : 'Show answer'}
                 </button>
               </div>
-              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24, maxWidth: 800 }}>{q.text}</p>
+              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24 }}>{q.text}</p>
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {q.options.map((opt, i) => {

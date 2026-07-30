@@ -116,23 +116,6 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     return () => clearInterval(id)
   }, [phase])
   useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
-  // Keyboard shortcuts (NPrep mock is lenient — keyboard allowed): A–D / 1–4 answer, ← → navigate.
-  useEffect(() => {
-    if (phase !== 'exam') return
-    const onKey = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if (showSubmit || showReport || showExit) return
-      const k = e.key.toLowerCase()
-      const letterIdx = ['a', 'b', 'c', 'd', 'e'].indexOf(k)
-      const numIdx = ['1', '2', '3', '4', '5'].indexOf(k)
-      const optIdx = letterIdx >= 0 ? letterIdx : numIdx
-      if (optIdx >= 0 && optIdx < q.options.length) { select(optIdx); e.preventDefault() }
-      else if (e.key === 'ArrowRight') { goNext(); e.preventDefault() }
-      else if (e.key === 'ArrowLeft') { goPrev(); e.preventDefault() }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [phase, gIdx, q, curQLocal, showSubmit, showReport, showExit])
 
   // Navigation is confined to the current section (sequential model).
   const goNext = () => { if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1) }
@@ -374,7 +357,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         {/* Question pane */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
-            <div style={{ maxWidth: 1040 }}>
+            <div style={{ width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
                 <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>{L('Question', 'प्रश्न')} {globalNum}</span>
@@ -384,7 +367,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                   {L('Report', 'रिपोर्ट')}
                 </button>
               </div>
-              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 22, maxWidth: 820 }}>{lang === 'hi' && q.hi?.text ? q.hi.text : q.text}</p>
+              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 22 }}>{lang === 'hi' && q.hi?.text ? q.hi.text : q.text}</p>
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {q.options.map((opt, i) => {
@@ -406,7 +389,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 })}
               </div>
               <div style={{ marginTop: 15, fontSize: 12, color: T3, lineHeight: 1.6 }}>
-                {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest. Press A–D to answer, ← → to move.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी पर ध्यान दे सकें। उत्तर के लिए A–D, आगे-पीछे के लिए ← → दबाएँ।')}
+                {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी विकल्पों पर ध्यान दे सकें।')}
               </div>
             </div>
           </div>
