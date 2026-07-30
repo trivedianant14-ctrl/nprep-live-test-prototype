@@ -144,6 +144,18 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
     return () => clearTimeout(id)
   }, [toast])
 
+  // The real NORCET CBT runs full-screen. requestFullscreen needs a user gesture, so it
+  // fires from the begin click (below), not here. These just clean up: drop out of
+  // full-screen once the exam is over, and on unmount (e.g. Back to Tests).
+  useEffect(() => {
+    if (phase !== 'exam' && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+  }, [phase])
+  useEffect(() => () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}) }, [])
+  const beginExam = () => {
+    document.documentElement.requestFullscreen?.().catch(() => {})
+    setPhase('exam')
+  }
+
   useEffect(() => {
     setVisited(prev => { if (prev[curGlobalIdx]) return prev; const n = [...prev]; n[curGlobalIdx] = true; return n })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,7 +293,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
           </label>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 40px 16px' }}>
             <button onClick={() => setPhase('landing')} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Previous</button>
-            <button disabled={!agreed} onClick={() => setPhase('exam')} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>
+            <button disabled={!agreed} onClick={beginExam} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>
               I am ready to begin
             </button>
           </div>
