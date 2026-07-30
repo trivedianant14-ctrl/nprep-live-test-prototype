@@ -47,6 +47,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const totalMin = Math.round(TOTAL / 60)
 
   const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | results | solutions
+  const [agreed, setAgreed] = useState(false)
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
   const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
@@ -124,18 +125,24 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   // ── Instructions ───────────────────────────────────────────────────────────
   if (phase === 'instructions') {
     const info = [{ l: 'Questions', v: total }, { l: 'Duration', v: `${totalMin} min` }, { l: 'Sections', v: SECTIONS.length }, { l: 'Marking', v: `+${META.correctMarks} / ${META.wrongMarks}` }]
-    const legend = [['answered', 'Answered', G], ['notanswered', 'Not Answered', RED], ['marked', 'Marked for Review', A], ['notvisited', 'Not Visited', '#fff']]
+    // NTA-style palette states, each with a descriptive line (kept to what the mock actually uses)
+    const legend = [
+      ['notvisited', 'Not Visited', '#fff', 'You have not visited the question yet.'],
+      ['notanswered', 'Not Answered', RED, 'You have visited but not answered the question.'],
+      ['answered', 'Answered', G, 'You have answered the question.'],
+      ['marked', 'Marked for Review', A, 'You have flagged the question to look at again.'],
+    ]
     const rules = [
-      `You have ${totalMin} minutes for the whole test. The timer at the top runs continuously and does not pause — when it reaches zero the test is submitted automatically.`,
-      'The Question Palette on the right shows the status of every question — answered, not answered, marked for review, or not visited.',
-      'Choose one of the four options, then click Save & Next to save your answer and move on. Clicking a palette number jumps within the current section but does not save the current answer.',
-      'Use Mark for Review to flag a question you want to revisit before submitting the section.',
-      'Sections are attempted in order (A → B → C → D → E). Finish a section, click Submit Section to move to the next — you cannot return to a completed section.',
-      'The last section submits the whole test. You will see a summary of your attempt before it is final.',
+      `The total duration of the test is ${totalMin} minutes. The countdown timer at the top runs continuously and does not pause; when it reaches 00:00 the test is submitted automatically, whether or not you have finished.`,
+      'The Question Palette on the right of the screen shows the status of each question using the symbols explained below. Use it to keep track of what you have attempted.',
+      'To answer a question, click one of the four options and then click Save & Next to save your response and move to the next question. Clicking a palette number moves you within the section but does not save the current answer.',
+      'To leave a question for later, click Mark for Review; to remove your selected option, click Clear Response.',
+      'Sections are attempted strictly in order (A → B → C → D → E). Once you click Submit Section you move to the next section and cannot return to a completed one.',
+      'Submitting the last section submits the whole test. A summary of your attempt is shown before it is final.',
     ]
     return (
       <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", color: T1 }}>
-        <div style={{ maxWidth: 660, margin: '0 auto', padding: '40px 20px 60px' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 20px 60px' }}>
           <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2, marginBottom: 22 }) }}>← Back to Tests</button>
           <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
             <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '26px 28px' }}>
@@ -143,7 +150,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} /> NPrep Full Mock
               </div>
               <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 4 }}>{seriesName} — Full Mock Test</div>
-              <div style={{ fontSize: 13, opacity: 0.85 }}>General instructions — please read carefully before you begin.</div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>Please read all the instructions carefully before you begin.</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${BD}` }}>
               {info.map((it, i) => (
@@ -153,22 +160,33 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 </div>
               ))}
             </div>
-            <div style={{ padding: '20px 26px' }}>
+            <div style={{ padding: '22px 26px' }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 12 }}>General Instructions</div>
               <ol style={{ paddingLeft: 18, margin: 0 }}>
                 {rules.map((r, i) => <li key={i} style={{ fontSize: 13, color: T2, lineHeight: 1.6, marginBottom: 11 }}>{r}</li>)}
               </ol>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, margin: '18px 0 10px' }}>Question palette legend</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {legend.map(([st, lbl, col]) => (
-                  <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: T2 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', flexShrink: 0 }} />{lbl}
+
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, margin: '22px 0 12px' }}>The Question Palette</div>
+              <div style={{ fontSize: 12.5, color: T2, lineHeight: 1.6, marginBottom: 14 }}>Each question in the palette carries one of the following symbols:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {legend.map(([st, lbl, col, desc]) => (
+                  <div key={st} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 12.5, color: T2 }}>
+                    <span style={{ width: 26, height: 26, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', flexShrink: 0, marginTop: 1 }} />
+                    <div><span style={{ fontWeight: 700, color: T1 }}>{lbl}</span> — {desc}</div>
                   </div>
                 ))}
               </div>
             </div>
-            <div style={{ padding: '4px 26px 24px' }}>
-              <button onClick={() => setPhase('exam')} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: P, color: '#fff' }) }}>I'm ready — Start Test →</button>
+
+            {/* Declaration — NORCET-style agreement gate, NPrep themed */}
+            <div style={{ background: PL, borderTop: `1px solid ${BD}`, padding: '20px 26px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer', fontSize: 12.5, color: T2, lineHeight: 1.6 }}>
+                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: P, marginTop: 1, flexShrink: 0, cursor: 'pointer' }} />
+                <span>I have read and understood all the instructions above. I am ready to begin the test and understand that the timer will run continuously once I start.</span>
+              </label>
+            </div>
+            <div style={{ padding: '18px 26px 24px' }}>
+              <button onClick={() => agreed && setPhase('exam')} disabled={!agreed} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: agreed ? P : '#B9C4E0', color: '#fff' }), cursor: agreed ? 'pointer' : 'not-allowed' }}>I'm ready — Start Test →</button>
             </div>
           </div>
         </div>
