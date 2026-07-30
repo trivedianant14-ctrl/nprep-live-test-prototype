@@ -20,15 +20,20 @@ const estimatePercentile = (acc) => Math.min(99, Math.max(1, Math.round(100 * (1
 
 function PaletteCell({ status, num, active, onClick }) {
   const map = {
-    answered: { bg: G, fg: '#fff', bd: G }, notanswered: { bg: RED, fg: '#fff', bd: RED },
-    marked: { bg: A, fg: '#fff', bd: A }, answeredmarked: { bg: G, fg: '#fff', bd: G },
-    notvisited: { bg: '#fff', fg: T2, bd: BD },
+    answered: { bg: G, fg: '#fff', filled: true }, notanswered: { bg: RED, fg: '#fff', filled: true },
+    marked: { bg: A, fg: '#fff', filled: true }, answeredmarked: { bg: G, fg: '#fff', filled: true },
+    notvisited: { bg: '#fff', fg: T2, filled: false },
   }
   const c = map[status] || map.notvisited
   return (
-    <button onClick={onClick} style={{ position: 'relative', width: 34, height: 34, borderRadius: 9, fontSize: 12.5, fontWeight: 600, background: c.bg, color: c.fg, border: `1.5px solid ${active ? PD : c.bd}`, outline: active ? `2px solid ${PD}33` : 'none', cursor: 'pointer', flexShrink: 0 }}>
+    <button onClick={onClick} style={{
+      position: 'relative', width: 40, height: 40, borderRadius: 12, fontSize: 13, fontWeight: 700,
+      background: c.bg, color: c.fg, border: c.filled ? 'none' : `1.5px solid ${BD}`, cursor: 'pointer', flexShrink: 0,
+      boxShadow: active ? `0 0 0 2px #fff, 0 0 0 4px ${P}` : (c.filled ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'),
+      transition: 'box-shadow .12s',
+    }}>
       {num}
-      {status === 'answeredmarked' && <span style={{ position: 'absolute', bottom: -2, right: -2, width: 11, height: 11, background: A, borderRadius: '50%', border: '2px solid #fff' }} />}
+      {status === 'answeredmarked' && <span style={{ position: 'absolute', bottom: -3, right: -3, width: 13, height: 13, background: A, borderRadius: '50%', border: '2px solid #fff' }} />}
     </button>
   )
 }
@@ -363,20 +368,22 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
 
         {/* Palette */}
         <aside style={{ width: 292, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px 16px 12px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: 12 }}>Question Palette</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 10px', fontSize: 11.5, color: T2 }}>
-              {[['answered', 'Answered', counts.answered, G], ['notanswered', 'Not Answered', counts.notanswered, RED], ['marked', 'Marked', counts.marked, A], ['notvisited', 'Not Visited', counts.notvisited, '#fff']].map(([st, lbl, n, col]) => (
-                <span key={st} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ width: 20, height: 20, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{st === 'notvisited' ? '' : n}</span>
+          <div style={{ padding: '16px 18px 15px', borderBottom: `1px solid ${BD}` }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>Question Palette</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '11px 14px' }}>
+              {[['answered', 'Answered', counts.answered, G, GL], ['notanswered', 'Not Answered', counts.notanswered, RED, '#FDECED'], ['marked', 'Marked', counts.marked, A, '#FBF4DE'], ['notvisited', 'Not Visited', counts.notvisited, '#C7CEDD', BG2]].map(([st, lbl, n, col, soft]) => (
+                <span key={st} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: T2 }}>
+                  <span style={{ minWidth: 24, textAlign: 'center', background: soft, color: st === 'notvisited' ? T2 : col, fontSize: 11, fontWeight: 700, borderRadius: 7, padding: '2px 6px', border: st === 'notvisited' ? `1px solid ${BD}` : 'none' }}>{n}</span>
                   {lbl}
                 </span>
               ))}
             </div>
           </div>
-          <div style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: P, background: BG2, flexShrink: 0 }}>Section {section.id}</div>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, justifyItems: 'center' }}>
+          <div style={{ padding: '13px 18px 4px', flexShrink: 0 }}>
+            <span style={{ display: 'inline-block', background: PL, color: P, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '5px 14px' }}>Section {section.id}</span>
+          </div>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 11, justifyItems: 'center' }}>
               {section.ids.map((id, i) => <PaletteCell key={id} status={statusOf(id)} num={SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0) + i + 1} active={i === curQLocal} onClick={() => jumpTo(i)} />)}
             </div>
           </div>

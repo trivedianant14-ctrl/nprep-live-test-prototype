@@ -151,7 +151,11 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   //    both: own answer always shown, a single "Show answer" reveals the correct option. ──
   const solutions = () => isNprep ? nprepSolutions() : norcetSolutions()
 
-  const nprepSolutions = () => (
+  const nprepSolutions = () => {
+    const rc = ordered.filter(o => resultOf(o.gi) === 'correct').length
+    const ri = ordered.filter(o => resultOf(o.gi) === 'incorrect').length
+    const ru = ordered.length - rc - ri
+    return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Section tabs */}
       <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
@@ -208,29 +212,49 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
           </div>
         </div>
-        {/* Question grid */}
-        <aside style={{ width: 244, flexShrink: 0, background: isNprep ? '#fff' : '#f7f8fa', borderLeft: `1px solid ${th.bd}`, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 16px', borderBottom: `1px solid ${th.bd}` }}>
-            {[['Correct', GREEN], ['Incorrect', RED], ['Unattempted', YEL]].map(([l, c]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, color: th.muted, marginBottom: 7 }}>
-                <span style={{ width: 18, height: 18, borderRadius: isNprep ? '50%' : 3, background: c, flexShrink: 0 }} />{l}
-              </div>
-            ))}
+        {/* Question grid — NPrep edtech style */}
+        <aside style={{ width: 264, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
+          {/* Attempt summary */}
+          <div style={{ padding: '16px 18px 15px', borderBottom: `1px solid ${BD}` }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>Your attempt</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {[['Correct', GREEN, GREEN_L, rc], ['Incorrect', RED, RED_L, ri], ['Unattempted', '#B8860B', '#FBF4DE', ru]].map(([l, c, soft, n]) => (
+                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: T2 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: c, flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{l}</span>
+                  <span style={{ minWidth: 26, textAlign: 'center', background: soft, color: c, fontWeight: 700, fontSize: 12, borderRadius: 7, padding: '2px 7px' }}>{n}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ padding: '10px 16px', background: th.chip, color: '#fff', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>Section {sections[curSec].id}</div>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, justifyItems: 'center' }}>
+          {/* Section pill */}
+          <div style={{ padding: '13px 18px 4px', flexShrink: 0 }}>
+            <span style={{ display: 'inline-block', background: PL, color: P, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '5px 14px' }}>Section {sections[curSec].id}</span>
+          </div>
+          {/* Grid */}
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, justifyItems: 'center' }}>
               {sections[curSec].ids.map((gi) => {
                 const active = gi === cur, r = resultOf(gi)
-                const c = r === 'correct' ? GREEN : r === 'incorrect' ? RED : YEL
-                return <button key={gi} onClick={() => setCur(gi)} style={{ width: 38, height: 38, borderRadius: isNprep ? '50%' : 4, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: c, color: '#fff', border: active ? `3px solid ${isNprep ? th.chip : '#111'}` : `2px solid ${c}` }}>{numOf(gi)}</button>
+                const filled = r === 'correct' || r === 'incorrect'
+                const bg = r === 'correct' ? GREEN : r === 'incorrect' ? RED : '#FBF4DE'
+                const fg = filled ? '#fff' : '#96731A'
+                return (
+                  <button key={gi} onClick={() => setCur(gi)} style={{
+                    width: 42, height: 42, borderRadius: 13, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    background: bg, color: fg, border: filled ? 'none' : '1.5px solid #EAD9A6',
+                    boxShadow: active ? `0 0 0 2px #fff, 0 0 0 4px ${P}` : (filled ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'),
+                    transition: 'box-shadow .12s',
+                  }}>{numOf(gi)}</button>
+                )
               })}
             </div>
           </div>
         </aside>
       </div>
     </div>
-  )
+    )
+  }
 
   // NORCET govt-CBT styling for the solutions review — mirrors the live exam chrome.
   const norcetSolutions = () => {
