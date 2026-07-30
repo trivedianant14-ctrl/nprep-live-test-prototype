@@ -328,14 +328,11 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* Question pane */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-            <div style={{ maxWidth: 820, margin: '0 auto' }}>
-              <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '22px 26px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 40px' }}>
+            <div style={{ maxWidth: 900, margin: '0 auto' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: PD, padding: '4px 12px', borderRadius: 20 }}>Q{globalNum}</span>
-                  <span style={{ fontSize: 11.5, color: T3 }}>of {total} · Section {section.id}</span>
-                  <div style={{ flex: 1 }} />
-                  <span style={{ fontSize: 11.5, color: T3 }}>Marks <span style={{ color: G, fontWeight: 600 }}>+{META.correctMarks}</span> / <span style={{ color: RED, fontWeight: 600 }}>{META.wrongMarks}</span></span>
                 </div>
                 <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 22 }}>{q.text}</p>
                 {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
