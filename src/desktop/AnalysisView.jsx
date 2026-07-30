@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { explanationFor } from '../exam/practiceContent'
+import nprepLogo from '../assets/nprep-logo.png'
 
 const RED = '#E5484D', RED_L = '#FDECED', GREEN = '#189A57', GREEN_L = '#E9F8F0', YEL = '#E3B71E'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -53,8 +54,9 @@ export default function AnalysisView({ questions, sections, answers, marked = []
     <div style={{ flexShrink: 0, background: isNprep ? '#fff' : th.head, color: th.headFg, borderBottom: `1px solid ${isNprep ? BD : '#12294d'}`, boxShadow: isNprep ? '0 1px 4px rgba(19,27,99,0.06)' : 'none' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 26px' }}>
         <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: isNprep ? '#fff' : 'rgba(255,255,255,0.15)', border: isNprep ? `1px solid ${BD}` : 'none', borderRadius: 22, padding: '7px 15px', cursor: 'pointer', color: isNprep ? T2 : '#fff', fontSize: 12.5, fontWeight: 600 }}>← Back</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          {isNprep && <span style={{ width: 9, height: 9, borderRadius: '50%', background: P, boxShadow: `0 0 0 3px ${PL}`, flexShrink: 0 }} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          {isNprep && <img src={nprepLogo} alt="NPrep" style={{ height: 30, width: 'auto', display: 'block', flexShrink: 0 }} />}
+          {isNprep && <div style={{ width: 1, height: 26, background: BD }} />}
           <div>
             <div style={{ fontSize: 15.5, fontWeight: 700, lineHeight: 1.15 }}>{testName}</div>
             <div style={{ fontSize: 10.5, color: isNprep ? T3 : 'rgba(255,255,255,0.7)', marginTop: 1, letterSpacing: 0.2 }}>Performance analysis</div>

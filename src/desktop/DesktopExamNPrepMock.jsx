@@ -171,8 +171,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ flex: 1, minHeight: 0, background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '22px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} /> NPrep Full Mock
+              <div style={{ display: 'inline-flex', background: '#fff', padding: '6px 12px', borderRadius: 12, marginBottom: 12 }}>
+                <img src={nprepLogo} alt="NPrep" style={{ height: 30, width: 'auto', display: 'block' }} />
               </div>
               <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 4 }}>{seriesName} — Full Mock Test</div>
               <div style={{ fontSize: 13, opacity: 0.85 }}>Please read all the instructions carefully before you begin.</div>
@@ -234,7 +234,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     return (
       <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={{ width: '100%', maxWidth: 560, background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
-          <div style={{ padding: '30px 32px 22px', textAlign: 'center' }}>
+          <div style={{ padding: '26px 32px 22px', textAlign: 'center' }}>
+            <img src={nprepLogo} alt="NPrep" style={{ height: 30, margin: '0 auto 20px', display: 'block' }} />
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: GL, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             </div>
