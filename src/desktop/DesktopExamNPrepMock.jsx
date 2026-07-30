@@ -61,7 +61,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const [timeLeft, setTimeLeft] = useState(TOTAL)
   const [showSubmit, setShowSubmit] = useState(false)   // submit-section confirm
   const [showExit, setShowExit] = useState(false)
-  const [showSummary, setShowSummary] = useState(false) // per-section progress popover
+  const [showSummary, setShowSummary] = useState(false) // per-section summary popover
+  const [paletteOpen, setPaletteOpen] = useState(true)
   const [results, setResults] = useState(null)
 
   const section = SECTIONS[curSec]
@@ -265,9 +266,6 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     <div style={{ position: 'fixed', inset: 0, background: BG2, display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
       {/* Top bar */}
       <div style={{ flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px', position: 'relative' }}>
-        <button onClick={() => setShowExit(true)} title="Exit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: T2, display: 'flex', padding: 2 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: PD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>N</div>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
@@ -275,7 +273,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowSummary(s => !s)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 20, background: BG2, color: T1, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" /><rect x="12" y="8" width="3" height="10" /><rect x="17" y="5" width="3" height="13" /></svg>
-            Progress
+            Summary
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showSummary ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
           </button>
           {showSummary && (
@@ -300,9 +298,9 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
           )}
         </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, background: lowTime ? RED_L : PL, color: lowTime ? RED : PD, fontSize: 14.5, fontWeight: 700 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: lowTime ? RED : PD, fontSize: 15, fontWeight: 700 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-          {fmt(timeLeft)}
+          <span style={{ minWidth: 72, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{fmt(timeLeft)}</span>
         </div>
       </div>
       <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
@@ -318,7 +316,6 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             }}>
               {done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               Section {s.id}
-              <span style={{ fontSize: 10.5, fontWeight: 600, padding: '1px 7px', borderRadius: 10, background: active ? 'rgba(255,255,255,0.22)' : '#fff', color: active ? '#fff' : T3 }}>{answeredIn(s)}/{s.ids.length}</span>
             </div>
           )
         })}
@@ -366,7 +363,13 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
           </div>
         </div>
 
+        {/* Palette collapse toggle */}
+        <button onClick={() => setPaletteOpen(o => !o)} title={paletteOpen ? 'Hide palette' : 'Show palette'} style={{ width: 22, flexShrink: 0, border: 'none', borderLeft: `1px solid ${BD}`, background: '#F5F8FF', cursor: 'pointer', color: P, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: paletteOpen ? 'none' : 'rotate(180deg)' }}><polyline points="9 6 15 12 9 18" /></svg>
+        </button>
+
         {/* Palette */}
+        {paletteOpen && (
         <aside style={{ width: 292, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '16px 18px 15px', borderBottom: `1px solid ${BD}` }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>Question Palette</div>
@@ -379,10 +382,11 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
               ))}
             </div>
           </div>
-          <div style={{ padding: '13px 18px 4px', flexShrink: 0 }}>
-            <span style={{ display: 'inline-block', background: PL, color: P, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '5px 14px' }}>Section {section.id}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '15px 18px 6px', flexShrink: 0 }}>
+            <span style={{ width: 3, height: 14, borderRadius: 2, background: P }} />
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: PD, textTransform: 'uppercase' }}>Section {section.id}</span>
           </div>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 18px' }}>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 18px 18px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 11, justifyItems: 'center' }}>
               {section.ids.map((id, i) => <PaletteCell key={id} status={statusOf(id)} num={SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0) + i + 1} active={i === curQLocal} onClick={() => jumpTo(i)} />)}
             </div>
@@ -391,6 +395,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? 'Submit Test' : 'Submit Section'}</button>
           </div>
         </aside>
+        )}
       </div>
 
       {/* Submit-section confirm */}
