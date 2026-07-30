@@ -16,8 +16,8 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   const [style, setStyle] = useState(initialStyle)
   const [curSec, setCurSec] = useState(0)
   const [cur, setCur] = useState(sections[0].ids[0])
-  const [showSol, setShowSol] = useState(false)
-  const [selfTags, setSelfTags] = useState({})
+  const [showAnswer, setShowAnswer] = useState(false)   // reveal correct answer + solution
+  const [showResponse, setShowResponse] = useState(false) // reveal the student's picked answer
   const isNprep = style === 'nprep'
   const testName = meta?.series ? `${meta.series} ${meta.stage || ''}`.trim() : (meta?.shortName || 'Test')
 
@@ -133,99 +133,76 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   const res = resultOf(cur)
   const expl = explanationFor(q)
   const curNum = numOf(cur)
-  const palColor = (gi) => { const r = resultOf(gi); return r === 'correct' ? GREEN : r === 'incorrect' ? RED : YEL }
+  const curPos = ordered.findIndex(o => o.gi === cur)
+  const goToPos = (d) => { const ni = Math.max(0, Math.min(ordered.length - 1, curPos + d)); setCur(ordered[ni].gi); setCurSec(ordered[ni].si) }
 
+  // Toggle switch (reveal correct answer / reveal the student's own answer)
+  const Switch = ({ on, set, label }) => (
+    <button onClick={() => set(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: on ? T1 : th.muted, fontWeight: on ? 600 : 500 }}>
+      <span style={{ width: 38, height: 22, borderRadius: 12, background: on ? th.accent : BD, position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+        <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+      </span>
+      {label}
+    </button>
+  )
+
+  // ── Solutions — the exam attempt screen itself (no palette, no exam buttons,
+  //    just Next); the answer & the student's own response are gated behind toggles. ──
   const solutions = () => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Section tabs */}
-      <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '10px 22px', overflowX: 'auto' }}>
+      <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
         {sections.map((s, i) => {
           const active = i === curSec
-          return <button key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]); setShowSol(false) }} style={{ padding: '6px 16px', borderRadius: 6, border: `1px solid ${active ? th.accent : th.bd}`, background: active ? (isNprep ? PL : '#e6ebf2') : th.pane, color: active ? th.accent : th.muted, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: 'pointer', flexShrink: 0 }}>Section {s.id}</button>
+          return <button key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]) }} style={{ padding: '8px 18px', borderRadius: 22, border: `1px solid ${active ? th.accent : 'transparent'}`, background: active ? th.accent : BG2, color: active ? '#fff' : th.muted, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: 'pointer', flexShrink: 0 }}>Section {s.id}</button>
         })}
       </div>
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* Left: question + image */}
-        <div className="scroll" style={{ flex: 1.1, minWidth: 0, overflowY: 'auto', padding: '20px 24px', borderRight: `1px solid ${th.bd}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: th.chip, padding: '4px 12px', borderRadius: isNprep ? 20 : 4 }}>Q{curNum}</span>
-            <span style={{ fontSize: 11.5, color: th.faint }}>Section {sections[curSec].id}</span>
-          </div>
-          <p style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.55, marginBottom: 16 }}>{q.text}</p>
-          {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: '100%', maxHeight: 320, border: `1px solid ${th.bd}`, borderRadius: 8, display: 'block' }} />}
-        </div>
-        {/* Middle: options + solution + self-assessment */}
-        <div className="scroll" style={{ flex: 1.25, minWidth: 0, overflowY: 'auto', padding: '20px 24px', borderRight: `1px solid ${th.bd}` }}>
-          <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 4 }}>Question No {curNum}.</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: res === 'correct' ? GREEN : res === 'incorrect' ? RED : '#b58a10', marginBottom: 14 }}>{res === 'correct' ? 'Correct' : res === 'incorrect' ? 'Incorrect Answer' : 'Unattempted'}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>
-            {q.options.map((opt, i) => {
-              const isCorrect = i === q.answer, isChosen = chosen === i
-              let bg = th.pane, bd = th.bd, fg = T1, badge = null
-              if (isCorrect) { bg = GREEN_L; bd = isNprep ? '#BDE8D2' : GREEN; fg = GREEN; badge = <span style={{ fontSize: 11, fontWeight: 700, color: GREEN }}>✓ Correct{isChosen ? ' · You' : ''}</span> }
-              else if (isChosen) { bg = RED_L; bd = isNprep ? '#F5C6C8' : RED; fg = RED; badge = <span style={{ fontSize: 11, fontWeight: 700, color: RED }}>✕ Your answer</span> }
-              return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: isNprep ? 10 : 4, background: bg, border: `1.5px solid ${bd}`, fontSize: 14 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: '50%', border: `1.5px solid ${isCorrect || isChosen ? fg : th.bd}`, color: isCorrect || isChosen ? fg : th.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700, flexShrink: 0 }}>{LETTERS[i]}</span>
-                  <span style={{ flex: 1, color: fg, fontWeight: isCorrect || isChosen ? 600 : 400 }}>{opt}</span>{badge}
-                </div>
-              )
-            })}
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <button onClick={() => setShowSol(s => !s)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: th.chip, color: '#fff', border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-              {showSol ? 'Hide Solution' : 'View Solution'}
-            </button>
-            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: th.pane, color: th.muted, border: `1px solid ${th.bd}`, borderRadius: isNprep ? 10 : 4, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'default' }}>▶ Video Solution</button>
-          </div>
-          {showSol && (
-            <div style={{ background: isNprep ? PL : '#f3f7fb', borderRadius: isNprep ? 10 : 4, padding: '14px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: th.accent, marginBottom: 5 }}>Solution</div>
-              <p style={{ fontSize: 13.5, lineHeight: 1.65, color: th.muted }}>{expl.text}</p>
+      {/* Centered question card */}
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <div style={{ background: th.pane, border: `1px solid ${th.bd}`, borderRadius: th.radius, padding: '22px 26px', boxShadow: isNprep ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: th.chip, padding: '4px 12px', borderRadius: isNprep ? 20 : 4 }}>Q{curNum}</span>
+              <span style={{ fontSize: 11.5, color: th.faint }}>of {ordered.length} · Section {sections[curSec].id}</span>
+              <div style={{ flex: 1 }} />
+              <Switch on={showResponse} set={setShowResponse} label="Your answer" />
+              <Switch on={showAnswer} set={setShowAnswer} label="Correct answer" />
             </div>
-          )}
-          {/* Self-assessment */}
-          <div style={{ background: BG2, borderRadius: isNprep ? 10 : 4, padding: '13px 16px' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: T1, marginBottom: 10 }}>This question was a:</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
-              {SELF_TAGS.map(tg => {
-                const on = selfTags[cur] === tg
+            <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 20 }}>{q.text}</p>
+            {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${th.bd}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {q.options.map((opt, i) => {
+                const isCorrect = i === q.answer, isChosen = chosen === i
+                const revealC = showAnswer && isCorrect, revealMine = showResponse && isChosen
+                let bg = th.pane, bd = th.bd, fg = T1, badge = null
+                if (revealC) { bg = GREEN_L; bd = isNprep ? '#BDE8D2' : GREEN; fg = GREEN; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: GREEN }}>✓ Correct{revealMine ? ' · Your answer' : ''}</span> }
+                else if (revealMine) {
+                  if (isCorrect) { bg = PL; bd = P; fg = P; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: P }}>Your answer</span> }
+                  else { bg = RED_L; bd = isNprep ? '#F5C6C8' : RED; fg = RED; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: RED }}>{showAnswer ? '✕ ' : ''}Your answer</span> }
+                }
                 return (
-                  <button key={tg} onClick={() => setSelfTags(m => ({ ...m, [cur]: on ? undefined : tg }))} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: on ? th.accent : th.muted, fontWeight: on ? 600 : 400, textAlign: 'left', padding: 0 }}>
-                    <span style={{ width: 15, height: 15, borderRadius: '50%', border: `2px solid ${on ? th.accent : th.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on && <span style={{ width: 7, height: 7, borderRadius: '50%', background: th.accent }} />}</span>
-                    {tg}
-                  </button>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderRadius: isNprep ? 12 : 4, background: bg, border: `1.5px solid ${bd}`, fontSize: 15 }}>
+                    <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${revealC || revealMine ? fg : th.bd}`, color: revealC || revealMine ? fg : th.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{LETTERS[i]}</span>
+                    <span style={{ flex: 1, color: fg, fontWeight: revealC || revealMine ? 600 : 400 }}>{opt}</span>{badge}
+                  </div>
                 )
               })}
             </div>
-          </div>
-        </div>
-        {/* Right: circular palette */}
-        <aside style={{ width: 232, flexShrink: 0, background: isNprep ? '#fff' : '#f7f8fa', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 16px', borderBottom: `1px solid ${th.bd}` }}>
-            {[['Correct Answer', GREEN], ['Incorrect Answer', RED], ['Unattempted', YEL]].map(([l, c]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, color: th.muted, marginBottom: 7 }}>
-                <span style={{ width: 20, height: 20, borderRadius: '50%', background: c, flexShrink: 0 }} />{l}
+            {showResponse && chosen === null && <div style={{ marginTop: 12, fontSize: 12.5, color: th.faint }}>You did not attempt this question.</div>}
+            {showAnswer && (
+              <div style={{ marginTop: 18, background: isNprep ? PL : '#f3f7fb', borderRadius: isNprep ? 10 : 4, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: th.accent, marginBottom: 5 }}>Solution</div>
+                <p style={{ fontSize: 13.5, lineHeight: 1.65, color: th.muted }}>{expl.text}</p>
               </div>
-            ))}
+            )}
           </div>
-          <div style={{ padding: '10px 16px', background: th.chip, color: '#fff', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>Section {sections[curSec].id}</div>
-          <div style={{ padding: '8px 16px 4px', fontSize: 11.5, color: th.faint }}>Choose a Question</div>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, justifyItems: 'center' }}>
-              {sections[curSec].ids.map((gi, li) => {
-                const active = gi === cur
-                return (
-                  <button key={gi} onClick={() => { setCur(gi); setShowSol(false) }} style={{
-                    width: 38, height: 38, borderRadius: '50%', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                    background: palColor(gi), color: '#fff', border: active ? `3px solid ${th.chip}` : `2px solid ${palColor(gi)}`,
-                  }}>{numOf(gi)}</button>
-                )
-              })}
-            </div>
-          </div>
-        </aside>
+        </div>
+      </div>
+      {/* Footer — only Previous + Next */}
+      <div style={{ flexShrink: 0, background: th.pane, borderTop: `1px solid ${th.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px' }}>
+        <button onClick={() => goToPos(-1)} disabled={curPos === 0} style={{ background: th.pane, border: `1px solid ${th.bd}`, borderRadius: isNprep ? 10 : 4, padding: '10px 18px', fontSize: 13, fontWeight: 600, color: T1, cursor: curPos === 0 ? 'default' : 'pointer', opacity: curPos === 0 ? 0.5 : 1 }}>« Previous</button>
+        <span style={{ fontSize: 12, color: th.faint }}>Question {curNum} of {ordered.length}</span>
+        <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
       </div>
     </div>
   )
@@ -241,7 +218,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
         {flagged.map(o => {
           const r = resultOf(o.gi)
           return (
-            <button key={o.gi} onClick={() => { setCurSec(o.si); setCur(o.gi); setShowSol(false); setTab('solutions') }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, background: th.pane, border: `1px solid ${th.bd}`, borderRadius: th.radius, padding: '14px 16px', marginBottom: 8, cursor: 'pointer' }}>
+            <button key={o.gi} onClick={() => { setCurSec(o.si); setCur(o.gi); setTab('solutions') }} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, background: th.pane, border: `1px solid ${th.bd}`, borderRadius: th.radius, padding: '14px 16px', marginBottom: 8, cursor: 'pointer' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: th.chip, padding: '3px 10px', borderRadius: isNprep ? 16 : 4, flexShrink: 0 }}>Q{o.num}</span>
               <span style={{ flex: 1, fontSize: 13.5, color: T1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{questions[o.gi].text}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: r === 'correct' ? GREEN : r === 'incorrect' ? RED : '#b58a10', flexShrink: 0 }}>{r === 'correct' ? 'Correct' : r === 'incorrect' ? 'Wrong' : 'Skipped'}</span>
