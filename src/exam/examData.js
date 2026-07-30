@@ -1,10 +1,11 @@
 // Ported from the NORCET CBT reference prototype (web-test-screen) — same 100-question
 // nursing paper, 5 sections of 20 questions, 18-minute per-section timers (90 min total).
+import { IMG_ECG, IMG_XRAY, IMG_WOUND } from './sampleImages'
 
 export const QUESTIONS = [
   // ── Section A — Nursing Foundations (Q1–Q20) ──
-  { text: "Study the 12-lead ECG tracing below carefully (drag/scroll to view all leads). Based on the rhythm and waveform characteristics, identify the most appropriate immediate nursing action.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/b/bd/12leadECG.jpg", imageLarge: true,
+  { text: "Study the 12-lead ECG tracing below carefully. Based on the rhythm and waveform characteristics, identify the most appropriate immediate nursing action.",
+    image: IMG_ECG, imageLarge: true,
     options: ["Prepare for immediate defibrillation", "Document as Normal Sinus Rhythm and continue monitoring", "Administer IV Atropine as prescribed", "Elevate head of bed and administer O2"], answer: 1 },
   { text: "The best method to prevent hospital-acquired infection is:", options: ["Hand hygiene", "Bed making", "Patient counselling", "Early discharge"], answer: 0 },
   { text: "The first step in the nursing process is:", options: ["Planning", "Implementation", "Assessment", "Evaluation"], answer: 2 },
@@ -17,9 +18,11 @@ export const QUESTIONS = [
   { text: "The Glasgow Coma Scale (GCS) maximum score is:", options: ["10", "12", "15", "18"], answer: 2 },
   { text: "Normal urine output in an adult is approximately:", options: ["10–20 mL/hr", "30–50 mL/hr", "80–100 mL/hr", "120–150 mL/hr"], answer: 1 },
   { text: "Examine the chest X-ray image shown below. Which clinical finding is most consistent with this radiograph?",
-    image: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Chest_X-ray_PA_3-8-2010.png",
+    image: IMG_XRAY, imageLarge: false,
     options: ["Tension pneumothorax", "Bilateral pleural effusion", "Normal chest X-ray", "Cardiomegaly with pulmonary oedema"], answer: 2 },
-  { text: "Which of the following is a sign of infection at a surgical wound site?", options: ["Serous drainage", "Approximated wound edges", "Localised warmth, redness and purulent discharge", "Slight oedema on day 1"], answer: 2 },
+  { text: "Examine the surgical wound shown below. Which finding indicates a wound-site infection?",
+    image: IMG_WOUND, imageLarge: false,
+    options: ["Serous drainage", "Approximated wound edges", "Localised warmth, redness and purulent discharge", "Slight oedema on day 1"], answer: 2 },
   { text: "Which electrolyte is the PRIMARY intracellular cation?", options: ["Sodium (Na+)", "Calcium (Ca2+)", "Potassium (K+)", "Magnesium (Mg2+)"], answer: 2 },
   { text: "A patient rates pain as 8/10 on the Numeric Rating Scale. This indicates:", options: ["Mild pain", "Moderate pain", "Severe pain", "No pain"], answer: 2 },
   { text: "Which of the following actions VIOLATES aseptic technique?", options: ["Opening sterile packages towards yourself", "Keeping the sterile field above waist level", "Treating the outer inch of a sterile drape as contaminated", "Avoiding reaching across a sterile field"], answer: 0 },
@@ -42,7 +45,9 @@ export const QUESTIONS = [
   { text: "Normal serum potassium level (mEq/L) is:", options: ["1.5–2.5", "3.5–5.0", "6.0–7.5", "8.0–10.0"], answer: 1 },
   { text: "The preferred site for intramuscular injection in adults is:", options: ["Deltoid", "Ventrogluteal", "Dorsogluteal", "Rectus femoris"], answer: 1 },
   { text: "A patient with COPD should receive supplemental oxygen at:", options: ["1–2 L/min via nasal cannula", "6–8 L/min via face mask", "10 L/min via non-rebreather mask", "15 L/min via Venturi mask"], answer: 0 },
-  { text: "Which dressing is recommended for a Stage II pressure ulcer with minimal exudate?", options: ["Dry gauze", "Hydrocolloid dressing", "Alginate dressing", "Wet-to-dry dressing"], answer: 1 },
+  { text: "Based on the ECG rhythm strip below, the underlying rhythm is best described as:",
+    image: IMG_ECG, imageLarge: true,
+    options: ["Ventricular fibrillation", "Normal sinus rhythm", "Complete heart block", "Atrial flutter"], answer: 1 },
   { text: "Post-mastectomy arm care includes which of the following?", options: ["Taking blood pressure on the affected arm", "Wearing tight-fitting jewellery on the affected arm", "Avoiding venipuncture on the affected arm", "Using the affected arm for IV infusion"], answer: 2 },
   { text: "A classic sign of fluid overload is:", options: ["Dry mucous membranes", "Poor skin turgor", "Bibasal crackles on auscultation and pitting oedema", "Dark concentrated urine"], answer: 2 },
   { text: "A patient with chronic renal failure shows peaked T-waves on ECG. The nurse suspects:", options: ["Hypokalaemia", "Hyperkalaemia", "Hyponatraemia", "Hypernatraemia"], answer: 1 },

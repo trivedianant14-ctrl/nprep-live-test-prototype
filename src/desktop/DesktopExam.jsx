@@ -7,6 +7,7 @@ import {
 } from '../exam/examData'
 import { LIVE_TEST } from '../data'
 import { shuffleForAttempt } from '../exam/shuffle'
+import SolutionView from './SolutionView'
 
 // ── AIIMS NORCET CBT portal palette (faithful to web-test-screen.vercel.app) ──
 const NAVY = '#1a3a6b', NAVY_D = '#0f2347', NAVY_L = '#2a5298'
@@ -260,6 +261,11 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
     )
   }
 
+  // ── Solutions (NORCET-styled review of the attempt) ────────────────────────
+  if (phase === 'solutions') {
+    return <SolutionView questions={QUESTIONS} sections={SECTIONS} answers={answers} meta={META} interface="norcet" onBack={() => setPhase('analysis')} />
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // SCREEN 4 — Submitted / analysis
   // ─────────────────────────────────────────────────────────────────────────
@@ -370,7 +376,10 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
               </div>
             )
           })}
-          <button onClick={onExit} style={{ width: '100%', marginTop: 20, padding: '14px', border: 'none', borderRadius: 6, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Tests</button>
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            <button onClick={onExit} style={{ flex: 1, padding: '14px', border: `1px solid ${NAVY}`, borderRadius: 6, background: '#fff', color: NAVY, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Tests</button>
+            <button onClick={() => setPhase('solutions')} style={{ flex: 1, padding: '14px', border: 'none', borderRadius: 6, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View Solutions</button>
+          </div>
         </div>
       </div>
     )

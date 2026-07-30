@@ -8,8 +8,9 @@ import {
 import { LIVE_TEST, P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from '../exam/shuffle'
+import SolutionView from './SolutionView'
 
-const RED = '#E5484D', RED_L = '#FDECED', AMBER_L = '#FDF4E3'
+const RED = '#E5484D', RED_L = '#FDECED'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 const fmt = s => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60
@@ -19,28 +20,22 @@ const estimatePercentile = (acc) => Math.min(99, Math.max(1, Math.round(100 * (1
 
 function PaletteCell({ status, num, active, onClick }) {
   const map = {
-    answered: { bg: G, fg: '#fff', bd: G },
-    notanswered: { bg: RED, fg: '#fff', bd: RED },
-    marked: { bg: A, fg: '#fff', bd: A },
-    answeredmarked: { bg: G, fg: '#fff', bd: G },
+    answered: { bg: G, fg: '#fff', bd: G }, notanswered: { bg: RED, fg: '#fff', bd: RED },
+    marked: { bg: A, fg: '#fff', bd: A }, answeredmarked: { bg: G, fg: '#fff', bd: G },
     notvisited: { bg: '#fff', fg: T2, bd: BD },
   }
   const c = map[status] || map.notvisited
   return (
-    <button onClick={onClick} style={{
-      position: 'relative', width: 34, height: 34, borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-      background: c.bg, color: c.fg, border: `1.5px solid ${active ? PD : c.bd}`,
-      outline: active ? `2px solid ${PD}33` : 'none', cursor: 'pointer', flexShrink: 0,
-    }}>
+    <button onClick={onClick} style={{ position: 'relative', width: 34, height: 34, borderRadius: 9, fontSize: 12.5, fontWeight: 600, background: c.bg, color: c.fg, border: `1.5px solid ${active ? PD : c.bd}`, outline: active ? `2px solid ${PD}33` : 'none', cursor: 'pointer', flexShrink: 0 }}>
       {num}
       {status === 'answeredmarked' && <span style={{ position: 'absolute', bottom: -2, right: -2, width: 11, height: 11, background: A, borderRadius: '50%', border: '2px solid #fff' }} />}
     </button>
   )
 }
 
-// NPrep full-mock — a modern edtech test interface (not the govt CBT look): free navigation
-// between any section/question, one total timer, submit → summary → thank-you. Keyboard is
-// allowed; leaving does not pause — it auto-submits (unanswered left blank).
+// NPrep full-mock — a modern edtech test interface. Sections run in sequence (A→B→C→D→E,
+// no jumping ahead or back); you "Submit Section" to move on, and the last section submits
+// the test. Keyboard is allowed; leaving does not pause — it auto-submits.
 export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions, customSections, customMeta }) {
   const META = customMeta || DEFAULT_EXAM_META
   const seriesName = META.series || META.shortName || 'NASHTA'
@@ -51,15 +46,16 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const TOTAL = SECTIONS.length * secDur
   const totalMin = Math.round(TOTAL / 60)
 
-  const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | results
+  const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | results | solutions
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
   const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
   const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
   const [visited, setVisited] = useState(() => Array(QUESTIONS.length).fill(false))
   const [timeLeft, setTimeLeft] = useState(TOTAL)
-  const [showSubmit, setShowSubmit] = useState(false)
+  const [showSubmit, setShowSubmit] = useState(false)   // submit-section confirm
   const [showExit, setShowExit] = useState(false)
+  const [showSummary, setShowSummary] = useState(false) // per-section progress popover
   const [results, setResults] = useState(null)
 
   const section = SECTIONS[curSec]
@@ -68,7 +64,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const chosen = answers[gIdx]
   const globalNum = SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0) + curQLocal + 1
   const total = QUESTIONS.length
-  const isLast = curSec === SECTIONS.length - 1 && curQLocal === section.ids.length - 1
+  const isLastSec = curSec === SECTIONS.length - 1
 
   const statusOf = (i) => {
     const ans = answers[i] !== null, mk = marked[i]
@@ -81,6 +77,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const counts = { answered: 0, notanswered: 0, marked: 0, answeredmarked: 0, notvisited: 0 }
   QUESTIONS.forEach((_, i) => { counts[statusOf(i)]++ })
   const attemptedTotal = counts.answered + counts.answeredmarked
+  const answeredIn = (sec) => sec.ids.filter(id => answers[id] !== null).length
 
   const finalize = () => {
     let correct = 0, wrong = 0, unattempted = 0
@@ -103,52 +100,42 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
 
   useEffect(() => {
     if (phase !== 'exam') return
-    const id = setInterval(() => setTimeLeft(t => {
-      if (t <= 1) { clearInterval(id); finalizeRef.current(); return 0 }
-      return t - 1
-    }), 1000)
+    const id = setInterval(() => setTimeLeft(t => { if (t <= 1) { clearInterval(id); finalizeRef.current(); return 0 } return t - 1 }), 1000)
     return () => clearInterval(id)
   }, [phase])
-
   useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
 
-  const goNext = () => {
-    if (isLast) return
-    if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1)
-    else { setCurSec(s => s + 1); setCurQLocal(0) }
-  }
-  const goPrev = () => {
-    if (curQLocal > 0) setCurQLocal(l => l - 1)
-    else if (curSec > 0) { const ps = curSec - 1; setCurSec(ps); setCurQLocal(SECTIONS[ps].ids.length - 1) }
-  }
+  // Navigation is confined to the current section (sequential model).
+  const goNext = () => { if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1) }
+  const goPrev = () => { if (curQLocal > 0) setCurQLocal(l => l - 1) }
   const select = (i) => setAnswers(prev => { const n = [...prev]; n[gIdx] = i; return n })
   const clear = () => setAnswers(prev => { const n = [...prev]; n[gIdx] = null; return n })
   const markNext = () => { setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n }); goNext() }
   const jumpTo = (localIdx) => setCurQLocal(localIdx)
-  const switchSection = (i) => { setCurSec(i); setCurQLocal(0) }
-  const answeredIn = (sec) => sec.ids.filter(id => answers[id] !== null).length
+  // Submitting a section moves to the next; the last section submits the whole test.
+  const submitSection = () => {
+    if (isLastSec) { finalize(); return }
+    setShowSubmit(false); setCurSec(s => s + 1); setCurQLocal(0)
+  }
 
   const btn = (x = {}) => ({ padding: '10px 16px', fontSize: 13, fontWeight: 600, borderRadius: 10, border: `1px solid ${BD}`, background: '#fff', color: T1, cursor: 'pointer', ...x })
   const pillBtn = (x = {}) => ({ padding: '11px 22px', fontSize: 13.5, fontWeight: 600, borderRadius: 24, border: 'none', cursor: 'pointer', ...x })
 
   // ── Instructions ───────────────────────────────────────────────────────────
   if (phase === 'instructions') {
-    const info = [
-      { l: 'Questions', v: total },
-      { l: 'Duration', v: `${totalMin} min` },
-      { l: 'Sections', v: SECTIONS.length },
-      { l: 'Marking', v: `+${META.correctMarks} / ${META.wrongMarks}` },
-    ]
+    const info = [{ l: 'Questions', v: total }, { l: 'Duration', v: `${totalMin} min` }, { l: 'Sections', v: SECTIONS.length }, { l: 'Marking', v: `+${META.correctMarks} / ${META.wrongMarks}` }]
+    const legend = [['answered', 'Answered', G], ['notanswered', 'Not Answered', RED], ['marked', 'Marked for Review', A], ['notvisited', 'Not Visited', '#fff']]
     const rules = [
-      { icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>, t: `You have ${totalMin} minutes to attempt ${total} questions across ${SECTIONS.length} sections.` },
-      { icon: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>, t: 'Move freely between any section or question — use the palette to jump anywhere and track your progress.' },
-      { icon: <><path d="M20 6L9 17l-5-5" /></>, t: `Each correct answer is +${META.correctMarks}, a wrong one ${META.wrongMarks}. Unanswered questions score 0.` },
-      { icon: <><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></>, t: 'Flag tricky questions with “Mark for Review” and come back to them before you submit.' },
-      { icon: <><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></>, t: 'The timer runs continuously and does not pause. If you leave, the test is submitted automatically.' },
+      `You have ${totalMin} minutes for the whole test. The timer at the top runs continuously and does not pause — when it reaches zero the test is submitted automatically.`,
+      'The Question Palette on the right shows the status of every question — answered, not answered, marked for review, or not visited.',
+      'Choose one of the four options, then click Save & Next to save your answer and move on. Clicking a palette number jumps within the current section but does not save the current answer.',
+      'Use Mark for Review to flag a question you want to revisit before submitting the section.',
+      'Sections are attempted in order (A → B → C → D → E). Finish a section, click Submit Section to move to the next — you cannot return to a completed section.',
+      'The last section submits the whole test. You will see a summary of your attempt before it is final.',
     ]
     return (
       <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", color: T1 }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px 60px' }}>
+        <div style={{ maxWidth: 660, margin: '0 auto', padding: '40px 20px 60px' }}>
           <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2, marginBottom: 22 }) }}>← Back to Tests</button>
           <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
             <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '26px 28px' }}>
@@ -156,7 +143,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} /> NPrep Full Mock
               </div>
               <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 4 }}>{seriesName} — Full Mock Test</div>
-              <div style={{ fontSize: 13, opacity: 0.85 }}>Read the instructions below, then start when you're ready.</div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>General instructions — please read carefully before you begin.</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${BD}` }}>
               {info.map((it, i) => (
@@ -167,23 +154,31 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
               ))}
             </div>
             <div style={{ padding: '20px 26px' }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 14 }}>How this test works</div>
-              {rules.map((r, i) => (
-                <div key={i} style={{ display: 'flex', gap: 13, marginBottom: 15 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: PL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{r.icon}</svg>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 12 }}>General Instructions</div>
+              <ol style={{ paddingLeft: 18, margin: 0 }}>
+                {rules.map((r, i) => <li key={i} style={{ fontSize: 13, color: T2, lineHeight: 1.6, marginBottom: 11 }}>{r}</li>)}
+              </ol>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, margin: '18px 0 10px' }}>Question palette legend</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {legend.map(([st, lbl, col]) => (
+                  <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: T2 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', flexShrink: 0 }} />{lbl}
                   </div>
-                  <div style={{ fontSize: 13, color: T2, lineHeight: 1.55, paddingTop: 6 }}>{r.t}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-            <div style={{ padding: '0 26px 24px' }}>
-              <button onClick={() => setPhase('exam')} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: P, color: '#fff' }) }}>Start Test →</button>
+            <div style={{ padding: '4px 26px 24px' }}>
+              <button onClick={() => setPhase('exam')} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: P, color: '#fff' }) }}>I'm ready — Start Test →</button>
             </div>
           </div>
         </div>
       </div>
     )
+  }
+
+  // ── Solutions ──────────────────────────────────────────────────────────────
+  if (phase === 'solutions') {
+    return <SolutionView questions={QUESTIONS} sections={SECTIONS} answers={answers} meta={META} interface="nprep" onBack={() => setPhase('results')} />
   }
 
   // ── Thank-you / summary ────────────────────────────────────────────────────
@@ -202,8 +197,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
               {[{ l: 'Attempted', v: attemptedTotal, c: G }, { l: 'Marked', v: counts.marked + counts.answeredmarked, c: A }, { l: 'Unattempted', v: total - attemptedTotal, c: RED }].map(s => (
                 <div key={s.l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '14px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: s.c }}>{s.v}</div>
-                  <div style={{ fontSize: 10.5, color: T3, marginTop: 3 }}>{s.l}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: s.c }}>{s.v}</div><div style={{ fontSize: 10.5, color: T3, marginTop: 3 }}>{s.l}</div>
                 </div>
               ))}
             </div>
@@ -212,8 +206,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 <span>Section</span><span style={{ textAlign: 'center' }}>Attempted</span><span style={{ textAlign: 'center' }}>Marked</span><span style={{ textAlign: 'center' }}>Left</span>
               </div>
               {SECTIONS.map(s => {
-                const at = s.ids.filter(id => answers[id] !== null).length
-                const mk = s.ids.filter(id => marked[id]).length
+                const at = s.ids.filter(id => answers[id] !== null).length, mk = s.ids.filter(id => marked[id]).length
                 return (
                   <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', padding: '9px 12px', fontSize: 12, borderTop: `1px solid ${BD}` }}>
                     <span style={{ color: T1, fontWeight: 500 }}>Section {s.id}</span>
@@ -243,6 +236,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
             <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2 }) }}>← Back to Tests</button>
             <div style={{ fontSize: 18, fontWeight: 700, color: T1 }}>Result — {seriesName} Mock</div>
+            <div style={{ flex: 1 }} />
+            <button onClick={() => setPhase('solutions')} style={{ ...pillBtn({ padding: '9px 18px', background: P, color: '#fff' }) }}>View Solutions</button>
           </div>
           <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '26px', textAlign: 'center', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: T3, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Your Score</div>
@@ -282,38 +277,68 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
 
   const lowTime = timeLeft <= 300
   const answeredPct = Math.round((attemptedTotal / total) * 100)
+  const secAttempted = section.ids.filter(id => answers[id] !== null).length
+  const secMarked = section.ids.filter(id => marked[id]).length
   // ── Exam ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, background: BG2, display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
       {/* Top bar */}
-      <div style={{ flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px' }}>
+      <div style={{ flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px', position: 'relative' }}>
         <button onClick={() => setShowExit(true)} title="Exit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: T2, display: 'flex', padding: 2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: PD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>N</div>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11.5, color: T3 }}><strong style={{ color: T1 }}>{attemptedTotal}</strong>/{total} answered</span>
+        {/* Per-section progress summary */}
+        <div style={{ position: 'relative' }}>
+          <button onClick={() => setShowSummary(s => !s)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 20, background: BG2, color: T1, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" /><rect x="12" y="8" width="3" height="10" /><rect x="17" y="5" width="3" height="13" /></svg>
+            Progress
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showSummary ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          {showSummary && (
+            <div style={{ position: 'absolute', top: 42, right: 0, width: 250, background: '#fff', border: `1px solid ${BD}`, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.14)', padding: '12px 14px', zIndex: 30 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T1, marginBottom: 10 }}>Attempted per section</div>
+              {SECTIONS.map((s, i) => {
+                const at = answeredIn(s), pct = Math.round((at / s.ids.length) * 100)
+                const state = i < curSec ? 'done' : i === curSec ? 'active' : 'upcoming'
+                return (
+                  <div key={s.id} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, marginBottom: 4 }}>
+                      <span style={{ color: state === 'active' ? P : T2, fontWeight: state === 'active' ? 600 : 500 }}>Section {s.id}{state === 'done' ? ' ✓' : state === 'upcoming' ? ' · locked' : ''}</span>
+                      <span style={{ color: T3 }}>{at}/{s.ids.length}</span>
+                    </div>
+                    <div style={{ height: 5, background: BG2, borderRadius: 3 }}><div style={{ height: '100%', width: `${pct}%`, background: state === 'upcoming' ? BD : G, borderRadius: 3 }} /></div>
+                  </div>
+                )
+              })}
+              <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 8, fontSize: 11.5, color: T2, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Total answered</span><span style={{ fontWeight: 700, color: T1 }}>{attemptedTotal}/{total}</span>
+              </div>
+            </div>
+          )}
+        </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, background: lowTime ? RED_L : PL, color: lowTime ? RED : PD, fontSize: 14.5, fontWeight: 700 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
           {fmt(timeLeft)}
         </div>
-        <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ padding: '9px 22px', fontSize: 13, background: P, color: '#fff' }) }}>Submit</button>
       </div>
       <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
 
-      {/* Section pills — free navigation */}
+      {/* Section pills — sequential status (current active, past done, upcoming locked; non-clickable) */}
       <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
         {SECTIONS.map((s, i) => {
-          const active = i === curSec
+          const active = i === curSec, done = i < curSec
           return (
-            <button key={s.id} onClick={() => switchSection(i)} style={{
-              display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, flexShrink: 0, cursor: 'pointer',
-              background: active ? P : BG2, color: active ? '#fff' : T2, border: `1px solid ${active ? P : 'transparent'}`, fontSize: 12.5, fontWeight: 600,
+            <div key={s.id} title={active ? 'Current section' : done ? 'Completed' : 'Opens after you submit the current section'} style={{
+              display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, flexShrink: 0, cursor: 'default',
+              background: active ? P : done ? GL : BG2, color: active ? '#fff' : done ? G : T3, border: `1px solid ${active ? P : 'transparent'}`, fontSize: 12.5, fontWeight: 600,
             }}>
+              {done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               Section {s.id}
               <span style={{ fontSize: 10.5, fontWeight: 600, padding: '1px 7px', borderRadius: 10, background: active ? 'rgba(255,255,255,0.22)' : '#fff', color: active ? '#fff' : T3 }}>{answeredIn(s)}/{s.ids.length}</span>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -330,20 +355,14 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                   <span style={{ fontSize: 11.5, color: T3 }}>of {total} · Section {section.id}</span>
                   <div style={{ flex: 1 }} />
                   <span style={{ fontSize: 11.5, color: T3 }}>Marks <span style={{ color: G, fontWeight: 600 }}>+{META.correctMarks}</span> / <span style={{ color: RED, fontWeight: 600 }}>{META.wrongMarks}</span></span>
-                  <button onClick={() => setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n })} title="Mark for review" style={{ background: 'none', border: 'none', cursor: 'pointer', color: marked[gIdx] ? A : T3, display: 'flex', padding: 2 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill={marked[gIdx] ? A : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></svg>
-                  </button>
                 </div>
                 <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 22 }}>{q.text}</p>
-                {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 320, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
+                {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {q.options.map((opt, i) => {
                     const on = chosen === i
                     return (
-                      <button key={i} onClick={() => select(i)} style={{
-                        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'left',
-                        background: on ? PL : '#fff', border: `1.5px solid ${on ? P : BD}`, cursor: 'pointer',
-                      }}>
+                      <button key={i} onClick={() => select(i)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'left', background: on ? PL : '#fff', border: `1.5px solid ${on ? P : BD}`, cursor: 'pointer' }}>
                         <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${on ? P : BD}`, background: on ? P : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: on ? '#fff' : T2, flexShrink: 0 }}>{LETTERS[i]}</span>
                         <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: on ? PD : T1 }}>{opt}</span>
                       </button>
@@ -360,8 +379,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
               <button onClick={clear} style={btn()}>Clear Response</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={goPrev} disabled={globalNum === 1} style={btn({ opacity: globalNum === 1 ? 0.5 : 1 })}>« Previous</button>
-              <button onClick={goNext} disabled={isLast} style={{ ...pillBtn({ padding: '10px 24px', background: P, color: '#fff', opacity: isLast ? 0.5 : 1 }) }}>Save &amp; Next</button>
+              <button onClick={goPrev} disabled={curQLocal === 0} style={btn({ opacity: curQLocal === 0 ? 0.5 : 1 })}>« Previous</button>
+              <button onClick={goNext} disabled={curQLocal === section.ids.length - 1} style={{ ...pillBtn({ padding: '10px 24px', background: P, color: '#fff', opacity: curQLocal === section.ids.length - 1 ? 0.5 : 1 }) }}>Save &amp; Next</button>
             </div>
           </div>
         </div>
@@ -386,19 +405,21 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
           </div>
           <div style={{ padding: 14, borderTop: `1px solid ${BD}` }}>
-            <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: P, color: '#fff' }) }}>Submit Test</button>
+            <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? 'Submit Test' : 'Submit Section'}</button>
           </div>
         </aside>
       </div>
 
-      {/* Submit summary modal */}
+      {/* Submit-section confirm */}
       {showSubmit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 460, overflow: 'hidden' }}>
-            <div style={{ padding: '22px 24px 8px', fontSize: 17, fontWeight: 700, color: T1 }}>Submit your test?</div>
-            <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>You've answered <strong style={{ color: T1 }}>{attemptedTotal}</strong> of {total} questions. Once submitted you cannot change your answers.</div>
+          <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 440, overflow: 'hidden' }}>
+            <div style={{ padding: '22px 24px 6px', fontSize: 17, fontWeight: 700, color: T1 }}>{isLastSec ? 'Submit the test?' : `Submit Section ${section.id}?`}</div>
+            <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>
+              {isLastSec ? 'This is the last section — submitting will end the test and you cannot change any answers.' : `You've answered ${secAttempted} of ${section.ids.length} in this section. You won't be able to return to Section ${section.id} after this.`}
+            </div>
             <div style={{ display: 'flex', gap: 10, padding: '0 24px 14px' }}>
-              {[['Answered', attemptedTotal, G], ['Marked', counts.marked + counts.answeredmarked, A], ['Unattempted', total - attemptedTotal, RED]].map(([l, v, c]) => (
+              {[['Answered', secAttempted, G], ['Marked', secMarked, A], ['Left', section.ids.length - secAttempted, RED]].map(([l, v, c]) => (
                 <div key={l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '12px 6px', textAlign: 'center' }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div><div style={{ fontSize: 10, color: T3, marginTop: 2 }}>{l}</div>
                 </div>
@@ -406,13 +427,13 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '8px 24px 20px' }}>
               <button onClick={() => setShowSubmit(false)} style={{ ...btn({ padding: '11px 18px' }) }}>Keep attempting</button>
-              <button onClick={finalize} style={{ ...pillBtn({ padding: '11px 22px', background: P, color: '#fff' }) }}>Submit Test</button>
+              <button onClick={submitSection} style={{ ...pillBtn({ padding: '11px 22px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? 'Submit Test' : `Submit Section ${section.id}`}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Exit confirm — leaving does not pause the test */}
+      {/* Exit confirm */}
       {showExit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
           <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 420, padding: '24px' }}>
