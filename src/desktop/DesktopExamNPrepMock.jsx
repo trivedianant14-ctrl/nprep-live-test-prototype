@@ -141,52 +141,57 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       'Submitting the last section submits the whole test. A summary of your attempt is shown before it is final.',
     ]
     return (
-      <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", color: T1 }}>
-        <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 20px 60px' }}>
-          <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2, marginBottom: 22 }) }}>← Back to Tests</button>
-          <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
-            <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '26px 28px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, marginBottom: 12 }}>
+      <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", color: T1, display: 'flex', flexDirection: 'column', padding: '20px 26px 26px' }}>
+        <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2, marginBottom: 16, alignSelf: 'flex-start' }) }}>← Back to Tests</button>
+        <div style={{ flex: 1, minHeight: 0, background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '22px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} /> NPrep Full Mock
               </div>
               <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 4 }}>{seriesName} — Full Mock Test</div>
               <div style={{ fontSize: 13, opacity: 0.85 }}>Please read all the instructions carefully before you begin.</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${BD}` }}>
-              {info.map((it, i) => (
-                <div key={it.l} style={{ padding: '16px 12px', textAlign: 'center', borderRight: i < info.length - 1 ? `1px solid ${BD}` : 'none' }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: PD }}>{it.v}</div>
-                  <div style={{ fontSize: 10.5, color: T3, marginTop: 2 }}>{it.l}</div>
+            <div style={{ display: 'flex', gap: 26 }}>
+              {info.map((it) => (
+                <div key={it.l} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 19, fontWeight: 700 }}>{it.v}</div>
+                  <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2 }}>{it.l}</div>
                 </div>
               ))}
             </div>
-            <div style={{ padding: '22px 26px' }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 12 }}>General Instructions</div>
+          </div>
+
+          {/* Two-column body fills the width so there's no long scroll */}
+          <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.15fr 0.85fr' }}>
+            <div style={{ padding: '22px 32px', overflowY: 'auto', borderRight: `1px solid ${BD}` }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 14 }}>General Instructions</div>
               <ol style={{ paddingLeft: 18, margin: 0 }}>
-                {rules.map((r, i) => <li key={i} style={{ fontSize: 13, color: T2, lineHeight: 1.6, marginBottom: 11 }}>{r}</li>)}
+                {rules.map((r, i) => <li key={i} style={{ fontSize: 13, color: T2, lineHeight: 1.6, marginBottom: 13 }}>{r}</li>)}
               </ol>
+            </div>
 
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, margin: '22px 0 12px' }}>The Question Palette</div>
-              <div style={{ fontSize: 12.5, color: T2, lineHeight: 1.6, marginBottom: 14 }}>Each question in the palette carries one of the following symbols:</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {legend.map(([st, lbl, col, desc]) => (
-                  <div key={st} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 12.5, color: T2 }}>
-                    <span style={{ width: 26, height: 26, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', flexShrink: 0, marginTop: 1 }} />
-                    <div><span style={{ fontWeight: 700, color: T1 }}>{lbl}</span> — {desc}</div>
-                  </div>
-                ))}
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <div style={{ flex: 1, padding: '22px 30px', overflowY: 'auto' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 6 }}>The Question Palette</div>
+                <div style={{ fontSize: 12.5, color: T2, lineHeight: 1.6, marginBottom: 16 }}>Each question in the palette carries one of the following symbols:</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {legend.map(([st, lbl, col, desc]) => (
+                    <div key={st} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 12.5, color: T2 }}>
+                      <span style={{ width: 26, height: 26, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', flexShrink: 0, marginTop: 1 }} />
+                      <div><span style={{ fontWeight: 700, color: T1 }}>{lbl}</span> — {desc}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Declaration — NORCET-style agreement gate, NPrep themed */}
-            <div style={{ background: PL, borderTop: `1px solid ${BD}`, padding: '20px 26px' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer', fontSize: 12.5, color: T2, lineHeight: 1.6 }}>
-                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: P, marginTop: 1, flexShrink: 0, cursor: 'pointer' }} />
-                <span>I have read and understood all the instructions above. I am ready to begin the test and understand that the timer will run continuously once I start.</span>
-              </label>
-            </div>
-            <div style={{ padding: '18px 26px 24px' }}>
-              <button onClick={() => agreed && setPhase('exam')} disabled={!agreed} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: agreed ? P : '#B9C4E0', color: '#fff' }), cursor: agreed ? 'pointer' : 'not-allowed' }}>I'm ready — Start Test →</button>
+              {/* Declaration gate pinned at the bottom of the right column */}
+              <div style={{ background: PL, borderTop: `1px solid ${BD}`, padding: '16px 30px' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer', fontSize: 12.5, color: T2, lineHeight: 1.55, marginBottom: 14 }}>
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: P, marginTop: 1, flexShrink: 0, cursor: 'pointer' }} />
+                  <span>I have read and understood all the instructions above. I am ready to begin and understand the timer runs continuously once I start.</span>
+                </label>
+                <button onClick={() => agreed && setPhase('exam')} disabled={!agreed} style={{ ...pillBtn({ width: '100%', padding: '14px', fontSize: 15, background: agreed ? P : '#B9C4E0', color: '#fff' }), cursor: agreed ? 'pointer' : 'not-allowed' }}>I'm ready — Start Test →</button>
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,16 @@ import { explanationFor } from '../exam/practiceContent'
 
 const RED = '#E5484D', RED_L = '#FDECED', GREEN = '#189A57', GREEN_L = '#E9F8F0', YEL = '#E3B71E'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+// NORCET CBT palette (faithful to web-test-screen.vercel.app)
+const NAVY = '#1a3a6b', NGREEN = '#25a943', NRED = '#e4474d', RED_TXT = '#cc0000'
+// Review palette glyph — reuses the NORCET convention: correct = green house, incorrect
+// = red diamond, unattempted = grey square; current question gets an orange outline.
+function ReviewCell({ result, num, active, onClick }) {
+  const base = { width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, userSelect: 'none', outline: active ? '2.5px solid #ff8800' : 'none', outlineOffset: 1 }
+  if (result === 'correct') return <div onClick={onClick} style={{ ...base, background: NGREEN, color: '#fff', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }}>{num}</div>
+  if (result === 'incorrect') return <div onClick={onClick} style={{ ...base, background: NRED, color: '#fff', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)' }}>{num}</div>
+  return <div onClick={onClick} style={{ ...base, background: '#ddd', color: '#222', border: '1px solid #aaa' }}>{num}</div>
+}
 const SELF_TAGS = ['Good Shot', 'Unforced Error', 'Missed Opportunity', 'Risky Shot', 'Well Left', 'Double Negative']
 
 // Post-test analysis modelled on Career Launcher's CAT interface — tabbed
@@ -135,10 +145,13 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   const curPos = ordered.findIndex(o => o.gi === cur)
   const goToPos = (d) => { const ni = Math.max(0, Math.min(ordered.length - 1, curPos + d)); setCur(ordered[ni].gi); setCurSec(ordered[ni].si) }
 
-  // ── Solutions — the exam attempt screen. The student's own answer is always shown
-  //    (subtly); a single "Show answer" reveals the correct option + solution. A question
-  //    grid on the right navigates within the section. ──
-  const solutions = () => (
+  // ── Solutions — the exam attempt screen itself, styled to match the interface the test
+  //    was taken in. NPrep = edtech card + rounded grid; NORCET = faithful govt-CBT chrome
+  //    (section bar, Question-No strip, radio options, Question Palette panel). Same idea in
+  //    both: own answer always shown, a single "Show answer" reveals the correct option. ──
+  const solutions = () => isNprep ? nprepSolutions() : norcetSolutions()
+
+  const nprepSolutions = () => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Section tabs */}
       <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
@@ -218,6 +231,96 @@ export default function AnalysisView({ questions, sections, answers, marked = []
       </div>
     </div>
   )
+
+  // NORCET govt-CBT styling for the solutions review — mirrors the live exam chrome.
+  const norcetSolutions = () => {
+    const rc = ordered.filter(o => resultOf(o.gi) === 'correct').length
+    const ri = ordered.filter(o => resultOf(o.gi) === 'incorrect').length
+    const ru = ordered.length - rc - ri
+    const cbt = (extra = {}) => ({ padding: '8px 16px', border: '1px solid #bbb', background: '#fff', borderRadius: 3, fontSize: 13, fontWeight: 600, color: '#333', cursor: 'pointer', ...extra })
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: '#fff' }}>
+        {/* Section bar */}
+        <div style={{ display: 'flex', height: 50, background: '#d0d0d0', borderBottom: '1px solid #b0b0b0', flexShrink: 0, overflowX: 'auto' }}>
+          {sections.map((s, i) => {
+            const active = i === curSec
+            return (
+              <div key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]) }} style={{ flex: 1, minWidth: 130, borderRight: '1px solid #b0b0b0', padding: '4px 12px', cursor: 'pointer', background: active ? '#fff' : '#d0d0d0', color: active ? '#111' : '#555', fontWeight: active ? 700 : 500, boxShadow: active ? `inset 0 -3px 0 ${NAVY}` : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2 }}>
+                <span style={{ fontSize: 12 }}>Section {s.id}</span>
+                <span style={{ fontSize: 11, color: '#888' }}>Review</span>
+              </div>
+            )
+          })}
+        </div>
+        {/* Body */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+          {/* Question pane */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #c0c0c0', overflow: 'hidden' }}>
+            <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px', borderBottom: '1px solid #e0e0e0', fontSize: 14, background: '#fafafa', flexShrink: 0 }}>
+              <span>Question No. <strong>{curNum}</strong></span>
+              <span style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+                <span>Marks: <span style={{ color: '#1a8c36', fontWeight: 700 }}>+{meta?.correctMarks ?? 1}</span> | <span style={{ color: RED_TXT, fontWeight: 700 }}>{meta?.wrongMarks ?? -0.33}</span></span>
+                <button onClick={() => setReveal(r => !r)} style={cbt({ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? NAVY : '#fff', color: reveal ? '#fff' : '#333', border: `1px solid ${reveal ? NAVY : '#bbb'}` })}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                  {reveal ? 'Hide answer' : 'Show answer'}
+                </button>
+              </span>
+            </div>
+            <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
+              <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Section {sections[curSec].id}</div>
+              <p style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 22, color: '#1c2b45' }}>{q.text}</p>
+              {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 380 : 240, border: '1px solid #ddd', borderRadius: 4, marginBottom: 20, display: 'block' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {q.options.map((opt, i) => {
+                  const isCorrect = i === q.answer, isChosen = chosen === i
+                  let bg = 'transparent', fg = '#222', tag = null
+                  if (reveal && isCorrect) { bg = '#e8f6ec'; fg = '#137a38'; tag = <span style={{ fontSize: 12, fontWeight: 700, color: '#137a38' }}>✓ Correct{isChosen ? ' · Your answer' : ''}</span> }
+                  else if (reveal && isChosen) { bg = '#fde8e9'; fg = RED_TXT; tag = <span style={{ fontSize: 12, fontWeight: 700, color: RED_TXT }}>✕ Your answer</span> }
+                  else if (isChosen) { bg = '#eaf4fb'; tag = <span style={{ fontSize: 11.5, fontWeight: 600, color: '#666' }}>Your answer</span> }
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 50, padding: '8px 14px', borderRadius: 4, fontSize: 16, background: bg }}>
+                      <input type="radio" checked={isChosen} readOnly style={{ width: 16, height: 16, accentColor: NAVY, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: '#555', minWidth: 18 }}>{LETTERS[i]}.</span>
+                      <span style={{ flex: 1, color: fg }}>{opt}</span>{tag}
+                    </div>
+                  )
+                })}
+              </div>
+              {reveal && chosen === null && <div style={{ marginTop: 14, color: RED_TXT, fontSize: 13, fontWeight: 600 }}>You did not attempt this question.</div>}
+              {reveal && (
+                <div style={{ marginTop: 20, border: '1px solid #d3dae2', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ background: '#eef2f6', padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, borderBottom: '1px solid #d3dae2' }}>Solution</div>
+                  <p style={{ fontSize: 13.5, lineHeight: 1.65, color: '#444', padding: '12px 14px' }}>{expl.text}</p>
+                </div>
+              )}
+            </div>
+            <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderTop: '1px solid #ccc', background: '#f7f7f7', flexShrink: 0 }}>
+              <button onClick={() => goToPos(-1)} disabled={curPos === 0} style={cbt({ opacity: curPos === 0 ? 0.5 : 1, cursor: curPos === 0 ? 'default' : 'pointer' })}>« Previous</button>
+              <span style={{ fontSize: 12, color: '#888' }}>Question {curNum} of {ordered.length}</span>
+              <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={cbt({ background: 'linear-gradient(135deg,#27b7cd 0%,#17829a 100%)', color: '#fff', border: '1px solid #17829a', opacity: curPos === ordered.length - 1 ? 0.6 : 1, cursor: curPos === ordered.length - 1 ? 'default' : 'pointer' })}>Next »</button>
+            </footer>
+          </div>
+          {/* Question Palette */}
+          <aside style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f0f0f0' }}>
+            <div style={{ height: 36, display: 'flex', alignItems: 'center', padding: '0 14px', background: NAVY, color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Question Palette</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 8px', padding: '12px', background: '#fff', borderBottom: '1px solid #ddd', fontSize: 12.5, flexShrink: 0 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><b style={{ background: NGREEN, color: '#fff', minWidth: 24, textAlign: 'center', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)', padding: '2px 0' }}>{rc}</b> Correct</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><b style={{ background: NRED, color: '#fff', minWidth: 24, textAlign: 'center', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)', padding: '2px 0' }}>{ri}</b> Incorrect</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><b style={{ background: '#ddd', color: '#222', minWidth: 24, textAlign: 'center', border: '1px solid #aaa', padding: '1px 0' }}>{ru}</b> Unattempted</span>
+            </div>
+            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: '#e6ebf2', flexShrink: 0 }}>Section {sections[curSec].id}</div>
+            <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, justifyItems: 'center' }}>
+                {sections[curSec].ids.map((gi) => (
+                  <ReviewCell key={gi} result={resultOf(gi)} num={numOf(gi)} active={gi === cur} onClick={() => setCur(gi)} />
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    )
+  }
 
   // ── Bookmarks ──────────────────────────────────────────────────────────────
   const bookmarks = () => {
