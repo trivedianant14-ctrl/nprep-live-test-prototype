@@ -12,7 +12,6 @@ import DesktopTests from './desktop/DesktopTests'
 import DesktopSeriesDetail from './desktop/DesktopSeriesDetail'
 import DesktopCalendar from './desktop/DesktopCalendar'
 import DesktopExam from './desktop/DesktopExam'
-import DesktopExamNPrep from './desktop/DesktopExamNPrep'
 import DesktopExamNPrepMock from './desktop/DesktopExamNPrepMock'
 import DesktopExamChooser from './desktop/DesktopExamChooser'
 import ExamPreTest from './exam/ExamPreTest'
@@ -221,7 +220,6 @@ export default function App() {
     const examProps = { onExit: exitExam, onFinish: handleExamFinish, customQuestions: customTest?.questions, customSections: customTest?.sections, customMeta: customTest?.meta }
     // The official live test is duration-mode (runs over several days → result declared later);
     // daily/custom tests give an immediate result.
-    if (desktopExamMode === 'nprep') return <DesktopExamNPrep {...examProps} />
     if (desktopExamMode === 'nprep-mock') return <DesktopExamNPrepMock {...examProps} />
     if (desktopExamMode === 'norcet') return <DesktopExam {...examProps} onBack={backToChooser} durationMode={!customTest} />
     if (desktopExamMode === 'norcet-mains') {

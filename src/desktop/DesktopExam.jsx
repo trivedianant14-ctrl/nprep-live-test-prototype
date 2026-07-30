@@ -101,7 +101,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
 
   const computeAndFinalize = () => {
     let correct = 0, wrong = 0, unattempted = 0
-    const sectionStats = SECTIONS.map(sec => ({ name: sec.name, correct: 0, wrong: 0, unattempted: 0 }))
+    const sectionStats = SECTIONS.map(sec => ({ name: `Section ${sec.id}`, correct: 0, wrong: 0, unattempted: 0 }))
     QUESTIONS.forEach((qi, gIdx) => {
       const si = SECTIONS.findIndex(s => s.ids.includes(gIdx))
       if (answers[gIdx] === null) { unattempted++; sectionStats[si].unattempted++ }
@@ -138,7 +138,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
       setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n })
       if (curSec < SECTIONS.length - 1) {
         const nextSec = curSec + 1
-        setToast(`Time up for ${SECTIONS[curSec].name} — moving to ${SECTIONS[nextSec].name}`)
+        setToast(`Time up for Section ${SECTIONS[curSec].id} — moving to Section ${SECTIONS[nextSec].id}`)
         setCurSec(nextSec); setCurQLocal(0)
       } else {
         finalizeRef.current()
@@ -436,7 +436,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
             </span>
           </div>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
-            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{section.fullName}</div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Section {section.id}</div>
             <p style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 22 }}>{q.text}</p>
             {q.image && (
               <img src={q.image} alt="" style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 380 : 240, border: '1px solid #ddd', borderRadius: 4, marginBottom: 20, display: 'block' }} />
@@ -473,7 +473,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.marked}</b> Marked</span>
               <span style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.answeredmarked}</b> Answered &amp; Marked (evaluated)</span>
             </div>
-            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: '#e6ebf2', flexShrink: 0 }}>{section.fullName}</div>
+            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: '#e6ebf2', flexShrink: 0 }}>Section {section.id}</div>
             <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, justifyItems: 'center' }}>
                 {section.ids.map((gIdx, li) => (

@@ -1,15 +1,9 @@
 import { EXAM_META as DEFAULT_EXAM_META } from '../exam/examData'
-import { P, PD, PL, G, GL, T1, T2, T3, BD, BG2 } from '../data'
+import { P, PD, PL, T1, T2, T3, BD, BG2 } from '../data'
 
 const OPTIONS = [
   {
-    id: 'nprep', badge: 'PRACTICE', title: 'NPrep Practice', accent: P, tint: PL,
-    sub: 'Learn as you go — instant feedback on every question.',
-    points: ['Instant right/wrong feedback', 'Explanations & option analytics', 'Save to your revision list'],
-    icon: <><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></>,
-  },
-  {
-    id: 'nprep-mock', badge: 'FULL MOCK', title: 'NPrep Mock Test', accent: G, tint: GL,
+    id: 'nprep-mock', badge: 'FULL MOCK', title: 'NPrep Mock Test', accent: P, tint: PL,
     sub: 'An exam-style mock in the clean NPrep interface.',
     points: ['Jump freely between sections', 'Submit → summary & result', 'Lenient — keyboard allowed'],
     icon: <><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" /></>,
@@ -34,14 +28,14 @@ export default function DesktopExamChooser({ meta, onPick, onBack }) {
   const M = meta || DEFAULT_EXAM_META
   return (
     <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
-      <div style={{ width: '100%', maxWidth: 860 }}>
+      <div style={{ width: '100%', maxWidth: 940 }}>
         <button onClick={onBack} style={{ background: 'white', border: `1px solid ${BD}`, borderRadius: 20, padding: '7px 14px', cursor: 'pointer', color: T2, fontSize: 12.5, fontWeight: 600, marginBottom: 24 }}>← Back to Tests</button>
         <div style={{ textAlign: 'center', marginBottom: 6, fontSize: 24, fontWeight: 700, color: T1 }}>Choose your interface</div>
         <div style={{ textAlign: 'center', marginBottom: 28, fontSize: 14, color: T2 }}>
-          <span style={{ fontWeight: 600, color: T1 }}>{M.series || 'NASHTA'}</span> · same questions, four ways to attempt.
+          <span style={{ fontWeight: 600, color: T1 }}>{M.series || 'NASHTA'}</span> · same questions, three ways to attempt.
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {OPTIONS.map(o => (
             <button key={o.id} onClick={() => onPick(o.id)} style={{
               textAlign: 'left', background: 'white', border: `1px solid ${BD}`, borderRadius: 16, padding: '20px', cursor: 'pointer',

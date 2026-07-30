@@ -5,11 +5,11 @@ import {
   SECTION_DURATION,
   EXAM_META as DEFAULT_EXAM_META,
 } from '../exam/examData'
-import { LIVE_TEST, P, PD, PL, G, GL, A, AL, T1, T2, T3, BD, BG2 } from '../data'
+import { LIVE_TEST, P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from '../exam/shuffle'
 
-const RED = '#E5484D', RED_L = '#FDECED'
+const RED = '#E5484D', RED_L = '#FDECED', AMBER_L = '#FDF4E3'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 const fmt = s => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60
@@ -17,8 +17,6 @@ const fmt = s => {
 }
 const estimatePercentile = (acc) => Math.min(99, Math.max(1, Math.round(100 * (1 - Math.exp(-acc / 32)))))
 
-// Palette status glyph — NPrep palette only (green answered, red not-answered, amber
-// marked, grey not-visited); answered+marked = green with an amber dot.
 function PaletteCell({ status, num, active, onClick }) {
   const map = {
     answered: { bg: G, fg: '#fff', bd: G },
@@ -30,7 +28,7 @@ function PaletteCell({ status, num, active, onClick }) {
   const c = map[status] || map.notvisited
   return (
     <button onClick={onClick} style={{
-      position: 'relative', width: 34, height: 34, borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+      position: 'relative', width: 34, height: 34, borderRadius: 9, fontSize: 12.5, fontWeight: 600,
       background: c.bg, color: c.fg, border: `1.5px solid ${active ? PD : c.bd}`,
       outline: active ? `2px solid ${PD}33` : 'none', cursor: 'pointer', flexShrink: 0,
     }}>
@@ -40,27 +38,26 @@ function PaletteCell({ status, num, active, onClick }) {
   )
 }
 
-// NPrep full-mock interface — the lenient, free-navigation counterpart to the NORCET CBT.
-// Jump between any section/question, one total timer, submit → summary → thank-you. Keyboard
-// is allowed; leaving the test does not pause it — it auto-submits (unanswered left blank).
+// NPrep full-mock — a modern edtech test interface (not the govt CBT look): free navigation
+// between any section/question, one total timer, submit → summary → thank-you. Keyboard is
+// allowed; leaving does not pause — it auto-submits (unanswered left blank).
 export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions, customSections, customMeta }) {
   const META = customMeta || DEFAULT_EXAM_META
-  const provider = META.provider || 'NPrep'
   const seriesName = META.series || META.shortName || 'NASHTA'
-  const stageName = META.stage || 'Full Mock'
   const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
     shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
   )
   const secDur = META.sectionSeconds || SECTION_DURATION
   const TOTAL = SECTIONS.length * secDur
+  const totalMin = Math.round(TOTAL / 60)
 
+  const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | results
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
   const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
   const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
   const [visited, setVisited] = useState(() => Array(QUESTIONS.length).fill(false))
   const [timeLeft, setTimeLeft] = useState(TOTAL)
-  const [phase, setPhase] = useState('exam') // exam | submitted | results
   const [showSubmit, setShowSubmit] = useState(false)
   const [showExit, setShowExit] = useState(false)
   const [results, setResults] = useState(null)
@@ -73,7 +70,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const total = QUESTIONS.length
   const isLast = curSec === SECTIONS.length - 1 && curQLocal === section.ids.length - 1
 
-  const status = (i) => {
+  const statusOf = (i) => {
     const ans = answers[i] !== null, mk = marked[i]
     if (ans && mk) return 'answeredmarked'
     if (ans) return 'answered'
@@ -82,11 +79,12 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     return 'notvisited'
   }
   const counts = { answered: 0, notanswered: 0, marked: 0, answeredmarked: 0, notvisited: 0 }
-  QUESTIONS.forEach((_, i) => { counts[status(i)]++ })
+  QUESTIONS.forEach((_, i) => { counts[statusOf(i)]++ })
+  const attemptedTotal = counts.answered + counts.answeredmarked
 
   const finalize = () => {
     let correct = 0, wrong = 0, unattempted = 0
-    const sectionStats = SECTIONS.map(sec => ({ name: sec.name, correct: 0, wrong: 0, unattempted: 0 }))
+    const sectionStats = SECTIONS.map(sec => ({ name: `Section ${sec.id}`, correct: 0, wrong: 0, unattempted: 0 }))
     QUESTIONS.forEach((qi, i) => {
       const si = SECTIONS.findIndex(s => s.ids.includes(i))
       if (answers[i] === null) { unattempted++; sectionStats[si].unattempted++ }
@@ -98,12 +96,11 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     const percentile = estimatePercentile(accuracy)
     const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
     const weakestSection = [...sectionStats].sort((a, b) => a.correct - b.correct)[0]
-    const r = { correct, wrong, unattempted, score, accuracy, timeTaken: TOTAL - timeLeft, sectionStats, percentile, air, weakestSection, testName: `${seriesName} ${stageName}` }
+    const r = { correct, wrong, unattempted, score, accuracy, timeTaken: TOTAL - timeLeft, sectionStats, percentile, air, weakestSection, testName: `${seriesName} Mock` }
     setResults(r); setShowSubmit(false); setPhase('submitted'); onFinish?.(r)
   }
   const finalizeRef = useRef(finalize); finalizeRef.current = finalize
 
-  // One total timer. Auto-submits when it hits zero — the test never pauses.
   useEffect(() => {
     if (phase !== 'exam') return
     const id = setInterval(() => setTimeLeft(t => {
@@ -113,13 +110,12 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     return () => clearInterval(id)
   }, [phase])
 
-  useEffect(() => { setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx])
+  useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
 
   const goNext = () => {
-    if (!isLast) {
-      if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1)
-      else { setCurSec(s => s + 1); setCurQLocal(0) }
-    }
+    if (isLast) return
+    if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1)
+    else { setCurSec(s => s + 1); setCurQLocal(0) }
   }
   const goPrev = () => {
     if (curQLocal > 0) setCurQLocal(l => l - 1)
@@ -128,29 +124,83 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const select = (i) => setAnswers(prev => { const n = [...prev]; n[gIdx] = i; return n })
   const clear = () => setAnswers(prev => { const n = [...prev]; n[gIdx] = null; return n })
   const markNext = () => { setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n }); goNext() }
-  const saveNext = () => goNext()
   const jumpTo = (localIdx) => setCurQLocal(localIdx)
-  const switchSection = (i) => { setCurSec(i); setCurQLocal(0) } // free navigation
+  const switchSection = (i) => { setCurSec(i); setCurQLocal(0) }
   const answeredIn = (sec) => sec.ids.filter(id => answers[id] !== null).length
 
   const btn = (x = {}) => ({ padding: '10px 16px', fontSize: 13, fontWeight: 600, borderRadius: 10, border: `1px solid ${BD}`, background: '#fff', color: T1, cursor: 'pointer', ...x })
+  const pillBtn = (x = {}) => ({ padding: '11px 22px', fontSize: 13.5, fontWeight: 600, borderRadius: 24, border: 'none', cursor: 'pointer', ...x })
+
+  // ── Instructions ───────────────────────────────────────────────────────────
+  if (phase === 'instructions') {
+    const info = [
+      { l: 'Questions', v: total },
+      { l: 'Duration', v: `${totalMin} min` },
+      { l: 'Sections', v: SECTIONS.length },
+      { l: 'Marking', v: `+${META.correctMarks} / ${META.wrongMarks}` },
+    ]
+    const rules = [
+      { icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>, t: `You have ${totalMin} minutes to attempt ${total} questions across ${SECTIONS.length} sections.` },
+      { icon: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>, t: 'Move freely between any section or question — use the palette to jump anywhere and track your progress.' },
+      { icon: <><path d="M20 6L9 17l-5-5" /></>, t: `Each correct answer is +${META.correctMarks}, a wrong one ${META.wrongMarks}. Unanswered questions score 0.` },
+      { icon: <><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></>, t: 'Flag tricky questions with “Mark for Review” and come back to them before you submit.' },
+      { icon: <><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></>, t: 'The timer runs continuously and does not pause. If you leave, the test is submitted automatically.' },
+    ]
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", color: T1 }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px 60px' }}>
+          <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2, marginBottom: 22 }) }}>← Back to Tests</button>
+          <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
+            <div style={{ background: `linear-gradient(135deg, ${PD}, #1e2a7a)`, color: '#fff', padding: '26px 28px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, marginBottom: 12 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} /> NPrep Full Mock
+              </div>
+              <div style={{ fontSize: 23, fontWeight: 700, marginBottom: 4 }}>{seriesName} — Full Mock Test</div>
+              <div style={{ fontSize: 13, opacity: 0.85 }}>Read the instructions below, then start when you're ready.</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${BD}` }}>
+              {info.map((it, i) => (
+                <div key={it.l} style={{ padding: '16px 12px', textAlign: 'center', borderRight: i < info.length - 1 ? `1px solid ${BD}` : 'none' }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: PD }}>{it.v}</div>
+                  <div style={{ fontSize: 10.5, color: T3, marginTop: 2 }}>{it.l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '20px 26px' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: T1, marginBottom: 14 }}>How this test works</div>
+              {rules.map((r, i) => (
+                <div key={i} style={{ display: 'flex', gap: 13, marginBottom: 15 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: PL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{r.icon}</svg>
+                  </div>
+                  <div style={{ fontSize: 13, color: T2, lineHeight: 1.55, paddingTop: 6 }}>{r.t}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '0 26px 24px' }}>
+              <button onClick={() => setPhase('exam')} style={{ ...pillBtn({ width: '100%', padding: '15px', fontSize: 15, background: P, color: '#fff' }) }}>Start Test →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── Thank-you / summary ────────────────────────────────────────────────────
   if (phase === 'submitted') {
-    const attempted = counts.answered + counts.answeredmarked
     return (
       <div style={{ position: 'fixed', inset: 0, background: BG2, overflowY: 'auto', fontFamily: "'Poppins', sans-serif", display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px' }}>
-        <div style={{ width: '100%', maxWidth: 560, background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ width: '100%', maxWidth: 560, background: '#fff', border: `1px solid ${BD}`, borderRadius: 20, overflow: 'hidden' }}>
           <div style={{ padding: '30px 32px 22px', textAlign: 'center' }}>
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: GL, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: PD, marginBottom: 6 }}>Thank you for submitting!</div>
-            <div style={{ fontSize: 13.5, color: T2, lineHeight: 1.6 }}>Your <strong style={{ color: T1 }}>{seriesName} {stageName}</strong> attempt has been recorded.</div>
+            <div style={{ fontSize: 13.5, color: T2, lineHeight: 1.6 }}>Your <strong style={{ color: T1 }}>{seriesName} Mock</strong> attempt has been recorded.</div>
           </div>
           <div style={{ padding: '0 24px 20px' }}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-              {[{ l: 'Attempted', v: attempted, c: G }, { l: 'Marked', v: counts.marked + counts.answeredmarked, c: A }, { l: 'Unattempted', v: total - attempted, c: RED }].map(s => (
+              {[{ l: 'Attempted', v: attemptedTotal, c: G }, { l: 'Marked', v: counts.marked + counts.answeredmarked, c: A }, { l: 'Unattempted', v: total - attemptedTotal, c: RED }].map(s => (
                 <div key={s.l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '14px 8px', textAlign: 'center' }}>
                   <div style={{ fontSize: 24, fontWeight: 700, color: s.c }}>{s.v}</div>
                   <div style={{ fontSize: 10.5, color: T3, marginTop: 3 }}>{s.l}</div>
@@ -176,7 +226,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onExit} style={{ ...btn({ flex: 1, padding: '13px' }) }}>Back to Tests</button>
-              <button onClick={() => setPhase('results')} style={{ flex: 1, padding: '13px', borderRadius: 24, background: P, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View Result</button>
+              <button onClick={() => setPhase('results')} style={{ ...pillBtn({ flex: 1, padding: '13px', background: P, color: '#fff' }) }}>View Result</button>
             </div>
           </div>
         </div>
@@ -192,7 +242,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 20px 60px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
             <button onClick={onExit} style={{ ...btn({ borderRadius: 20, padding: '7px 14px', color: T2 }) }}>← Back to Tests</button>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T1 }}>Result — {seriesName} {stageName}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: T1 }}>Result — {seriesName} Mock</div>
           </div>
           <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '26px', textAlign: 'center', marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: T3, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Your Score</div>
@@ -231,35 +281,38 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   }
 
   const lowTime = timeLeft <= 300
+  const answeredPct = Math.round((attemptedTotal / total) * 100)
   // ── Exam ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, background: BG2, display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
       {/* Top bar */}
-      <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px' }}>
+      <div style={{ flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px' }}>
         <button onClick={() => setShowExit(true)} title="Exit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: T2, display: 'flex', padding: 2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: PD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>N</div>
-        <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — {stageName}</div>
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 20, background: lowTime ? RED_L : BG2, color: lowTime ? RED : PD, fontSize: 14, fontWeight: 700 }}>
+        <span style={{ fontSize: 11.5, color: T3 }}><strong style={{ color: T1 }}>{attemptedTotal}</strong>/{total} answered</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, background: lowTime ? RED_L : PL, color: lowTime ? RED : PD, fontSize: 14.5, fontWeight: 700 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
           {fmt(timeLeft)}
         </div>
-        <button onClick={() => setShowSubmit(true)} style={{ padding: '8px 20px', borderRadius: 20, background: P, color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Submit Test</button>
+        <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ padding: '9px 22px', fontSize: 13, background: P, color: '#fff' }) }}>Submit</button>
       </div>
+      <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
 
-      {/* Section tabs — free navigation */}
-      <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', gap: 4, padding: '0 16px', overflowX: 'auto' }}>
+      {/* Section pills — free navigation */}
+      <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
         {SECTIONS.map((s, i) => {
           const active = i === curSec
           return (
             <button key={s.id} onClick={() => switchSection(i)} style={{
-              display: 'flex', flexDirection: 'column', gap: 1, padding: '10px 16px', minWidth: 130, textAlign: 'left', background: 'none', border: 'none',
-              borderBottom: `2.5px solid ${active ? P : 'transparent'}`, cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, flexShrink: 0, cursor: 'pointer',
+              background: active ? P : BG2, color: active ? '#fff' : T2, border: `1px solid ${active ? P : 'transparent'}`, fontSize: 12.5, fontWeight: 600,
             }}>
-              <span style={{ fontSize: 12.5, fontWeight: active ? 600 : 500, color: active ? P : T2 }}>{s.name}</span>
-              <span style={{ fontSize: 10.5, color: T3 }}>{answeredIn(s)}/{s.ids.length} answered</span>
+              Section {s.id}
+              <span style={{ fontSize: 10.5, fontWeight: 600, padding: '1px 7px', borderRadius: 10, background: active ? 'rgba(255,255,255,0.22)' : '#fff', color: active ? '#fff' : T3 }}>{answeredIn(s)}/{s.ids.length}</span>
             </button>
           )
         })}
@@ -270,65 +323,70 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         {/* Question pane */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-            <div style={{ maxWidth: 760 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: T1 }}>Question {globalNum} <span style={{ color: T3, fontWeight: 500 }}>/ {total}</span></span>
-                <span style={{ fontSize: 11.5, color: T3 }}>{section.fullName}</span>
-                <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 11.5, color: T3 }}>Marks <span style={{ color: G, fontWeight: 600 }}>+{META.correctMarks}</span> / <span style={{ color: RED, fontWeight: 600 }}>{META.wrongMarks}</span></span>
-              </div>
-              <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 22 }}>{q.text}</p>
-              {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 320, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {q.options.map((opt, i) => {
-                  const on = chosen === i
-                  return (
-                    <button key={i} onClick={() => select(i)} style={{
-                      display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'left',
-                      background: on ? PL : '#fff', border: `1.5px solid ${on ? P : BD}`, cursor: 'pointer',
-                    }}>
-                      <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${on ? P : BD}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: on ? P : T2, flexShrink: 0 }}>{LETTERS[i]}</span>
-                      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: on ? P : T1 }}>{opt}</span>
-                    </button>
-                  )
-                })}
+            <div style={{ maxWidth: 820, margin: '0 auto' }}>
+              <div style={{ background: '#fff', border: `1px solid ${BD}`, borderRadius: 16, padding: '22px 26px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: PD, padding: '4px 12px', borderRadius: 20 }}>Q{globalNum}</span>
+                  <span style={{ fontSize: 11.5, color: T3 }}>of {total} · Section {section.id}</span>
+                  <div style={{ flex: 1 }} />
+                  <span style={{ fontSize: 11.5, color: T3 }}>Marks <span style={{ color: G, fontWeight: 600 }}>+{META.correctMarks}</span> / <span style={{ color: RED, fontWeight: 600 }}>{META.wrongMarks}</span></span>
+                  <button onClick={() => setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n })} title="Mark for review" style={{ background: 'none', border: 'none', cursor: 'pointer', color: marked[gIdx] ? A : T3, display: 'flex', padding: 2 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={marked[gIdx] ? A : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></svg>
+                  </button>
+                </div>
+                <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 22 }}>{q.text}</p>
+                {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 320, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {q.options.map((opt, i) => {
+                    const on = chosen === i
+                    return (
+                      <button key={i} onClick={() => select(i)} style={{
+                        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'left',
+                        background: on ? PL : '#fff', border: `1.5px solid ${on ? P : BD}`, cursor: 'pointer',
+                      }}>
+                        <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${on ? P : BD}`, background: on ? P : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: on ? '#fff' : T2, flexShrink: 0 }}>{LETTERS[i]}</span>
+                        <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: on ? PD : T1 }}>{opt}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           </div>
           {/* Footer actions */}
-          <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${BD}`, display: 'flex', justifyContent: 'space-between', padding: '12px 20px', gap: 10 }}>
+          <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${BD}`, display: 'flex', justifyContent: 'space-between', padding: '12px 22px', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={markNext} style={btn()}>Mark for Review &amp; Next</button>
               <button onClick={clear} style={btn()}>Clear Response</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={goPrev} disabled={globalNum === 1} style={btn({ opacity: globalNum === 1 ? 0.5 : 1 })}>« Previous</button>
-              <button onClick={saveNext} style={btn({ background: P, color: '#fff', border: 'none' })}>Save &amp; Next</button>
+              <button onClick={goNext} disabled={isLast} style={{ ...pillBtn({ padding: '10px 24px', background: P, color: '#fff', opacity: isLast ? 0.5 : 1 }) }}>Save &amp; Next</button>
             </div>
           </div>
         </div>
 
         {/* Palette */}
-        <aside style={{ width: 288, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 16px', borderBottom: `1px solid ${BD}` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: 10 }}>Question Palette</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px 10px', fontSize: 11.5, color: T2 }}>
-              {[['answered', 'Answered', counts.answered], ['notanswered', 'Not Answered', counts.notanswered], ['marked', 'Marked', counts.marked], ['notvisited', 'Not Visited', counts.notvisited]].map(([st, lbl, n]) => (
+        <aside style={{ width: 292, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px 16px 12px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: 12 }}>Question Palette</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 10px', fontSize: 11.5, color: T2 }}>
+              {[['answered', 'Answered', counts.answered, G], ['notanswered', 'Not Answered', counts.notanswered, RED], ['marked', 'Marked', counts.marked, A], ['notvisited', 'Not Visited', counts.notvisited, '#fff']].map(([st, lbl, n, col]) => (
                 <span key={st} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ width: 18, height: 18, borderRadius: 5, background: st === 'answered' ? G : st === 'notanswered' ? RED : st === 'marked' ? A : '#fff', border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{st === 'notvisited' ? '' : n}</span>
+                  <span style={{ width: 20, height: 20, borderRadius: 6, background: col, border: st === 'notvisited' ? `1.5px solid ${BD}` : 'none', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{st === 'notvisited' ? '' : n}</span>
                   {lbl}
                 </span>
               ))}
             </div>
           </div>
-          <div style={{ padding: '10px 16px', fontSize: 12, fontWeight: 600, color: P, background: BG2, flexShrink: 0 }}>{section.fullName}</div>
+          <div style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: P, background: BG2, flexShrink: 0 }}>Section {section.id}</div>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 9, justifyItems: 'center' }}>
-              {section.ids.map((id, i) => <PaletteCell key={id} status={status(id)} num={SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0) + i + 1} active={i === curQLocal} onClick={() => jumpTo(i)} />)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, justifyItems: 'center' }}>
+              {section.ids.map((id, i) => <PaletteCell key={id} status={statusOf(id)} num={SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0) + i + 1} active={i === curQLocal} onClick={() => jumpTo(i)} />)}
             </div>
           </div>
           <div style={{ padding: 14, borderTop: `1px solid ${BD}` }}>
-            <button onClick={() => setShowSubmit(true)} style={{ width: '100%', padding: '12px', borderRadius: 24, background: P, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Submit Test</button>
+            <button onClick={() => setShowSubmit(true)} style={{ ...pillBtn({ width: '100%', padding: '13px', background: P, color: '#fff' }) }}>Submit Test</button>
           </div>
         </aside>
       </div>
@@ -336,19 +394,19 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       {/* Submit summary modal */}
       {showSubmit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px 8px', fontSize: 17, fontWeight: 700, color: T1 }}>Submit your test?</div>
-            <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>You've answered <strong style={{ color: T1 }}>{counts.answered + counts.answeredmarked}</strong> of {total} questions. Once submitted you cannot change your answers.</div>
-            <div style={{ display: 'flex', gap: 10, padding: '0 24px 12px' }}>
-              {[['Answered', counts.answered + counts.answeredmarked, G], ['Marked', counts.marked + counts.answeredmarked, A], ['Unattempted', total - counts.answered - counts.answeredmarked, RED]].map(([l, v, c]) => (
-                <div key={l} style={{ flex: 1, background: BG2, borderRadius: 10, padding: '12px 6px', textAlign: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 460, overflow: 'hidden' }}>
+            <div style={{ padding: '22px 24px 8px', fontSize: 17, fontWeight: 700, color: T1 }}>Submit your test?</div>
+            <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>You've answered <strong style={{ color: T1 }}>{attemptedTotal}</strong> of {total} questions. Once submitted you cannot change your answers.</div>
+            <div style={{ display: 'flex', gap: 10, padding: '0 24px 14px' }}>
+              {[['Answered', attemptedTotal, G], ['Marked', counts.marked + counts.answeredmarked, A], ['Unattempted', total - attemptedTotal, RED]].map(([l, v, c]) => (
+                <div key={l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '12px 6px', textAlign: 'center' }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div><div style={{ fontSize: 10, color: T3, marginTop: 2 }}>{l}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '10px 24px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '8px 24px 20px' }}>
               <button onClick={() => setShowSubmit(false)} style={{ ...btn({ padding: '11px 18px' }) }}>Keep attempting</button>
-              <button onClick={finalize} style={{ padding: '11px 22px', borderRadius: 24, background: P, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Submit Test</button>
+              <button onClick={finalize} style={{ ...pillBtn({ padding: '11px 22px', background: P, color: '#fff' }) }}>Submit Test</button>
             </div>
           </div>
         </div>
@@ -357,14 +415,14 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       {/* Exit confirm — leaving does not pause the test */}
       {showExit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 420, padding: '24px' }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: T1, marginBottom: 8 }}>Leave the test?</div>
             <div style={{ fontSize: 13, color: T2, lineHeight: 1.65, marginBottom: 20 }}>
               This test won't pause — the timer keeps running in the background. If you leave now your test will be <strong style={{ color: T1 }}>submitted automatically</strong>, and any unanswered questions will be left unattempted.
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button onClick={() => setShowExit(false)} style={{ ...btn({ padding: '11px 18px' }) }}>Stay in test</button>
-              <button onClick={() => { setShowExit(false); finalize() }} style={{ padding: '11px 20px', borderRadius: 24, background: RED, color: '#fff', border: 'none', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Leave &amp; submit</button>
+              <button onClick={() => { setShowExit(false); finalize() }} style={{ ...pillBtn({ padding: '11px 20px', background: RED, color: '#fff' }) }}>Leave &amp; submit</button>
             </div>
           </div>
         </div>
