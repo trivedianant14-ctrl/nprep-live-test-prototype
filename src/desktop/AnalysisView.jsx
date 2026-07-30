@@ -208,8 +208,9 @@ export default function AnalysisView({ questions, sections, answers, marked = []
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, justifyItems: 'center' }}>
               {sections[curSec].ids.map((gi) => {
-                const active = gi === cur
-                return <button key={gi} onClick={() => setCur(gi)} style={{ width: 38, height: 38, borderRadius: '50%', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: palColor(gi), color: '#fff', border: active ? `3px solid ${th.chip}` : `2px solid ${palColor(gi)}` }}>{numOf(gi)}</button>
+                const active = gi === cur, r = resultOf(gi)
+                const c = r === 'correct' ? GREEN : r === 'incorrect' ? RED : YEL
+                return <button key={gi} onClick={() => setCur(gi)} style={{ width: 38, height: 38, borderRadius: '50%', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: c, color: '#fff', border: active ? `3px solid ${th.chip}` : `2px solid ${c}` }}>{numOf(gi)}</button>
               })}
             </div>
           </div>
