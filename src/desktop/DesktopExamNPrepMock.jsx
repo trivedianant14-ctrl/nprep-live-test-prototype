@@ -337,13 +337,13 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       </div>
       <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
 
-      {/* Section pills — sequential status (current active, past done, upcoming locked; non-clickable) */}
-      <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
+      {/* Section bar — 5 equal soft-edged boxes filling the width (sequential status; non-clickable) */}
+      <div style={{ flexShrink: 0, background: '#fff', borderBottom: `1px solid ${BD}`, display: 'flex', gap: 8, padding: '12px 22px' }}>
         {SECTIONS.map((s, i) => {
           const active = i === curSec, done = i < curSec
           return (
             <div key={s.id} title={active ? 'Current section' : done ? 'Completed' : 'Opens after you submit the current section'} style={{
-              display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 22, flexShrink: 0, cursor: 'default',
+              flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px 12px', borderRadius: 10, cursor: 'default',
               background: active ? P : done ? GL : BG2, color: active ? '#fff' : done ? G : T3, border: `1px solid ${active ? P : 'transparent'}`, fontSize: 12.5, fontWeight: 600,
             }}>
               {done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
