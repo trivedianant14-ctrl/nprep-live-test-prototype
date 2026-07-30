@@ -144,7 +144,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
       <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
         {sections.map((s, i) => {
           const active = i === curSec
-          return <button key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]) }} style={{ padding: '8px 18px', borderRadius: 22, border: `1px solid ${active ? th.accent : 'transparent'}`, background: active ? th.accent : BG2, color: active ? '#fff' : th.muted, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: 'pointer', flexShrink: 0 }}>Section {s.id}</button>
+          return <button key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]) }} style={{ padding: '8px 18px', borderRadius: isNprep ? 22 : 4, border: `1px solid ${active ? th.accent : (isNprep ? 'transparent' : th.bd)}`, background: active ? th.accent : (isNprep ? BG2 : '#e8edf3'), color: active ? '#fff' : th.muted, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: 'pointer', flexShrink: 0 }}>Section {s.id}</button>
         })}
       </div>
       {/* Body: question column + grid */}
@@ -157,7 +157,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: th.chip, padding: '4px 12px', borderRadius: isNprep ? 20 : 4 }}>Q{curNum}</span>
                   <span style={{ fontSize: 11.5, color: th.faint }}>of {ordered.length} · Section {sections[curSec].id}</span>
                   <div style={{ flex: 1 }} />
-                  <button onClick={() => setReveal(r => !r)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? (isNprep ? PL : '#e6ebf2') : 'transparent', border: `1px solid ${reveal ? th.accent : th.bd}`, color: reveal ? th.accent : th.muted, borderRadius: 20, padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                  <button onClick={() => setReveal(r => !r)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? (isNprep ? PL : '#e6ebf2') : 'transparent', border: `1px solid ${reveal ? th.accent : th.bd}`, color: reveal ? th.accent : th.muted, borderRadius: isNprep ? 20 : 4, padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
                     {reveal ? 'Hide answer' : 'Show answer'}
                   </button>
@@ -200,7 +200,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
           <div style={{ padding: '14px 16px', borderBottom: `1px solid ${th.bd}` }}>
             {[['Correct', GREEN], ['Incorrect', RED], ['Unattempted', YEL]].map(([l, c]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, color: th.muted, marginBottom: 7 }}>
-                <span style={{ width: 18, height: 18, borderRadius: '50%', background: c, flexShrink: 0 }} />{l}
+                <span style={{ width: 18, height: 18, borderRadius: isNprep ? '50%' : 3, background: c, flexShrink: 0 }} />{l}
               </div>
             ))}
           </div>
@@ -210,7 +210,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
               {sections[curSec].ids.map((gi) => {
                 const active = gi === cur, r = resultOf(gi)
                 const c = r === 'correct' ? GREEN : r === 'incorrect' ? RED : YEL
-                return <button key={gi} onClick={() => setCur(gi)} style={{ width: 38, height: 38, borderRadius: '50%', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: c, color: '#fff', border: active ? `3px solid ${th.chip}` : `2px solid ${c}` }}>{numOf(gi)}</button>
+                return <button key={gi} onClick={() => setCur(gi)} style={{ width: 38, height: 38, borderRadius: isNprep ? '50%' : 4, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', background: c, color: '#fff', border: active ? `3px solid ${isNprep ? th.chip : '#111'}` : `2px solid ${c}` }}>{numOf(gi)}</button>
               })}
             </div>
           </div>
