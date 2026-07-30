@@ -329,24 +329,27 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         {/* Question pane */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
-            <div style={{ width: '100%' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: PD, padding: '4px 12px', borderRadius: 20 }}>Q{globalNum}</span>
-                </div>
-                <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 22 }}>{q.text}</p>
-                {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {q.options.map((opt, i) => {
-                    const on = chosen === i
-                    return (
-                      <button key={i} onClick={() => select(i)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textAlign: 'left', background: on ? PL : '#fff', border: `1.5px solid ${on ? P : BD}`, cursor: 'pointer' }}>
-                        <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${on ? P : BD}`, background: on ? P : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: on ? '#fff' : T2, flexShrink: 0 }}>{LETTERS[i]}</span>
-                        <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: on ? PD : T1 }}>{opt}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+            <div style={{ maxWidth: 1040 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
+                <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>Question {globalNum}</span>
+              </div>
+              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24, maxWidth: 800 }}>{q.text}</p>
+              {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 360 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {q.options.map((opt, i) => {
+                  const on = chosen === i
+                  return (
+                    <button key={i} onClick={() => select(i)} style={{
+                      display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
+                      background: on ? PL : '#fff', border: `1px solid ${on ? P : '#E4E8F1'}`, boxShadow: on ? `inset 3px 0 0 ${P}` : 'none',
+                      transition: 'background .12s, border-color .12s',
+                    }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: on ? P : '#F1F3F9', color: on ? '#fff' : T2 }}>{LETTERS[i]}</span>
+                      <span style={{ flex: 1, fontSize: 15.5, fontWeight: on ? 600 : 500, color: on ? PD : '#2A3244' }}>{opt}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

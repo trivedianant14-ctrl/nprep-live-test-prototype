@@ -166,42 +166,40 @@ export default function AnalysisView({ questions, sections, answers, marked = []
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
-            <div style={{ width: '100%' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: th.chip, padding: '4px 12px', borderRadius: isNprep ? 20 : 4 }}>Q{curNum}</span>
-                  <span style={{ fontSize: 11.5, color: th.faint }}>of {ordered.length} · Section {sections[curSec].id}</span>
-                  <div style={{ flex: 1 }} />
-                  <button onClick={() => setReveal(r => !r)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? (isNprep ? PL : '#e6ebf2') : 'transparent', border: `1px solid ${reveal ? th.accent : th.bd}`, color: reveal ? th.accent : th.muted, borderRadius: isNprep ? 20 : 4, padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
-                    {reveal ? 'Hide answer' : 'Show answer'}
-                  </button>
-                </div>
-                <p style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.55, marginBottom: 20 }}>{q.text}</p>
-                {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${th.bd}`, borderRadius: 8, marginBottom: 18, display: 'block' }} />}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {q.options.map((opt, i) => {
-                    const isCorrect = i === q.answer, isChosen = chosen === i
-                    let bg = th.pane, bd = th.bd, fg = T1, badge = null, lbg = '#fff', lfg = th.muted, lbd = th.bd, strong = false
-                    if (reveal && isCorrect) { bg = GREEN_L; bd = isNprep ? '#BDE8D2' : GREEN; fg = GREEN; lbg = GREEN; lfg = '#fff'; lbd = GREEN; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: GREEN }}>✓ Correct{isChosen ? ' · Your answer' : ''}</span> }
-                    else if (reveal && isChosen) { bg = RED_L; bd = isNprep ? '#F5C6C8' : RED; fg = RED; lbg = RED; lfg = '#fff'; lbd = RED; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: RED }}>✕ Your answer</span> }
-                    else if (isChosen) { bd = th.accent; lbg = th.accent; lfg = '#fff'; lbd = th.accent; strong = true; badge = <span style={{ fontSize: 11, fontWeight: 600, color: th.faint }}>Your answer</span> }
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderRadius: isNprep ? 12 : 4, background: bg, border: `1.5px solid ${bd}`, fontSize: 15 }}>
-                        <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${lbd}`, background: lbg, color: lfg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{LETTERS[i]}</span>
-                        <span style={{ flex: 1, color: fg, fontWeight: strong ? 600 : 400 }}>{opt}</span>{badge}
-                      </div>
-                    )
-                  })}
-                </div>
-                {reveal && chosen === null && <div style={{ marginTop: 12, fontSize: 12.5, color: th.faint }}>You did not attempt this question.</div>}
-                {reveal && (
-                  <div style={{ marginTop: 18, background: isNprep ? PL : '#f3f7fb', borderRadius: isNprep ? 10 : 4, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: th.accent, marginBottom: 5 }}>Solution</div>
-                    <p style={{ fontSize: 13.5, lineHeight: 1.65, color: th.muted }}>{expl.text}</p>
-                  </div>
-                )}
+            <div style={{ maxWidth: 1040 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
+                <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>Question {curNum}</span>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => setReveal(r => !r)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? PL : '#fff', border: `1px solid ${reveal ? P : '#E4E8F1'}`, color: reveal ? P : T2, borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                  {reveal ? 'Hide answer' : 'Show answer'}
+                </button>
               </div>
+              <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24, maxWidth: 800 }}>{q.text}</p>
+              {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {q.options.map((opt, i) => {
+                  const isCorrect = i === q.answer, isChosen = chosen === i
+                  let bg = '#fff', bd = '#E4E8F1', rail = null, fg = '#2A3244', badge = null, lbg = '#F1F3F9', lfg = T2, strong = false
+                  if (reveal && isCorrect) { bg = GREEN_L; bd = '#BDE8D2'; rail = GREEN; fg = '#137a38'; lbg = GREEN; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#137a38' }}>✓ Correct{isChosen ? ' · Your answer' : ''}</span> }
+                  else if (reveal && isChosen) { bg = RED_L; bd = '#F5C6C8'; rail = RED; fg = '#B4272C'; lbg = RED; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B4272C' }}>✕ Your answer</span> }
+                  else if (isChosen) { bg = PL; bd = P; rail = P; fg = PD; lbg = P; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11, fontWeight: 600, color: T3 }}>Your answer</span> }
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, background: bg, border: `1px solid ${bd}`, boxShadow: rail ? `inset 3px 0 0 ${rail}` : 'none', fontSize: 15.5 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 7, background: lbg, color: lfg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{LETTERS[i]}</span>
+                      <span style={{ flex: 1, color: fg, fontWeight: strong ? 600 : 500 }}>{opt}</span>{badge}
+                    </div>
+                  )
+                })}
+              </div>
+              {reveal && chosen === null && <div style={{ marginTop: 14, fontSize: 12.5, color: T3 }}>You did not attempt this question.</div>}
+              {reveal && (
+                <div style={{ marginTop: 22, borderLeft: `3px solid ${P}`, background: '#F7F9FF', borderRadius: '0 8px 8px 0', padding: '14px 18px', maxWidth: 800 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: P, marginBottom: 6 }}>Solution</div>
+                  <p style={{ fontSize: 14, lineHeight: 1.7, color: '#3A4152' }}>{expl.text}</p>
+                </div>
+              )}
             </div>
           </div>
           <div style={{ flexShrink: 0, background: th.pane, borderTop: `1px solid ${th.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px' }}>
