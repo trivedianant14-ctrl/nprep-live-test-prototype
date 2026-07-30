@@ -9,6 +9,7 @@ import { LIVE_TEST, P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from '../exam/shuffle'
 import AnalysisView from './AnalysisView'
+import nprepLogo from '../assets/nprep-logo.png'
 
 const RED = '#E5484D', RED_L = '#FDECED'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -284,7 +285,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     <div style={{ position: 'fixed', inset: 0, background: BG2, display: 'flex', flexDirection: 'column', fontFamily: "'Poppins', sans-serif", color: T1 }}>
       {/* Top bar */}
       <div style={{ flexShrink: 0, background: '#fff', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px', position: 'relative' }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: PD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>N</div>
+        <img src={nprepLogo} alt="NPrep" style={{ height: 34, width: 'auto', display: 'block' }} />
+        <div style={{ width: 1, height: 26, background: BD }} />
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
         {/* Language toggle — bilingual is the core need for Hindi-medium tier-2/3 aspirants */}
