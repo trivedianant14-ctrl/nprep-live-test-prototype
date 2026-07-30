@@ -38,7 +38,7 @@ export default function AnalysisView({ questions, sections, answers, marked = []
     ? { font: "'Poppins', sans-serif", pageBg: BG2, pane: '#fff', bd: BD, radius: 12, head: '#fff', headFg: T1, chip: PD, accent: P, muted: T2, faint: T3 }
     : { font: 'Arial, sans-serif', pageBg: '#eef2f6', pane: '#fff', bd: '#d3dae2', radius: 5, head: '#1a3a6b', headFg: '#fff', chip: '#1a3a6b', accent: '#1a3a6b', muted: '#555', faint: '#888' }
 
-  const NAV = [['scorecard', 'Scorecard'], ['accuracy', 'Accuracy'], ['solutions', 'Solutions'], ['bookmarks', 'Bookmarks']]
+  const NAV = [['scorecard', 'Scorecard'], ['solutions', 'Solutions']]
 
   const secStats = sections.map(s => {
     const c = s.ids.filter(id => resultOf(id) === 'correct').length
