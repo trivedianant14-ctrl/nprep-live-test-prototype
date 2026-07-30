@@ -49,10 +49,16 @@ export default function AnalysisView({ questions, sections, answers, marked = []
 
   // ── Top chrome ─────────────────────────────────────────────────────────────
   const header = (
-    <div style={{ flexShrink: 0, background: th.head, color: th.headFg, borderBottom: `1px solid ${isNprep ? BD : '#12294d'}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 22px' }}>
-        <button onClick={onBack} style={{ background: isNprep ? '#fff' : 'rgba(255,255,255,0.15)', border: isNprep ? `1px solid ${BD}` : 'none', borderRadius: 20, padding: '6px 13px', cursor: 'pointer', color: isNprep ? T2 : '#fff', fontSize: 12.5, fontWeight: 600 }}>← Back</button>
-        <div style={{ fontSize: 15.5, fontWeight: 700 }}>{testName} — Analysis</div>
+    <div style={{ flexShrink: 0, background: isNprep ? '#fff' : th.head, color: th.headFg, borderBottom: `1px solid ${isNprep ? BD : '#12294d'}`, boxShadow: isNprep ? '0 1px 4px rgba(19,27,99,0.06)' : 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 26px' }}>
+        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: isNprep ? '#fff' : 'rgba(255,255,255,0.15)', border: isNprep ? `1px solid ${BD}` : 'none', borderRadius: 22, padding: '7px 15px', cursor: 'pointer', color: isNprep ? T2 : '#fff', fontSize: 12.5, fontWeight: 600 }}>← Back</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          {isNprep && <span style={{ width: 9, height: 9, borderRadius: '50%', background: P, boxShadow: `0 0 0 3px ${PL}`, flexShrink: 0 }} />}
+          <div>
+            <div style={{ fontSize: 15.5, fontWeight: 700, lineHeight: 1.15 }}>{testName}</div>
+            <div style={{ fontSize: 10.5, color: isNprep ? T3 : 'rgba(255,255,255,0.7)', marginTop: 1, letterSpacing: 0.2 }}>Performance analysis</div>
+          </div>
+        </div>
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: isNprep ? T3 : 'rgba(255,255,255,0.7)' }}>Reference:</span>
         <div style={{ display: 'inline-flex', background: isNprep ? BG2 : 'rgba(255,255,255,0.15)', borderRadius: 18, padding: 3, gap: 2 }}>
@@ -62,15 +68,14 @@ export default function AnalysisView({ questions, sections, answers, marked = []
           })}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 4, padding: '0 22px' }}>
+      <div style={{ display: 'flex', gap: isNprep ? 6 : 4, padding: isNprep ? '0 24px 10px' : '0 22px' }}>
         {NAV.map(([id, l]) => {
           const active = tab === id
+          if (isNprep) return (
+            <button key={id} onClick={() => setTab(id)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: active ? 700 : 600, background: active ? PL : 'transparent', color: active ? P : T2, border: 'none', borderRadius: 10, cursor: 'pointer' }}>{l}</button>
+          )
           return (
-            <button key={id} onClick={() => setTab(id)} style={{
-              padding: '10px 18px', fontSize: 13, fontWeight: active ? 700 : 500, background: 'none', border: 'none', cursor: 'pointer',
-              color: active ? (isNprep ? P : '#fff') : (isNprep ? T2 : 'rgba(255,255,255,0.75)'),
-              borderBottom: `2.5px solid ${active ? (isNprep ? P : '#fff') : 'transparent'}`,
-            }}>{l}</button>
+            <button key={id} onClick={() => setTab(id)} style={{ padding: '10px 18px', fontSize: 13, fontWeight: active ? 700 : 500, background: 'none', border: 'none', cursor: 'pointer', color: active ? '#fff' : 'rgba(255,255,255,0.75)', borderBottom: `2.5px solid ${active ? '#fff' : 'transparent'}` }}>{l}</button>
           )
         })}
       </div>
@@ -157,13 +162,6 @@ export default function AnalysisView({ questions, sections, answers, marked = []
     const ru = ordered.length - rc - ri
     return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      {/* Section tabs */}
-      <div style={{ flexShrink: 0, background: th.pane, borderBottom: `1px solid ${th.bd}`, display: 'flex', gap: 8, padding: '12px 22px', overflowX: 'auto' }}>
-        {sections.map((s, i) => {
-          const active = i === curSec
-          return <button key={s.id} onClick={() => { setCurSec(i); setCur(s.ids[0]) }} style={{ padding: '8px 18px', borderRadius: isNprep ? 22 : 4, border: `1px solid ${active ? th.accent : (isNprep ? 'transparent' : th.bd)}`, background: active ? th.accent : (isNprep ? BG2 : '#e8edf3'), color: active ? '#fff' : th.muted, fontSize: 12.5, fontWeight: active ? 700 : 500, cursor: 'pointer', flexShrink: 0 }}>Section {s.id}</button>
-        })}
-      </div>
       {/* Body: question column + grid */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -212,10 +210,10 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
           </div>
         </div>
-        {/* Question grid — NPrep edtech style */}
-        <aside style={{ width: 264, flexShrink: 0, background: '#fff', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
+        {/* Question grid — NPrep edtech style, sections in a collapsible accordion */}
+        <aside style={{ width: 280, flexShrink: 0, background: '#FAFBFF', borderLeft: `1px solid ${BD}`, display: 'flex', flexDirection: 'column' }}>
           {/* Attempt summary */}
-          <div style={{ padding: '16px 18px 15px', borderBottom: `1px solid ${BD}` }}>
+          <div style={{ padding: '16px 18px 15px', background: '#fff', borderBottom: `1px solid ${BD}` }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: T1, marginBottom: 13 }}>Your attempt</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {[['Correct', GREEN, GREEN_L, rc], ['Incorrect', RED, RED_L, ri], ['Unattempted', '#B8860B', '#FBF4DE', ru]].map(([l, c, soft, n]) => (
@@ -227,28 +225,41 @@ export default function AnalysisView({ questions, sections, answers, marked = []
               ))}
             </div>
           </div>
-          {/* Section pill */}
-          <div style={{ padding: '13px 18px 4px', flexShrink: 0 }}>
-            <span style={{ display: 'inline-block', background: PL, color: P, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '5px 14px' }}>Section {sections[curSec].id}</span>
-          </div>
-          {/* Grid */}
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 18px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, justifyItems: 'center' }}>
-              {sections[curSec].ids.map((gi) => {
-                const active = gi === cur, r = resultOf(gi)
-                const filled = r === 'correct' || r === 'incorrect'
-                const bg = r === 'correct' ? GREEN : r === 'incorrect' ? RED : '#FBF4DE'
-                const fg = filled ? '#fff' : '#96731A'
-                return (
-                  <button key={gi} onClick={() => setCur(gi)} style={{
-                    width: 42, height: 42, borderRadius: 13, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                    background: bg, color: fg, border: filled ? 'none' : '1.5px solid #EAD9A6',
-                    boxShadow: active ? `0 0 0 2px #fff, 0 0 0 4px ${P}` : (filled ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'),
-                    transition: 'box-shadow .12s',
-                  }}>{numOf(gi)}</button>
-                )
-              })}
-            </div>
+          {/* Section accordion */}
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 12px 18px' }}>
+            {sections.map((s, si) => {
+              const open = si === curSec
+              const sc = s.ids.filter(id => resultOf(id) === 'correct').length
+              return (
+                <div key={s.id} style={{ marginBottom: 9, border: `1px solid ${open ? '#CFDDF9' : BD}`, borderRadius: 13, overflow: 'hidden', background: '#fff' }}>
+                  <button onClick={() => { setCurSec(si); setCur(s.ids[0]) }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: open ? PL : '#fff', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: open ? P : T1 }}>Section {s.id}</span>
+                    <span style={{ fontSize: 10.5, color: open ? P : T3, fontWeight: 600 }}>{sc}/{s.ids.length}</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={open ? P : T3} strokeWidth="2.4" style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform .15s' }}><path d="M6 9l6 6 6-6" /></svg>
+                  </button>
+                  {open && (
+                    <div style={{ padding: '14px 14px 16px', borderTop: `1px solid ${BD}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, justifyItems: 'center' }}>
+                        {s.ids.map((gi) => {
+                          const active = gi === cur, r = resultOf(gi)
+                          const filled = r === 'correct' || r === 'incorrect'
+                          const bg = r === 'correct' ? GREEN : r === 'incorrect' ? RED : '#FBF4DE'
+                          const fg = filled ? '#fff' : '#96731A'
+                          return (
+                            <button key={gi} onClick={() => setCur(gi)} style={{
+                              width: 42, height: 42, borderRadius: 13, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                              background: bg, color: fg, border: filled ? 'none' : '1.5px solid #EAD9A6',
+                              boxShadow: active ? `0 0 0 2px #fff, 0 0 0 4px ${P}` : (filled ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'),
+                              transition: 'box-shadow .12s',
+                            }}>{numOf(gi)}</button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </aside>
       </div>
