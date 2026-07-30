@@ -328,8 +328,8 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* Question pane */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 40px' }}>
-            <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
+            <div style={{ width: '100%' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: PD, padding: '4px 12px', borderRadius: 20 }}>Q{globalNum}</span>

@@ -165,9 +165,9 @@ export default function AnalysisView({ questions, sections, answers, marked = []
       {/* Body: question column + grid */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-            <div style={{ maxWidth: 820, margin: '0 auto' }}>
-              <div style={{ background: th.pane, border: `1px solid ${th.bd}`, borderRadius: th.radius, padding: '22px 26px', boxShadow: isNprep ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
+          <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
+            <div style={{ width: '100%' }}>
+              <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: th.chip, padding: '4px 12px', borderRadius: isNprep ? 20 : 4 }}>Q{curNum}</span>
                   <span style={{ fontSize: 11.5, color: th.faint }}>of {ordered.length} · Section {sections[curSec].id}</span>
