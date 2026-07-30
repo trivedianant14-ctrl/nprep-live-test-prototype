@@ -215,9 +215,12 @@ export default function App() {
   // large-screen experience, replacing the phone-sized exam.
   if (viewMode === 'desktop' && (screen === 'exampretest' || screen === 'exam')) {
     const exitExam = () => { setCustomTest(null); setResumeSnapshot(null); setDesktopExamMode(null); setScreen('home') }
+    const backToChooser = () => setDesktopExamMode(null)
     const examProps = { onExit: exitExam, onFinish: handleExamFinish, customQuestions: customTest?.questions, customSections: customTest?.sections, customMeta: customTest?.meta }
+    // The official live test is duration-mode (runs over several days → result declared later);
+    // daily/custom tests give an immediate result.
     if (desktopExamMode === 'nprep') return <DesktopExamNPrep {...examProps} />
-    if (desktopExamMode === 'norcet') return <DesktopExam {...examProps} />
+    if (desktopExamMode === 'norcet') return <DesktopExam {...examProps} onBack={backToChooser} durationMode={!customTest} />
     return <DesktopExamChooser meta={customTest?.meta} onPick={setDesktopExamMode} onBack={exitExam} />
   }
 

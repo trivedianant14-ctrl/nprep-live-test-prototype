@@ -130,8 +130,12 @@ export const SECTIONS = [
 export const EXAM_META = {
   name: 'AIIMS NORCET — Nursing Officer Recruitment Common Eligibility Test (Stage I)',
   shortName: 'NORCET 10 — Stage I',
+  // NPrep-branded display fields for the web CBT simulation (the desktop exam uses these
+  // instead of AIIMS/NORCET/Stage naming; shortName is kept for mobile + progress trend).
+  provider: 'NPrep',
+  series: 'NASHTA',
+  stage: 'Prelims',
   candidate: 'Anant Trivedi',
-  rollNo: '10024156',
   examDate: '13-Jun-2026',
   totalMarks: 100,
   correctMarks: 1,

@@ -426,7 +426,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           <div style={{ width:34, height:40, background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:'white', flexShrink:0 }}>A</div>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{EXAM_META.candidate}</div>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Roll No: {EXAM_META.rollNo} · Nursing Officer</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Nursing Officer · {EXAM_META.stage || 'Prelims'}</div>
           </div>
           <div style={{ fontSize:11, textAlign:'right', flexShrink:0 }}>
             <span style={{ color:'#7fff88', fontWeight:700 }}>+{EXAM_META.correctMarks}</span>

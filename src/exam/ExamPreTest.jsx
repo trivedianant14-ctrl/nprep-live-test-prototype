@@ -30,7 +30,7 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
       <div className="scroll" style={{ flex:1, padding:'18px 16px 24px' }}>
         <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'16px', marginBottom:20 }}>
           <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:4 }}>{m.shortName}</div>
-          <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{m.candidate} · Roll No {m.rollNo}</div>
+          <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{m.candidate} · Nursing Officer</div>
           <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
             <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><ClockIcon size={13} />{totalMinutes} min · {sectionCount} section{sectionCount === 1 ? '' : 's'} × {sectionMinutes} min</span>
             <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:T2 }}><StarIcon size={13} />{marks} Marks</span>

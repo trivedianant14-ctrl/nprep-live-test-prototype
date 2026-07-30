@@ -51,13 +51,20 @@ const legendItems = [
 
 const cbtBtn = (x = {}) => ({ padding: '9px 16px', fontSize: 13, fontWeight: 600, border: '1px solid #999', background: 'linear-gradient(#fafafa,#dcdcdc)', cursor: 'pointer', borderRadius: 3, color: '#1a1a1a', ...x })
 
-export default function DesktopExam({ onExit, onFinish, customQuestions, customSections, customMeta }) {
+export default function DesktopExam({ onExit, onBack, onFinish, durationMode = false, customQuestions, customSections, customMeta }) {
   const META = customMeta || DEFAULT_EXAM_META
+  // NPrep-branded display (no AIIMS / roll number / test centre; series + friendly stage).
+  const provider = META.provider || 'NPrep'
+  const seriesName = META.series || META.shortName || 'NASHTA'
+  const stageName = META.stage || 'Prelims'
+  const examTitle = `${provider} · ${seriesName} — Nursing Officer Test (${stageName})`
+  const resultDate = META.resultDate || new Date(Date.now() + 3 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
     shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
   )
 
-  const [phase, setPhase] = useState('landing') // landing | instructions | exam | submitted | analysis
+  // The candidate-details landing is skipped — the flow opens on the instructions page.
+  const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | analysis
   const [agreed, setAgreed] = useState(false)
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
@@ -180,63 +187,12 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
   const jumpTo = (gIdx) => { const li = section.ids.indexOf(gIdx); if (li >= 0) setCurQLocal(li) } // within current section only
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 1 — Landing (candidate details)
-  // ─────────────────────────────────────────────────────────────────────────
-  if (phase === 'landing') {
-    const rows = [
-      ['Candidate Name', META.candidate], ['Roll Number', META.rollNo], ['Exam Date', META.examDate],
-      ['Test Name', META.shortName], ['Duration', `${SECTIONS.length * 18} Minutes (${SECTIONS.length} section${SECTIONS.length > 1 ? 's' : ''} × 18 min each)`],
-      ['Subject', 'Nursing Officer'], ['Test Centre', 'AIIMS New Delhi — Examination Hall 1'],
-    ]
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: '#e8ecf0', overflowY: 'auto', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
-        <header style={{ background: `linear-gradient(135deg, ${NAVY_D} 0%, ${NAVY} 60%, ${NAVY_L} 100%)`, color: '#fff', padding: '16px 40px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, paddingBottom: 14 }}>
-            <div style={{ width: 62, height: 62, borderRadius: '50%', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>AIIMS</div>
-            <div>
-              <div style={{ fontSize: 23, fontWeight: 700 }}>All India Institute of Medical Sciences, New Delhi</div>
-              <div style={{ fontSize: 13, opacity: 0.85 }}>Assessment &amp; Examination Registration Portal</div>
-            </div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 4, padding: '9px 16px', margin: '0 -8px', fontSize: 14, fontWeight: 600 }}>
-            Nursing Officer Recruitment Common Eligibility Test — {META.shortName}
-          </div>
-          <div style={{ height: 14 }} />
-        </header>
-
-        <div style={{ maxWidth: 620, margin: '40px auto', padding: '0 20px' }}>
-          <div style={{ background: '#fff', border: '1px solid #ccc', borderRadius: 4, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-            <div style={{ background: NAVY, color: '#fff', padding: '12px 22px', fontSize: 16, fontWeight: 700 }}>Candidate Details</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {rows.map(([label, val], i) => (
-                  <tr key={label} style={{ borderBottom: i < rows.length - 1 ? '1px solid #eee' : 'none' }}>
-                    <td style={{ padding: '11px 22px', color: '#555', width: 170 }}>{label}</td>
-                    <td style={{ padding: '11px 8px', color: '#888', width: 10 }}>:</td>
-                    <td style={{ padding: '11px 8px', fontWeight: 700 }}>{val}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 30 }}>
-            <p style={{ color: '#666', marginBottom: 18, fontSize: 14 }}>Please verify your details above before proceeding.</p>
-            <button onClick={() => setPhase('instructions')} style={{ background: `linear-gradient(135deg, ${CYAN} 0%, ${CYAN_D} 100%)`, color: '#fff', border: 'none', borderRadius: 4, padding: '15px 34px', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 3px 10px rgba(23,130,154,0.35)' }}>
-              Click Here to Proceed →
-            </button>
-          </div>
-        </div>
-        <footer style={{ textAlign: 'center', color: '#888', fontSize: 12, padding: '30px 0', borderTop: '1px solid #ddd', background: '#fff' }}>© AIIMS New Delhi &nbsp;|&nbsp; All rights reserved</footer>
-      </div>
-    )
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 2 — General instructions
+  // SCREEN 1 — General instructions (candidate-details landing is skipped)
   // ─────────────────────────────────────────────────────────────────────────
   if (phase === 'instructions') {
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#f3f8fb', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
+        <div style={{ background: NAVY, color: '#fff', padding: '12px 40px', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{examTitle}</div>
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '28px 40px' }}>
             <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>General Instructions:</h2>
@@ -266,19 +222,19 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
               <li style={{ marginBottom: 8 }}>Click <strong>Submit</strong> on the right panel to view a section-wise summary and confirm submission.</li>
               <li style={{ marginBottom: 8 }}>The test is submitted automatically when time expires.</li>
             </ol>
-            <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is a practice replica of the official AIIMS NORCET CBT interface.</p>
+            <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is an {provider} practice simulation of the {seriesName} test, built to mirror the actual NORCET exam-day interface so you can prepare under real conditions.</p>
           </div>
 
           <aside style={{ width: 220, flexShrink: 0, background: '#fff', borderLeft: '1px solid #ddd', padding: '28px 20px', textAlign: 'center' }}>
             <div style={{ width: 96, height: 96, borderRadius: 6, margin: '0 auto 14px', background: `radial-gradient(circle at 50% 35%, #1b3a6b 0 14%, transparent 15%), linear-gradient(135deg,#5bb8d4 0%,#1b5f8f 44%,#f5efec 45%,#c07a50 100%)`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 30 }}>{META.candidate?.[0] || 'A'}</div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{META.candidate}</div>
-            <div style={{ fontSize: 12.5, color: '#666', marginTop: 2 }}>Roll No: {META.rollNo}</div>
+            <div style={{ fontSize: 12.5, color: '#666', marginTop: 2 }}>Nursing Officer · {stageName}</div>
           </aside>
         </div>
 
         <div style={{ flexShrink: 0, background: '#fff', borderTop: '2px solid #ccc' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 40px', fontSize: 12, color: '#555', borderBottom: '1px solid #eee', flexWrap: 'wrap', gap: 8 }}>
-            <strong style={{ fontSize: 12.5 }}>{META.name}</strong>
+            <strong style={{ fontSize: 12.5 }}>{examTitle}</strong>
             <span style={{ display: 'flex', gap: 16 }}>
               <span>Total Questions: <strong>{QUESTIONS.length}</strong></span>
               <span>Duration: <strong>{SECTIONS.length * 18} Min</strong></span>
@@ -292,7 +248,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
             I have read all the instructions carefully and I agree to abide by the terms.
           </label>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 40px 16px' }}>
-            <button onClick={() => setPhase('landing')} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Previous</button>
+            <button onClick={onBack || onExit} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Back</button>
             <button disabled={!agreed} onClick={beginExam} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>
               I am ready to begin
             </button>
@@ -308,12 +264,53 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
   if (phase === 'submitted' || phase === 'analysis') {
     const r = results
     if (phase === 'submitted') {
+      const attempted = answers.filter(a => a !== null).length
+      const markedCount = marked.filter(Boolean).length
+      // Duration-mode tests run over several days — the result is declared later, so the
+      // candidate sees a recorded-response declaration (attempted/marked counts) and a
+      // date to return for their result, not an immediate score.
+      if (durationMode) {
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: '#e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif', padding: 20 }}>
+            <div style={{ background: '#fff', borderRadius: 8, maxWidth: 520, width: '100%', overflow: 'hidden', boxShadow: '0 6px 30px rgba(0,0,0,0.15)' }}>
+              <div style={{ background: NAVY, color: '#fff', padding: '14px 24px', fontSize: 15, fontWeight: 700 }}>Response Submitted</div>
+              <div style={{ padding: '28px 32px', textAlign: 'center' }}>
+                <div style={{ width: 66, height: 66, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34, margin: '0 auto 18px' }}>✓</div>
+                <h2 style={{ fontSize: 20, color: '#1a1a1a', marginBottom: 8 }}>Your responses have been recorded</h2>
+                <p style={{ fontSize: 13.5, color: '#555', lineHeight: 1.7, marginBottom: 18 }}>
+                  Thank you, <strong>{META.candidate}</strong>. Your attempt for the <strong>{seriesName} ({stageName})</strong> test has been submitted successfully.
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+                  {[{ l: 'Answered', v: attempted, c: GREEN }, { l: 'Marked for Review', v: markedCount, c: PURPLE }, { l: 'Not Answered', v: QUESTIONS.length - attempted, c: RED }].map(s => (
+                    <div key={s.l} style={{ flex: 1, background: '#f5f7fa', borderRadius: 8, padding: '14px 8px' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: s.c }}>{s.v}</div>
+                      <div style={{ fontSize: 10.5, color: '#666', marginTop: 3 }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: '#eef4fb', border: `1px solid #cddff0`, borderRadius: 8, padding: '14px 16px', textAlign: 'left', marginBottom: 18 }}>
+                  <div style={{ fontSize: 13, color: '#1a3a6b', lineHeight: 1.6 }}>
+                    This test is conducted over multiple days. Your <strong>result and detailed analysis</strong> will be declared on <strong>{resultDate}</strong>. Please return to NPrep on or after this date to view your result and rank.
+                  </div>
+                </div>
+                <div style={{ fontSize: 11.5, color: '#888', lineHeight: 1.6, marginBottom: 20 }}>
+                  I confirm that the responses submitted above are my own final attempt for this test.
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  <button onClick={onExit} style={{ padding: '12px 24px', border: 'none', borderRadius: 4, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Tests</button>
+                  <button onClick={() => setPhase('analysis')} style={{ ...cbtBtn({ padding: '12px 20px', fontSize: 13 }) }}>Preview result (prototype)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
       return (
         <div style={{ position: 'fixed', inset: 0, background: '#e8ecf0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
           <div style={{ background: '#fff', borderRadius: 6, padding: '44px 48px', textAlign: 'center', maxWidth: 480, boxShadow: '0 6px 30px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 74, height: 74, borderRadius: '50%', background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, margin: '0 auto 20px' }}>✓</div>
             <h2 style={{ fontSize: 22, color: '#1a1a1a', marginBottom: 10 }}>Test Submitted Successfully</h2>
-            <p style={{ fontSize: 14, color: '#555', lineHeight: 1.7, marginBottom: 24 }}>Your {META.shortName} responses have been recorded. Results will be declared after the examination window closes.</p>
+            <p style={{ fontSize: 14, color: '#555', lineHeight: 1.7, marginBottom: 24 }}>Your {seriesName} ({stageName}) responses have been recorded.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => setPhase('analysis')} style={{ padding: '12px 22px', border: 'none', borderRadius: 4, background: NAVY, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View Detailed Analysis</button>
               <button onClick={onExit} style={{ ...cbtBtn({ padding: '12px 22px', fontSize: 14 }) }}>Back to Tests</button>
@@ -385,7 +382,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#fff', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
       {/* Title bar */}
       <div style={{ background: NAVY, color: '#fff', padding: '9px 18px', fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <span>{META.name}</span>
+        <span>{examTitle}</span>
       </div>
 
       {/* Candidate strip */}
@@ -393,7 +390,7 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
         <div style={{ width: 52, height: 60, background: '#e6e6e6', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#888' }}>Photo</div>
         <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
           <div><strong>Candidate Name:</strong> {META.candidate}</div>
-          <div><strong>Roll No:</strong> {META.rollNo} &nbsp;&nbsp; <strong>Subject:</strong> Nursing Officer</div>
+          <div><strong>Subject:</strong> Nursing Officer &nbsp;&nbsp; <strong>Test:</strong> {seriesName} ({stageName})</div>
         </div>
         <div style={{ textAlign: 'right', fontSize: 13, lineHeight: 1.6 }}>
           <div><strong>Section Time Remaining:</strong> <span style={{ color: RED_TXT, fontWeight: 700, fontSize: 15 }}>{fmtSec(sectionTimers[curSec])}</span></div>
@@ -401,24 +398,24 @@ export default function DesktopExam({ onExit, onFinish, customQuestions, customS
         </div>
       </div>
 
-      {/* Section tabs — locked, non-clickable status indicators. Sections are attempted in
-          strict sequence: the current one is active, past ones are closed, future ones are
-          locked until the current section's time ends. */}
+      {/* Section tabs — non-clickable status indicators. Sections are attempted in strict
+          sequence: current section is active with its live timer, completed sections show
+          "Completed", and upcoming sections show "Not started". */}
       <div style={{ display: 'flex', height: 50, background: '#d0d0d0', borderBottom: '1px solid #b0b0b0', flexShrink: 0, overflowX: 'auto' }}>
         {SECTIONS.map((s, i) => {
           const active = i === curSec
           const past = i < curSec, future = i > curSec
-          const bg = active ? '#fff' : past ? '#d0e8d0' : '#d0d0d0'
-          const nameColor = past ? '#2a6e2a' : future ? '#888' : '#111'
+          const bg = active ? '#fff' : past ? '#d6ecd6' : '#d0d0d0'
+          const nameColor = past ? '#2a6e2a' : future ? '#8a8a8a' : '#111'
           return (
-            <div key={s.id} title={active ? 'Current section — attempt all questions' : past ? 'Closed — this section is permanently locked' : 'Locked — complete the current section first'} style={{
+            <div key={s.id} title={active ? 'Current section — attempt all questions' : past ? 'Completed — this section cannot be revisited' : 'Opens after the current section ends'} style={{
               flex: 1, minWidth: 130, borderRight: '1px solid #b0b0b0', textAlign: 'left', padding: '4px 12px', cursor: 'default',
               background: bg, color: nameColor, fontWeight: active ? 700 : 500,
               boxShadow: active ? `inset 0 -3px 0 ${NAVY}` : 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
             }}>
-              <span style={{ fontSize: 12 }}>{past ? '✓ ' : future ? '🔒 ' : ''}Section {s.id}</span>
-              <span style={{ fontSize: 12, color: past ? '#888' : future ? '#999' : RED_TXT, fontWeight: 700 }}>
-                {past ? 'Closed' : future ? 'Locked' : fmtSec(sectionTimers[i])}
+              <span style={{ fontSize: 12 }}>Section {s.id}</span>
+              <span style={{ fontSize: 12, color: past ? '#2a6e2a' : future ? '#8a8a8a' : RED_TXT, fontWeight: 700 }}>
+                {past ? 'Completed' : future ? 'Not started' : fmtSec(sectionTimers[i])}
               </span>
             </div>
           )
