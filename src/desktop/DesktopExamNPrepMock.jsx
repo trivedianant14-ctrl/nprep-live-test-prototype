@@ -160,6 +160,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       'The Question Palette on the right of the screen shows the status of each question using the symbols explained below. Use it to keep track of what you have attempted.',
       'To answer a question, click one of the four options and then click Save & Next to save your response and move to the next question. Clicking a palette number moves you within the section but does not save the current answer.',
       'To leave a question for later, click Mark for Review; to remove your selected option, click Clear Response.',
+      `Marking scheme: every correct answer is awarded +${META.correctMarks} mark, every wrong answer carries ${META.wrongMarks} (negative marking), and an unattempted question scores 0. Answer only when you are reasonably sure, since a wrong response reduces your total.`,
       'Sections are attempted strictly in order (A → B → C → D → E). Once you click Submit Section you move to the next section and cannot return to a completed one.',
       'Submitting the last section submits the whole test. A summary of your attempt is shown before it is final.',
     ]
