@@ -59,6 +59,8 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   const stageName = META.stage || 'Prelims'
   const examTitle = `${provider} · ${seriesName} — Nursing Officer Test (${stageName})`
   const resultDate = META.resultDate || new Date(Date.now() + 3 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const secDur = META.sectionSeconds || SECTION_DURATION      // per-section time (45 min for Mains)
+  const secMin = Math.round(secDur / 60)
   const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
     shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
   )
@@ -68,7 +70,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   const [agreed, setAgreed] = useState(false)
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
-  const [sectionTimers, setSectionTimers] = useState(() => SECTIONS.map(() => SECTION_DURATION))
+  const [sectionTimers, setSectionTimers] = useState(() => SECTIONS.map(() => META.sectionSeconds || SECTION_DURATION))
   const [sectionLocked, setSectionLocked] = useState(() => SECTIONS.map(() => false))
   const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
   const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
@@ -111,7 +113,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
     const percentile = estimatePercentile(accuracy)
     const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
     const weakestSection = [...sectionStats].sort((a, b) => a.correct - b.correct)[0]
-    const timeTaken = SECTIONS.length * SECTION_DURATION - sectionTimers.reduce((a, b) => a + b, 0)
+    const timeTaken = SECTIONS.length * secDur - sectionTimers.reduce((a, b) => a + b, 0)
     const r = { correct, wrong, unattempted, score, accuracy, timeTaken, sectionStats, percentile, air, weakestSection, testName: META.shortName }
     setResults(r); setShowSubmit(false); setPhase('submitted'); onFinish?.(r)
   }
@@ -215,7 +217,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
             <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={3}>
               <li style={{ marginBottom: 8 }}>Choose one of the 4 options (A–D) by clicking the bubble before it. Click again or use <strong>Clear Response</strong> to deselect.</li>
               <li style={{ marginBottom: 8 }}>You MUST click <strong>Save &amp; Next</strong> to save your answer. Jumping via the palette does not save the current answer.</li>
-              <li style={{ marginBottom: 8 }}>Sections are attempted in a fixed sequence. Only the current section is active; when its 18-minute timer ends it closes and the next section opens automatically. <strong>You cannot return to a completed section.</strong></li>
+              <li style={{ marginBottom: 8 }}>Sections are attempted in a fixed sequence. Only the current section is active; when its {secMin}-minute timer ends it closes and the next section opens automatically. <strong>You cannot return to a completed section.</strong></li>
             </ol>
             <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
             <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={6}>
@@ -237,7 +239,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
             <strong style={{ fontSize: 12.5 }}>{examTitle}</strong>
             <span style={{ display: 'flex', gap: 16 }}>
               <span>Total Questions: <strong>{QUESTIONS.length}</strong></span>
-              <span>Duration: <strong>{SECTIONS.length * 18} Min</strong></span>
+              <span>Duration: <strong>{SECTIONS.length * secMin} Min</strong></span>
               <span>Max Marks: <strong>{META.totalMarks}</strong></span>
               <span style={{ color: '#1a8c36' }}>+ve: <strong>{META.correctMarks}</strong></span>
               <span style={{ color: RED_TXT }}>–ve: <strong>{Math.abs(META.wrongMarks)}</strong></span>

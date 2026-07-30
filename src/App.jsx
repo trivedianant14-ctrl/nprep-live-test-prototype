@@ -13,8 +13,10 @@ import DesktopSeriesDetail from './desktop/DesktopSeriesDetail'
 import DesktopCalendar from './desktop/DesktopCalendar'
 import DesktopExam from './desktop/DesktopExam'
 import DesktopExamNPrep from './desktop/DesktopExamNPrep'
+import DesktopExamNPrepMock from './desktop/DesktopExamNPrepMock'
 import DesktopExamChooser from './desktop/DesktopExamChooser'
 import ExamPreTest from './exam/ExamPreTest'
+import { buildMainsConfig } from './exam/mainsConfig'
 import ExamScreen from './exam/ExamScreen'
 import { buildCustomTest } from './exam/customTest'
 import { downloadIcsForTest } from './utils/ics'
@@ -220,7 +222,12 @@ export default function App() {
     // The official live test is duration-mode (runs over several days → result declared later);
     // daily/custom tests give an immediate result.
     if (desktopExamMode === 'nprep') return <DesktopExamNPrep {...examProps} />
+    if (desktopExamMode === 'nprep-mock') return <DesktopExamNPrepMock {...examProps} />
     if (desktopExamMode === 'norcet') return <DesktopExam {...examProps} onBack={backToChooser} durationMode={!customTest} />
+    if (desktopExamMode === 'norcet-mains') {
+      const mains = buildMainsConfig()
+      return <DesktopExam onExit={exitExam} onFinish={handleExamFinish} onBack={backToChooser} durationMode={!customTest} customQuestions={mains.questions} customSections={mains.sections} customMeta={mains.meta} />
+    }
     return <DesktopExamChooser meta={customTest?.meta} onPick={setDesktopExamMode} onBack={exitExam} />
   }
 
