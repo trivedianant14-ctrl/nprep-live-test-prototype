@@ -8,6 +8,7 @@ import AlertsStrip from '../components/AlertsStrip'
 import DailyTests from '../screens/DailyTests'
 import { ordinal } from '../utils/format'
 import { getLifecyclePhase } from '../utils/lifecycle'
+import { rankHeroCandidates, previewHeroState, BANNER_SCENARIOS } from '../utils/bannerPriority'
 import { brandListForTier } from '../utils/tierBranding'
 import { computeAlerts } from '../utils/alerts'
 
@@ -27,6 +28,7 @@ export default function DesktopTests({
   dailyAttemptedIds, dailyResults, pausedIds, onDailyAttempt, onDailyResume,
 }) {
   const [pastTestView, setPastTestView] = useState('full_mock')
+  const [scenario, setScenario] = useState('auto')
 
   const allUpcoming = Object.entries(UPCOMING).flatMap(([seriesId, tests]) => tests.map(t => ({ ...t, seriesId })))
   const alertList = computeAlerts({ upcoming: allUpcoming, registeredIds, dailyLive: dailyLiveNow, userTier })
@@ -42,6 +44,13 @@ export default function DesktopTests({
   }
   const officialLive = getLifecyclePhase(LIVE_TEST) === 'live'
   const group = SERIES_GROUPS.find(g => g.id === pastTestView)
+
+  // Banner priority engine — same as the mobile home.
+  const pastAttempted = Object.values(PAST).flat().filter(t => t.attempted && t.score != null)
+  const heroCandidates = rankHeroCandidates({ liveTest: LIVE_TEST, livePhase: getLifecyclePhase(LIVE_TEST), liveAttempted: liveTestAttempted, upcoming: allUpcoming, past: pastAttempted })
+  const heroState = scenario === 'auto'
+    ? (heroCandidates[0] || null)
+    : previewHeroState(scenario, { liveTest: LIVE_TEST, upcomingSample: [...allUpcoming].sort((a, b) => a.regCloses - b.regCloses)[0], pastSample: pastAttempted[0] })
 
   if (activeCategory === 'Daily Test') {
     return (
@@ -67,7 +76,22 @@ export default function DesktopTests({
       <div style={{ display:'grid', gridTemplateColumns:'minmax(0, 2.1fr) minmax(300px, 1fr)', gap:24, alignItems:'start' }}>
       {/* Main column */}
       <div>
-        <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={null} />
+        <div className="scroll" style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2, marginBottom:12 }}>
+          <span style={{ fontSize:10, color:T3, fontWeight:600, alignSelf:'center', flexShrink:0 }}>Preview:</span>
+          {BANNER_SCENARIOS.map(s => {
+            const active = scenario === s.id
+            return (
+              <button key={s.id} onClick={() => setScenario(s.id)} style={{
+                flexShrink:0, padding:'4px 10px', borderRadius:20, fontSize:10.5, fontWeight:active?700:500,
+                background: active ? P : 'white', color: active ? 'white' : T2,
+                border:`1px solid ${active ? P : BD}`, cursor:'pointer', whiteSpace:'nowrap',
+              }}>{s.label}</button>
+            )
+          })}
+        </div>
+        {heroState
+          ? <LiveTestBanner state={heroState} attempted={liveTestAttempted} onJoin={onJoined} onRegister={onRegisterClick} isRegistered={heroState.test?.id != null && registeredIds.has(heroState.test.id)} />
+          : <div style={{ border:`1px dashed ${BD}`, borderRadius:14, padding:'20px 16px', marginBottom:24, textAlign:'center', color:T3, fontSize:12.5, lineHeight:1.5 }}>Nothing live or upcoming right now — your Past Tests are below.</div>}
 
         <div style={{ marginTop:24 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>

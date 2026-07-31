@@ -6,17 +6,9 @@ import LiveTestBanner from '../components/LiveTestBanner'
 import AlertsStrip from '../components/AlertsStrip'
 import { ordinal } from '../utils/format'
 import { getLifecyclePhase } from '../utils/lifecycle'
+import { rankHeroCandidates, previewHeroState, BANNER_SCENARIOS } from '../utils/bannerPriority'
 import { brandListForTier } from '../utils/tierBranding'
 import { computeAlerts } from '../utils/alerts'
-
-const PREVIEW_PHASES = [
-  { id: null,            label: 'Auto' },
-  { id: 'upcoming',      label: 'Upcoming' },
-  { id: 'starting_soon', label: 'Starting Soon' },
-  { id: 'live',          label: 'Live' },
-  { id: 'ended',         label: 'Ended' },
-  { id: 'results',       label: 'Results' },
-]
 
 // Slices a series' tests down to what one home tile represents — either the whole
 // series (rrb/kgmu) or one type-lane of norcet (full mocks, subject preboards,
@@ -177,7 +169,7 @@ export function ProgressTrend({ history }) {
 }
 
 export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined, liveTestAttempted, onOpenSeries, onOpenCalendar, lastAttempt, attemptHistory = [], userTier, dailyLiveNow, dismissedAlerts = new Set(), onDismissAlert = () => {}, onGoDaily }) {
-  const [previewPhase, setPreviewPhase] = useState(null)
+  const [scenario, setScenario] = useState('auto')
   const [pastTestView, setPastTestView] = useState('full_mock')
 
   const alertList = computeAlerts({
@@ -212,27 +204,47 @@ export default function LiveTestHome({ registeredIds, onRegisterClick, onJoined,
   // carries the red blinking dot so the series lights up, not just the banner.
   const officialLive = getLifecyclePhase(LIVE_TEST) === 'live'
 
+  // Banner priority engine (Whimsical lifecycle): rank every live/upcoming/past candidate
+  // into the hero and show the winner (T1→T5 + tiebreaks). Preview forces a state.
+  const pastAttempted = Object.values(PAST).flat().filter(t => t.attempted && t.score != null)
+  const heroCandidates = rankHeroCandidates({
+    liveTest: LIVE_TEST,
+    livePhase: getLifecyclePhase(LIVE_TEST),
+    liveAttempted: liveTestAttempted,
+    upcoming: allUpcoming,
+    past: pastAttempted,
+  })
+  const heroState = scenario === 'auto'
+    ? (heroCandidates[0] || null)
+    : previewHeroState(scenario, { liveTest: LIVE_TEST, upcomingSample: topUpcoming[0], pastSample: pastAttempted[0] })
+
   return (
     <div style={{ padding:'16px 16px 32px' }}>
 
-      {/* Live Now — an automated banner, not a hardcoded state. It renders whichever
-          lifecycle phase the test's real schedule says it's in right now; the row below
-          only overrides that for previewing the other phases in this prototype. */}
+      {/* Live Now — a priority-driven hero. The banner engine picks the winning lifecycle
+          state across all tests (T1 Attempt-Now → T5 aged, with the tiebreaks); the Preview
+          row forces any state so every branch of the lifecycle is demoable here. */}
       <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:10 }}>Live Now</div>
-      <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2, marginBottom:12 }}>
+      <div className="scroll" style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2, marginBottom:12 }}>
         <span style={{ fontSize:10, color:T3, fontWeight:600, alignSelf:'center', flexShrink:0 }}>Preview:</span>
-        {PREVIEW_PHASES.map(p => {
-          const active = previewPhase === p.id
+        {BANNER_SCENARIOS.map(s => {
+          const active = scenario === s.id
           return (
-            <button key={p.label} onClick={() => setPreviewPhase(p.id)} style={{
+            <button key={s.id} onClick={() => setScenario(s.id)} style={{
               flexShrink:0, padding:'4px 10px', borderRadius:20, fontSize:10.5, fontWeight:active?700:500,
               background: active ? P : 'white', color: active ? 'white' : T2,
               border:`1px solid ${active ? P : BD}`, cursor:'pointer', whiteSpace:'nowrap',
-            }}>{p.label}</button>
+            }}>{s.label}</button>
           )
         })}
       </div>
-      <LiveTestBanner test={LIVE_TEST} onJoin={onJoined} attempted={liveTestAttempted} phaseOverride={previewPhase} />
+      {heroState
+        ? <LiveTestBanner state={heroState} attempted={liveTestAttempted} onJoin={onJoined} onRegister={onRegisterClick} isRegistered={heroState.test?.id != null && registeredIds.has(heroState.test.id)} />
+        : (
+          <div style={{ border:`1px dashed ${BD}`, borderRadius:14, padding:'20px 16px', marginBottom:24, textAlign:'center', color:T3, fontSize:12.5, lineHeight:1.5 }}>
+            Nothing live or upcoming right now — your Past Tests are below.
+          </div>
+        )}
 
       {/* Actionable alerts — registration deadlines closing soon, live daily test, etc. */}
       <AlertsStrip alerts={alertList} dismissed={dismissedAlerts} onDismiss={onDismissAlert} onRegister={onRegisterClick} onGoDaily={onGoDaily} style={{ marginTop: 14 }} />
