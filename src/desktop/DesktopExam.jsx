@@ -80,6 +80,8 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   const [results, setResults] = useState(null)
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [toast, setToast] = useState(null)
+  const [violations, setViolations] = useState(0)      // tab-switch / leave-window count
+  const [showViolation, setShowViolation] = useState(false)
 
   const section = SECTIONS[curSec]
   const curGlobalIdx = section.ids[curQLocal]
@@ -165,6 +167,14 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
     document.documentElement.requestFullscreen?.().catch(() => {})
     setPhase('exam')
   }
+
+  // Proctoring: the real NORCET CBT flags navigating away. Warn on each tab-switch / minimise.
+  useEffect(() => {
+    if (phase !== 'exam') return
+    const onHidden = () => { if (document.visibilityState === 'hidden') { setViolations(v => v + 1); setShowViolation(true) } }
+    document.addEventListener('visibilitychange', onHidden)
+    return () => document.removeEventListener('visibilitychange', onHidden)
+  }, [phase])
 
   useEffect(() => {
     setVisited(prev => { if (prev[curGlobalIdx]) return prev; const n = [...prev]; n[curGlobalIdx] = true; return n })
@@ -389,6 +399,12 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
           </div>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
             <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Section {section.id}</div>
+            {q.passage && (
+              <div style={{ marginBottom: 18, border: '1px solid #d3dae2', borderLeft: '3px solid #C98A1B', background: '#FFFBF2', borderRadius: 4, padding: '12px 16px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#C98A1B', marginBottom: 5 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
+                <p style={{ fontSize: 14, lineHeight: 1.6, color: '#333' }}>{q.passage}</p>
+              </div>
+            )}
             <p style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 22 }}>{q.text}</p>
             {q.image && (
               <img src={q.image} alt="" style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 380 : 240, border: '1px solid #ddd', borderRadius: 4, marginBottom: 20, display: 'block' }} />
@@ -444,6 +460,22 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
       {toast && (
         <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: '#1a1a1a', color: '#fff', padding: '11px 20px', borderRadius: 6, fontSize: 13.5, fontWeight: 600, boxShadow: '0 6px 24px rgba(0,0,0,0.3)' }}>
           ⏱ {toast}
+        </div>
+      )}
+
+      {/* Proctoring violation warning — flags navigating away from the test window */}
+      {showViolation && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 6, width: '100%', maxWidth: 460, overflow: 'hidden', boxShadow: '0 10px 44px rgba(0,0,0,0.35)' }}>
+            <div style={{ background: RED, color: '#fff', padding: '12px 20px', fontSize: 15, fontWeight: 700 }}>⚠ Warning {violations}</div>
+            <div style={{ padding: '18px 22px' }}>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: '#222', marginBottom: 10 }}>You navigated away from the test window. This activity has been <strong>recorded</strong>.</p>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: '#666', marginBottom: 18 }}>Do not switch tabs, minimise the window, or leave full screen during the exam. Repeated violations may lead to disqualification in the actual NORCET.</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => { setShowViolation(false); document.documentElement.requestFullscreen?.().catch(() => {}) }} style={{ padding: '10px 22px', border: 'none', borderRadius: 4, background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)`, color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>Return to test</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

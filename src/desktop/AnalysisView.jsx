@@ -179,6 +179,12 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                   {reveal ? 'Hide answer' : 'Show answer'}
                 </button>
               </div>
+              {q.passage && (
+                <div style={{ marginBottom: 18, border: `1px solid ${BD}`, borderLeft: `3px solid ${A}`, background: '#FFFBF2', borderRadius: 8, padding: '14px 18px' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: A, marginBottom: 6 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
+                  <p style={{ fontSize: 14, lineHeight: 1.6, color: '#3A4152' }}>{q.passage}</p>
+                </div>
+              )}
               <p style={{ fontSize: 18.5, fontWeight: 600, lineHeight: 1.5, color: PD, marginBottom: 24 }}>{q.text}</p>
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -310,6 +316,12 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             </div>
             <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
               <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Section {sections[curSec].id}</div>
+              {q.passage && (
+                <div style={{ marginBottom: 16, border: '1px solid #d3dae2', borderLeft: '3px solid #C98A1B', background: '#FFFBF2', borderRadius: 4, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#C98A1B', marginBottom: 5 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
+                  <p style={{ fontSize: 13.5, lineHeight: 1.6, color: '#333' }}>{q.passage}</p>
+                </div>
+              )}
               <p style={{ fontSize: 17, lineHeight: 1.6, marginBottom: 22, color: '#1c2b45' }}>{q.text}</p>
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 380 : 240, border: '1px solid #ddd', borderRadius: 4, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

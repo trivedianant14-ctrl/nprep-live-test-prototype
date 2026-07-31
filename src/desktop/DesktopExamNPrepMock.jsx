@@ -13,6 +13,7 @@ import nprepLogo from '../assets/nprep-logo.png'
 
 const RED = '#E5484D', RED_L = '#FDECED'
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+const SESSION_KEY = 'nprep_mock_session_v1' // silent auto-save key (stands in for the backend)
 const fmt = s => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`
@@ -41,35 +42,49 @@ function PaletteCell({ status, num, active, onClick }) {
 
 // NPrep full-mock — a modern edtech test interface. Sections run in sequence (A→B→C→D→E,
 // no jumping ahead or back); you "Submit Section" to move on, and the last section submits
-// the test. Keyboard is allowed; leaving does not pause — it auto-submits.
+// the test. The attempt auto-saves silently (localStorage, standing in for the backend) and
+// the timer is deadline-based, so it keeps running even if the tab is closed: on return, the
+// student resumes if time is left, or the test is auto-submitted if the clock ran out.
 export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions, customSections, customMeta }) {
   const META = customMeta || DEFAULT_EXAM_META
   const seriesName = META.series || META.shortName || 'NASHTA'
+
+  // Silent auto-save / resume. A saved seed reproduces the identical shuffle so restored answers stay aligned.
+  const [saved] = useState(() => {
+    try { const s = JSON.parse(localStorage.getItem(SESSION_KEY)); return s && typeof s.seed === 'number' ? s : null } catch { return null }
+  })
+  const [seed] = useState(() => saved?.seed ?? ((Math.random() * 2 ** 31) >>> 0))
   const [{ questions: QUESTIONS, sections: SECTIONS }] = useState(() =>
-    shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS)
+    shuffleForAttempt(customQuestions || DEFAULT_QUESTIONS, customSections || DEFAULT_SECTIONS, seed)
   )
   const secDur = META.sectionSeconds || SECTION_DURATION
   const TOTAL = SECTIONS.length * secDur
   const totalMin = Math.round(TOTAL / 60)
 
-  const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | results | solutions
-  const [agreed, setAgreed] = useState(false)
-  const [curSec, setCurSec] = useState(0)
-  const [curQLocal, setCurQLocal] = useState(0)
-  const [answers, setAnswers] = useState(() => Array(QUESTIONS.length).fill(null))
-  const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
-  const [visited, setVisited] = useState(() => Array(QUESTIONS.length).fill(false))
-  const [timeLeft, setTimeLeft] = useState(TOTAL)
-  const [showSubmit, setShowSubmit] = useState(false)   // submit-section confirm
+  const resumable = !!saved && saved.deadline > Date.now()   // in-progress, time still left
+  const expired = !!saved && saved.deadline <= Date.now()    // clock ran out while away → auto-submit
+
+  const [phase, setPhase] = useState(resumable ? 'exam' : expired ? 'submitted' : 'instructions')
+  const [agreed, setAgreed] = useState(!!saved)
+  const [curSec, setCurSec] = useState(saved?.curSec ?? 0)
+  const [curQLocal, setCurQLocal] = useState(saved?.curQLocal ?? 0)
+  const [answers, setAnswers] = useState(() => saved?.answers ?? Array(QUESTIONS.length).fill(null))
+  const [marked, setMarked] = useState(() => saved?.marked ?? Array(QUESTIONS.length).fill(false))
+  const [guessed, setGuessed] = useState(() => saved?.guessed ?? Array(QUESTIONS.length).fill(false)) // "not sure" tagging
+  const [visited, setVisited] = useState(() => saved?.visited ?? Array(QUESTIONS.length).fill(false))
+  const [eliminated, setEliminated] = useState(() => saved?.eliminated ?? {}) // { [gIdx]: number[] } struck-out options
+  const [deadline, setDeadline] = useState(saved?.deadline ?? null)           // absolute epoch ms; set on start
+  const [timeLeft, setTimeLeft] = useState(() => saved ? Math.max(0, Math.round((saved.deadline - Date.now()) / 1000)) : TOTAL)
+  const [showSubmit, setShowSubmit] = useState(false)   // item-review + submit confirm
   const [showExit, setShowExit] = useState(false)
   const [showSummary, setShowSummary] = useState(false) // per-section summary popover
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [results, setResults] = useState(null)
   const [lang, setLang] = useState('en')                // bilingual EN | हिं (tier-2/3 core need)
   const [timerOn, setTimerOn] = useState(true)          // hide-timer option (exam-anxiety research)
-  const [eliminated, setEliminated] = useState({})      // { [gIdx]: number[] } struck-out options (UWorld pattern)
   const [showReport, setShowReport] = useState(false)   // report-question sheet
   const [reportToast, setReportToast] = useState('')
+  const [fsExited, setFsExited] = useState(false)       // left fullscreen during the exam
 
   const section = SECTIONS[curSec]
   const gIdx = section.ids[curQLocal]
@@ -107,16 +122,38 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
     const weakestSection = [...sectionStats].sort((a, b) => a.correct - b.correct)[0]
     const r = { correct, wrong, unattempted, score, accuracy, timeTaken: TOTAL - timeLeft, sectionStats, percentile, air, weakestSection, testName: `${seriesName} Mock` }
+    try { localStorage.removeItem(SESSION_KEY) } catch { /* ignore */ } // attempt finished — clear the saved session
     setResults(r); setShowSubmit(false); setPhase('submitted'); onFinish?.(r)
   }
   const finalizeRef = useRef(finalize); finalizeRef.current = finalize
 
+  // Deadline-based countdown: derives the remaining time from an absolute end-time, so the
+  // clock keeps running while the tab is closed and expiry auto-submits on return.
   useEffect(() => {
-    if (phase !== 'exam') return
-    const id = setInterval(() => setTimeLeft(t => { if (t <= 1) { clearInterval(id); finalizeRef.current(); return 0 } return t - 1 }), 1000)
+    if (phase !== 'exam' || !deadline) return
+    const tick = () => {
+      const left = Math.max(0, Math.round((deadline - Date.now()) / 1000))
+      setTimeLeft(left)
+      if (left <= 0) finalizeRef.current()
+    }
+    tick()
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [phase])
+  }, [phase, deadline])
+  // If we mounted onto an already-expired saved session, submit it right away.
+  useEffect(() => { if (expired && !results) finalizeRef.current() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Silent auto-save of the in-progress attempt (stands in for the backend).
+  useEffect(() => {
+    if (phase !== 'exam' || !deadline) return
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ seed, deadline, answers, marked, guessed, visited, eliminated, curSec, curQLocal })) } catch { /* ignore quota */ }
+  }, [phase, deadline, seed, answers, marked, guessed, visited, eliminated, curSec, curQLocal])
   useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
+  // Fullscreen enforcement: note when the student leaves fullscreen during the exam.
+  useEffect(() => {
+    const onFs = () => { if (phase === 'exam' && !document.fullscreenElement) setFsExited(true); else setFsExited(false) }
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [phase])
 
   // Navigation is confined to the current section (sequential model).
   const goNext = () => { if (curQLocal < section.ids.length - 1) setCurQLocal(l => l + 1) }
@@ -134,6 +171,9 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     if (willStrike && chosen === i) clear() // striking your chosen option deselects it
   }
   const markNext = () => { setMarked(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n }); goNext() }
+  const toggleGuess = () => setGuessed(prev => { const n = [...prev]; n[gIdx] = !n[gIdx]; return n })
+  const goFullscreen = () => { try { document.documentElement.requestFullscreen?.() } catch { /* not supported */ } }
+  const startExam = () => { if (!agreed) return; setDeadline(Date.now() + TOTAL * 1000); goFullscreen(); setPhase('exam') }
   const L = (en, hi) => (lang === 'hi' ? hi : en)          // interface translation helper
   const submitReport = (reason) => { setShowReport(false); setReportToast(L('Thanks — reported. Our team will review it.', 'धन्यवाद — रिपोर्ट भेज दी गई। हमारी टीम समीक्षा करेगी।')); setTimeout(() => setReportToast(''), 2600) }
   const jumpTo = (localIdx) => setCurQLocal(localIdx)
@@ -215,7 +255,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                   <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: P, marginTop: 1, flexShrink: 0, cursor: 'pointer' }} />
                   <span>I have read and understood all the instructions above. I am ready to begin and understand the timer runs continuously once I start.</span>
                 </label>
-                <button onClick={() => agreed && setPhase('exam')} disabled={!agreed} style={{ ...pillBtn({ width: '100%', padding: '14px', fontSize: 15, background: agreed ? P : '#B9C4E0', color: '#fff' }), cursor: agreed ? 'pointer' : 'not-allowed' }}>I'm ready — Start Test →</button>
+                <button onClick={startExam} disabled={!agreed} style={{ ...pillBtn({ width: '100%', padding: '14px', fontSize: 15, background: agreed ? P : '#B9C4E0', color: '#fff' }), cursor: agreed ? 'pointer' : 'not-allowed' }}>I'm ready — Start Test →</button>
               </div>
             </div>
           </div>
@@ -362,6 +402,12 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', background: '#fff', padding: '28px 44px' }}>
             <div style={{ width: '100%' }}>
+              {q.passage && (
+                <div style={{ marginBottom: 18, border: `1px solid ${BD}`, borderLeft: `3px solid ${A}`, background: '#FFFBF2', borderRadius: 8, padding: '14px 18px' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: A, marginBottom: 6 }}>{L('Case scenario', 'केस परिदृश्य')}{q.caseTotal ? ` · ${L('Q', 'प्र')}${q.caseIndex}/${q.caseTotal}` : ''}</div>
+                  <p style={{ fontSize: 14.5, lineHeight: 1.65, color: '#3A4152' }}>{lang === 'hi' && q.hi?.passage ? q.hi.passage : q.passage}</p>
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 15 }}>
                 <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>{L('Question', 'प्रश्न')} {globalNum}</span>
@@ -392,8 +438,14 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                   )
                 })}
               </div>
-              <div style={{ marginTop: 15, fontSize: 12, color: T3, lineHeight: 1.6 }}>
-                {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी विकल्पों पर ध्यान दे सकें।')}
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <button onClick={toggleGuess} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: guessed[gIdx] ? '#FFF4E0' : '#fff', border: `1px solid ${guessed[gIdx] ? A : BD}`, color: guessed[gIdx] ? '#9A6B12' : T2, borderRadius: 20, padding: '6px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                  {guessed[gIdx] ? L('Marked as a guess', 'अनुमान चिह्नित') : L('Not sure? Mark as a guess', 'पक्का नहीं? अनुमान चिह्नित करें')}
+                </button>
+                <span style={{ fontSize: 12, color: T3, lineHeight: 1.6 }}>
+                  {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी विकल्पों पर ध्यान दे सकें।')}
+                </span>
               </div>
             </div>
           </div>
@@ -465,29 +517,60 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
       {reportToast && (
         <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: PD, color: '#fff', padding: '12px 20px', borderRadius: 24, fontSize: 13, fontWeight: 600, boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}>{reportToast}</div>
       )}
-
-      {/* Submit-section confirm */}
-      {showSubmit && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 440, overflow: 'hidden' }}>
-            <div style={{ padding: '22px 24px 6px', fontSize: 17, fontWeight: 700, color: T1 }}>{isLastSec ? 'Submit the test?' : `Submit Section ${section.id}?`}</div>
-            <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>
-              {isLastSec ? 'This is the last section — submitting will end the test and you cannot change any answers.' : `You've answered ${secAttempted} of ${section.ids.length} in this section. You won't be able to return to Section ${section.id} after this.`}
-            </div>
-            <div style={{ display: 'flex', gap: 10, padding: '0 24px 14px' }}>
-              {[['Answered', secAttempted, G], ['Marked', secMarked, A], ['Left', section.ids.length - secAttempted, RED]].map(([l, v, c]) => (
-                <div key={l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '12px 6px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div><div style={{ fontSize: 10, color: T3, marginTop: 2 }}>{l}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '8px 24px 20px' }}>
-              <button onClick={() => setShowSubmit(false)} style={{ ...btn({ padding: '11px 18px' }) }}>Keep attempting</button>
-              <button onClick={submitSection} style={{ ...pillBtn({ padding: '11px 22px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? 'Submit Test' : `Submit Section ${section.id}`}</button>
-            </div>
-          </div>
+      {phase === 'exam' && fsExited && (
+        <div style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 130, background: '#FFF4E0', border: `1px solid ${A}`, color: '#8a5a10', padding: '9px 10px 9px 16px', borderRadius: 12, fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 6px 20px rgba(0,0,0,0.12)' }}>
+          <span>{L('You left full screen — return for the best exam experience.', 'आप फ़ुल स्क्रीन से बाहर आ गए — बेहतर अनुभव के लिए वापस जाएँ।')}</span>
+          <button onClick={goFullscreen} style={{ ...pillBtn({ padding: '6px 14px', background: A, color: '#fff', fontSize: 12 }) }}>{L('Return to full screen', 'फ़ुल स्क्रीन में लौटें')}</button>
         </div>
       )}
+
+      {/* Item Review + submit confirm */}
+      {showSubmit && (() => {
+        const base = SECTIONS.slice(0, curSec).reduce((n, s) => n + s.ids.length, 0)
+        const locals = section.ids.map((_, i) => i)
+        const notAns = locals.filter(i => answers[section.ids[i]] === null)
+        const mk = locals.filter(i => marked[section.ids[i]])
+        const gs = locals.filter(i => guessed[section.ids[i]])
+        const chip = (i, color) => <button key={i} onClick={() => { setCurQLocal(i); setShowSubmit(false) }} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${color}`, background: '#fff', color, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{base + i + 1}</button>
+        const group = (label, items, color) => items.length > 0 && (
+          <div style={{ marginBottom: 15 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: T2, marginBottom: 9 }}>{label} · {items.length}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{items.map(i => chip(i, color))}</div>
+          </div>
+        )
+        const allClear = notAns.length === 0 && mk.length === 0 && gs.length === 0
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(19,27,99,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+            <div style={{ background: '#fff', borderRadius: 18, width: '100%', maxWidth: 540, maxHeight: '86vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '22px 24px 6px', fontSize: 17, fontWeight: 700, color: T1 }}>{isLastSec ? L('Review before final submit', 'अंतिम सबमिट से पहले समीक्षा') : `${L('Review Section', 'सेक्शन समीक्षा')} ${section.id}`}</div>
+              <div style={{ padding: '0 24px 16px', fontSize: 13, color: T2, lineHeight: 1.6 }}>
+                {isLastSec ? L('This is the last section — submitting ends the test and answers cannot be changed.', 'यह अंतिम सेक्शन है — सबमिट करने पर टेस्ट समाप्त हो जाएगा और उत्तर बदले नहीं जा सकेंगे।') : L(`You won’t be able to return to Section ${section.id} after this.`, `इसके बाद आप सेक्शन ${section.id} में वापस नहीं आ सकेंगे।`)}
+              </div>
+              <div style={{ display: 'flex', gap: 10, padding: '0 24px 16px' }}>
+                {[[L('Answered', 'हल किए'), secAttempted, G], [L('Marked', 'चिह्नित'), secMarked, A], [L('Guessed', 'अनुमान'), gs.length, '#9A6B12'], [L('Left', 'बाकी'), notAns.length, RED]].map(([l, v, c]) => (
+                  <div key={l} style={{ flex: 1, background: BG2, borderRadius: 12, padding: '12px 6px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: c }}>{v}</div><div style={{ fontSize: 10, color: T3, marginTop: 2 }}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="scroll" style={{ overflowY: 'auto', padding: '4px 24px 8px', borderTop: `1px solid ${BD}`, paddingTop: 16 }}>
+                {allClear
+                  ? <div style={{ fontSize: 13, color: G, fontWeight: 600, padding: '6px 0 14px' }}>✓ {L('Every question is answered, with nothing marked or guessed.', 'सभी प्रश्न हल हैं — कुछ भी चिह्नित या अनुमानित नहीं।')}</div>
+                  : <>
+                    <div style={{ fontSize: 12, color: T3, marginBottom: 14 }}>{L('Tap a number to jump back to that question.', 'किसी संख्या पर टैप करके उस प्रश्न पर वापस जाएँ।')}</div>
+                    {group(L('Not answered', 'हल नहीं किए'), notAns, RED)}
+                    {group(L('Marked for review', 'समीक्षा हेतु चिह्नित'), mk, A)}
+                    {group(L('Guessed', 'अनुमान लगाए'), gs, '#9A6B12')}
+                  </>}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 24px 20px', borderTop: `1px solid ${BD}` }}>
+                <button onClick={() => setShowSubmit(false)} style={{ ...btn({ padding: '11px 18px' }) }}>{L('Keep attempting', 'हल करते रहें')}</button>
+                <button onClick={submitSection} style={{ ...pillBtn({ padding: '11px 22px', background: isLastSec ? G : P, color: '#fff' }) }}>{isLastSec ? L('Submit Test', 'टेस्ट सबमिट करें') : `${L('Submit Section', 'सेक्शन सबमिट करें')} ${section.id}`}</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Exit confirm */}
       {showExit && (
