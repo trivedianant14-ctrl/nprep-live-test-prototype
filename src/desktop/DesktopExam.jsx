@@ -268,13 +268,12 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
                   <label style={{ fontSize: 13.5, color: '#333' }}>Choose your default language:</label>
                   <select value={defaultLang} onChange={e => setDefaultLang(e.target.value)} style={{ fontFamily: 'Arial, sans-serif', fontSize: 13.5, padding: '5px 10px', border: '1px solid #b8cde4', borderRadius: 3, background: '#fff', color: NAVY }}>
                     <option>English</option>
-                    <option>Hindi</option>
                   </select>
                 </div>
-                <p style={{ fontSize: 12.5, color: '#777', marginBottom: 18 }}>Please note all questions will appear in your default language. This language can be changed for a particular question later.</p>
+                <p style={{ fontSize: 12.5, color: '#777', marginBottom: 18 }}>Please note all questions will appear in your default language.</p>
                 <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '16px 18px' }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Declaration</div>
-                  <p style={{ fontSize: 13.5, lineHeight: 1.75, color: '#333' }}>I have read and understood all the instructions given above. I declare that I am not in possession of, nor wearing, nor carrying any prohibited item. I agree that the computer hardware allotted to me is in proper working condition. I understand that in case of not adhering to the instructions, I shall be liable to action as per the rules of the examination.</p>
+                  <p style={{ fontSize: 13.5, lineHeight: 1.75, color: '#333' }}>I have read and understood the instructions. All computer hardware allotted to me is in proper working condition. I declare that I am not in possession of / not wearing / not carrying any prohibited gadget like a mobile phone, Bluetooth device, etc., or any prohibited material into the examination hall. I agree that in case of not adhering to these instructions, I shall be liable to be debarred from this test and/or to disciplinary action, which may include a ban from future tests / examinations and/or civil / criminal proceedings against me.</p>
                 </div>
               </>
             )}
