@@ -8,6 +8,7 @@ import {
 import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from './shuffle'
+import { explanationFor } from './practiceContent'
 import nprepLogo from '../assets/nprep-logo.png'
 
 const MAX_WARNINGS = 3
@@ -92,7 +93,12 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   const [showExitConfirm, setShowExitConfirm]     = useState(false)
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
   const [imageZoom, setImageZoom]                 = useState(1)
-  const [phase, setPhase]                         = useState('test') // test | submitted | loading | analysis
+  const [phase, setPhase]                         = useState('test') // test | submitted | loading | analysis | solutions
+  // Mobile solutions review + self-analysis (mirrors the desktop NPrep solutions)
+  const [solIdx, setSolIdx]                        = useState(0)      // flat index across all questions
+  const [selfMode, setSelfMode]                   = useState(false)  // global untimed self-analysis toggle
+  const [selfPick, setSelfPick]                   = useState({})     // { [gi]: optIdx } self-analysis answers
+  const orderedIds                                = SECTIONS.flatMap(s => s.ids)
   const [finalResults, setFinalResults]           = useState(null)
 
   const section      = SECTIONS[curSec]
@@ -380,8 +386,95 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             )
           })}
         </div>
-        <div style={{ flexShrink:0, padding:'12px 16px 20px', borderTop:`1px solid ${BD}`, background:'white' }}>
-          <button onClick={onExit} style={{ ...hPrim({ width:'100%', padding:'12px', fontSize:13 }) }}>{exitLabel}</button>
+        <div style={{ flexShrink:0, padding:'12px 16px 20px', borderTop:`1px solid ${BD}`, background:'white', display:'flex', gap:8 }}>
+          <button onClick={onExit} style={{ flex:1, padding:'12px', fontSize:13, fontWeight:600, border:`1px solid ${BD}`, background:'#fff', color:T2, borderRadius:24, cursor:'pointer' }}>Back</button>
+          <button onClick={() => { setSolIdx(0); setSelfMode(false); setPhase('solutions') }} style={{ flex:2, padding:'12px', fontSize:13, fontWeight:700, border:'none', background:HDR, color:'#fff', borderRadius:24, cursor:'pointer' }}>View Solutions</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Solutions review + self-analysis (mirrors the desktop NPrep solutions) ──
+  if (phase === 'solutions') {
+    const gi = orderedIds[solIdx]
+    const q = QUESTIONS[gi]
+    const chosen = answers[gi]
+    const sp = selfPick[gi] ?? null
+    const rv = !selfMode || sp !== null           // review shows answers; self-analysis hides until re-attempt
+    const secOf = SECTIONS.find(s => s.ids.includes(gi))
+    const expl = explanationFor(q)
+    const pickSelf = (i) => { if (selfMode && sp === null) setSelfPick(s => ({ ...s, [gi]: i })) }
+    const clickable = selfMode && !rv
+    return (
+      <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#fff', position:'relative' }}>
+        <div style={{ background:HDR, flexShrink:0, padding:'14px 14px 12px', display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={() => setPhase('analysis')} style={{ background:'none', border:'none', cursor:'pointer', color:'white', padding:0, display:'flex' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
+          </button>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'#fff' }}>Solutions</div>
+            <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.65)', marginTop:1 }}>Question {solIdx + 1} of {orderedIds.length} · Section {secOf?.id}</div>
+          </div>
+        </div>
+
+        <div className="scroll" style={{ flex:1, padding:'16px 16px 132px' }}>
+          {selfMode && sp === null && (
+            <div style={{ marginBottom:14, background:PL, border:'1px solid #CFDDF9', borderRadius:10, padding:'10px 13px', fontSize:12, color:PD, lineHeight:1.5 }}>
+              <strong>Self-analysis is on</strong> — answers are hidden. Attempt this question again, then tap an option to reveal the correct answer and compare it with your test answer.
+            </div>
+          )}
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:12 }}>
+            <span style={{ width:3, height:13, borderRadius:2, background:P }} />
+            <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:1.3, textTransform:'uppercase', color:P }}>Question {solIdx + 1}</span>
+          </div>
+          {q.passage && (
+            <div style={{ marginBottom:14, border:`1px solid ${BD}`, borderLeft:'3px solid #C98A1B', background:'#FFFBF2', borderRadius:8, padding:'11px 13px' }}>
+              <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:1, textTransform:'uppercase', color:'#C98A1B', marginBottom:5 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
+              <p style={{ fontSize:13, lineHeight:1.6, color:'#3A4152' }}>{q.passage}</p>
+            </div>
+          )}
+          <p style={{ fontSize:15, fontWeight:600, lineHeight:1.55, color:PD, marginBottom:16 }}>{q.text}</p>
+          {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth:'100%', maxHeight:220, border:`1px solid ${BD}`, borderRadius:6, marginBottom:16, display:'block' }} />}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {q.options.map((opt, i) => {
+              const isCorrect = i === q.answer, isTest = chosen === i, isSelf = sp === i
+              const tags = []
+              if (isTest) tags.push('Your test answer')
+              if (isSelf) tags.push('Your self-analysis answer')
+              let bg = '#fff', bd = '#E4E8F1', rail = null, fg = '#2A3244', badge = null, lbg = '#F1F3F9', lfg = T2, strong = false
+              if (rv && isCorrect) { bg = GRUN_L; bd = '#BDE8D2'; rail = GRUN; fg = '#137a38'; lbg = GRUN; lfg = '#fff'; strong = true; badge = <span style={{ fontSize:11, fontWeight:700, color:'#137a38' }}>✓ Correct{tags.length ? ' · ' + tags.join(' & ') : ''}</span> }
+              else if (rv && (isTest || isSelf)) { bg = DIAM_L; bd = '#F5C6C8'; rail = DIAM; fg = '#B4272C'; lbg = DIAM; lfg = '#fff'; strong = true; badge = <span style={{ fontSize:11, fontWeight:700, color:'#B4272C' }}>✕ {tags.join(' & ')}</span> }
+              return (
+                <div key={i} onClick={() => clickable && pickSelf(i)} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'12px 14px', borderRadius:10, background:bg, border:`1px solid ${bd}`, boxShadow: rail ? `inset 3px 0 0 ${rail}` : 'none', cursor: clickable ? 'pointer' : 'default' }}>
+                  <span style={{ width:26, height:26, borderRadius:7, background:lbg, color:lfg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12.5, fontWeight:700, flexShrink:0, marginTop:1 }}>{String.fromCharCode(65 + i)}</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, color:fg, fontWeight: strong ? 600 : 500, lineHeight:1.45 }}>{opt}</div>
+                    {badge && <div style={{ marginTop:4 }}>{badge}</div>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {rv && chosen === null && <div style={{ marginTop:12, fontSize:12, color:T3 }}>You did not attempt this question in the test.</div>}
+          {rv && (
+            <div style={{ marginTop:18, borderLeft:`3px solid ${P}`, background:'#F7F9FF', borderRadius:'0 8px 8px 0', padding:'12px 14px' }}>
+              <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:1.2, textTransform:'uppercase', color:P, marginBottom:5 }}>Solution</div>
+              <p style={{ fontSize:13, lineHeight:1.65, color:'#3A4152' }}>{expl.text}</p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff', borderTop:`1px solid ${BD}`, padding:'10px 14px 16px', boxShadow:'0 -2px 12px rgba(19,27,99,0.05)' }}>
+          <button onClick={() => setSelfMode(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:8, background: selfMode ? PL : '#fff', border:`1px solid ${selfMode ? P : BD}`, color: selfMode ? P : T2, borderRadius:24, padding:'10px', fontSize:12.5, fontWeight:600, cursor:'pointer' }}>
+            Self-analysis · re-attempt untimed
+            <span style={{ width:32, height:18, borderRadius:10, background: selfMode ? P : BD, position:'relative', flexShrink:0 }}>
+              <span style={{ position:'absolute', top:2, left: selfMode ? 16 : 2, width:14, height:14, borderRadius:'50%', background:'#fff', transition:'left .15s' }} />
+            </span>
+          </button>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setSolIdx(i => Math.max(0, i - 1))} disabled={solIdx === 0} style={{ flex:1, padding:'11px', fontSize:12.5, fontWeight:600, border:`1px solid ${BD}`, background:'#fff', color:T1, borderRadius:24, cursor: solIdx === 0 ? 'default' : 'pointer', opacity: solIdx === 0 ? 0.45 : 1 }}>« Previous</button>
+            <button onClick={() => setSolIdx(i => Math.min(orderedIds.length - 1, i + 1))} disabled={solIdx === orderedIds.length - 1} style={{ flex:1, padding:'11px', fontSize:12.5, fontWeight:700, border:'none', background:P, color:'#fff', borderRadius:24, cursor: solIdx === orderedIds.length - 1 ? 'default' : 'pointer', opacity: solIdx === orderedIds.length - 1 ? 0.6 : 1 }}>Next »</button>
+          </div>
         </div>
       </div>
     )
@@ -556,7 +649,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff', borderTop:`1px solid ${BD}`, padding:'10px 14px 16px', boxShadow:'0 -2px 12px rgba(19,27,99,0.05)' }}>
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               <button onClick={handleMarkNext} disabled={isLocked} style={nSec({ flex:1, background: isMarked ? '#F0E8FF' : '#fff', color: isMarked ? PURP : T1, borderColor: isMarked ? PURP : BD, opacity: isLocked ? 0.45 : 1 })}>{isMarked ? '★ Marked' : 'Mark for Review'}</button>
-              <button onClick={handleClear} disabled={isLocked} style={nSec({ opacity: isLocked ? 0.45 : 1 })}>Clear Response</button>
+              <button onClick={handleClear} disabled={isLocked || selected === null} style={nSec({ opacity: (isLocked || selected === null) ? 0.45 : 1, color: selected === null ? T3 : T1 })}>Clear Response</button>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button onClick={goPrev} disabled={curSec === 0 && curQLocal === 0} style={nSec({ flex:1, borderRadius:24, opacity: (curSec === 0 && curQLocal === 0) ? 0.4 : 1 })}>« Previous</button>
