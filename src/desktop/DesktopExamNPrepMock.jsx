@@ -80,8 +80,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const [showSummary, setShowSummary] = useState(false) // per-section summary popover
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [results, setResults] = useState(null)
-  const [lang, setLang] = useState('en')                // bilingual EN | हिं (tier-2/3 core need)
-  const [timerOn, setTimerOn] = useState(true)          // hide-timer option (exam-anxiety research)
+  const lang = 'en'                                     // English only (bilingual toggle removed)
   const [showReport, setShowReport] = useState(false)   // report-question sheet
   const [reportToast, setReportToast] = useState('')
   const [fsExited, setFsExited] = useState(false)       // left fullscreen during the exam
@@ -330,13 +329,6 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
         <div style={{ width: 1, height: 26, background: BD }} />
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T1 }}>{seriesName} — Full Mock</div>
         <div style={{ flex: 1 }} />
-        {/* Language toggle — bilingual is the core need for Hindi-medium tier-2/3 aspirants */}
-        <div style={{ display: 'inline-flex', background: BG2, borderRadius: 20, padding: 3 }}>
-          {[['en', 'EN'], ['hi', 'हिं']].map(([id, l]) => {
-            const on = lang === id
-            return <button key={id} onClick={() => setLang(id)} style={{ padding: '5px 13px', borderRadius: 15, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: on ? 700 : 500, background: on ? P : 'transparent', color: on ? '#fff' : T2 }}>{l}</button>
-          })}
-        </div>
         {/* Per-section summary */}
         <div style={{ position: 'relative' }}>
           <button onClick={() => setShowSummary(s => !s)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 20, background: BG2, color: T1, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
@@ -366,16 +358,9 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
             </div>
           )}
         </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: timerOn ? (lowTime ? RED : PD) : T3, fontSize: 15, fontWeight: 700 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: lowTime ? RED : PD, fontSize: 15, fontWeight: 700 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-          {timerOn
-            ? <span style={{ minWidth: 72, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{fmt(timeLeft)}</span>
-            : <span style={{ minWidth: 72, textAlign: 'right', fontSize: 12.5, fontWeight: 600 }}>{L('Hidden', 'छिपा हुआ')}</span>}
-          <button onClick={() => setTimerOn(t => !t)} title={timerOn ? L('Hide timer', 'टाइमर छिपाएँ') : L('Show timer', 'टाइमर दिखाएँ')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, display: 'flex', padding: 2 }}>
-            {timerOn
-              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
-              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>}
-          </button>
+          <span style={{ minWidth: 72, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}>{fmt(timeLeft)}</span>
         </div>
       </div>
       <div style={{ flexShrink: 0, height: 3, background: BG2 }}><div style={{ height: '100%', width: `${answeredPct}%`, background: P, transition: 'width 0.3s' }} /></div>
@@ -439,10 +424,12 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
                 })}
               </div>
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <button onClick={toggleGuess} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: guessed[gIdx] ? '#FFF4E0' : '#fff', border: `1px solid ${guessed[gIdx] ? A : BD}`, color: guessed[gIdx] ? '#9A6B12' : T2, borderRadius: 20, padding: '6px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                  {guessed[gIdx] ? L('Marked as a guess', 'अनुमान चिह्नित') : L('Not sure? Mark as a guess', 'पक्का नहीं? अनुमान चिह्नित करें')}
-                </button>
+                {chosen !== null && (
+                  <button onClick={toggleGuess} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: guessed[gIdx] ? '#FFF4E0' : '#fff', border: `1px solid ${guessed[gIdx] ? A : BD}`, color: guessed[gIdx] ? '#9A6B12' : T2, borderRadius: 20, padding: '6px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                    {guessed[gIdx] ? L('Marked as a guess', 'अनुमान चिह्नित') : L('Mark this answer as a guess', 'इस उत्तर को अनुमान चिह्नित करें')}
+                  </button>
+                )}
                 <span style={{ fontSize: 12, color: T3, lineHeight: 1.6 }}>
                   {L('Tip: cross out (–) the options you\'ve ruled out to focus on the rest.', 'सुझाव: जिन विकल्पों को हटाना हो उन्हें (–) से काटें ताकि बाकी विकल्पों पर ध्यान दे सकें।')}
                 </span>
@@ -453,7 +440,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
           <div style={{ flexShrink: 0, background: '#fff', borderTop: `1px solid ${BD}`, display: 'flex', justifyContent: 'space-between', padding: '12px 22px', gap: 10 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={markNext} style={btn()}>{L('Mark for Review', 'समीक्षा हेतु चिह्नित')}</button>
-              <button onClick={clear} style={btn()}>{L('Clear Response', 'उत्तर हटाएँ')}</button>
+              <button onClick={clear} disabled={chosen === null} style={btn({ opacity: chosen === null ? 0.45 : 1, cursor: chosen === null ? 'default' : 'pointer', color: chosen === null ? T3 : T1 })}>{L('Clear Response', 'उत्तर हटाएँ')}</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={goPrev} disabled={curQLocal === 0} style={btn({ opacity: curQLocal === 0 ? 0.5 : 1 })}>« {L('Previous', 'पिछला')}</button>

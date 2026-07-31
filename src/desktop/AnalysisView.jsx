@@ -27,7 +27,11 @@ export default function AnalysisView({ questions, sections, answers, marked = []
   const [style, setStyle] = useState(initialStyle)
   const [curSec, setCurSec] = useState(0)
   const [cur, setCur] = useState(sections[0].ids[0])
-  const [reveal, setReveal] = useState(false) // reveal the correct answer + solution (your own pick always shows)
+  const [reveal, setReveal] = useState(false) // NORCET solutions: reveal the correct answer + solution
+  // NPrep solutions self-analysis (per question, keyed by global index): tutor-mode untimed re-attempt.
+  const [revealed, setRevealed] = useState({}) // { [gi]: true } answer + solution shown
+  const [selfMode, setSelfMode] = useState({}) // { [gi]: true } untimed self-analysis attempt active
+  const [selfPick, setSelfPick] = useState({}) // { [gi]: optIdx } the self-analysis answer
   const [palOpen, setPalOpen] = useState(true) // collapsible section palette (full-page like the attempt view)
   const isNprep = style === 'nprep'
   const testName = meta?.series ? `${meta.series} ${meta.stage || ''}`.trim() : (meta?.shortName || 'Test')
@@ -163,6 +167,14 @@ export default function AnalysisView({ questions, sections, answers, marked = []
     const rc = ordered.filter(o => resultOf(o.gi) === 'correct').length
     const ri = ordered.filter(o => resultOf(o.gi) === 'incorrect').length
     const ru = ordered.length - rc - ri
+    const rv = !!revealed[cur], sm = !!selfMode[cur], sp = selfPick[cur] ?? null
+    const doReveal = (v) => setRevealed(r => ({ ...r, [cur]: v }))
+    const toggleSelf = () => { // entering/leaving self-analysis resets this question to a fresh, unrevealed state
+      setSelfMode(m => ({ ...m, [cur]: !m[cur] }))
+      setRevealed(r => ({ ...r, [cur]: false }))
+      setSelfPick(s => { const n = { ...s }; delete n[cur]; return n })
+    }
+    const pickSelf = (i) => { setSelfPick(s => ({ ...s, [cur]: i })); doReveal(true) } // picking reveals (tutor mode)
     return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Body: question column + grid */}
@@ -174,11 +186,19 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                 <span style={{ width: 3, height: 15, borderRadius: 2, background: P }} />
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase', color: P }}>Question {curNum}</span>
                 <div style={{ flex: 1 }} />
-                <button onClick={() => setReveal(r => !r)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: reveal ? PL : '#fff', border: `1px solid ${reveal ? P : '#E4E8F1'}`, color: reveal ? P : T2, borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
-                  {reveal ? 'Hide answer' : 'Show answer'}
+                {/* Self-analysis toggle — re-attempt this question, untimed (UWorld tutor style) */}
+                <button onClick={toggleSelf} title="Re-attempt this question with no time limit" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: sm ? PL : '#fff', border: `1px solid ${sm ? P : '#E4E8F1'}`, color: sm ? P : T2, borderRadius: 20, padding: '5px 8px 5px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                  Self-analysis
+                  <span style={{ width: 32, height: 18, borderRadius: 10, background: sm ? P : BD, position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+                    <span style={{ position: 'absolute', top: 2, left: sm ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+                  </span>
                 </button>
               </div>
+              {sm && !rv && (
+                <div style={{ marginBottom: 16, background: PL, border: '1px solid #CFDDF9', borderRadius: 10, padding: '11px 15px', fontSize: 12.5, color: PD, lineHeight: 1.55 }}>
+                  <strong>Self-analysis</strong> — re-attempt this question with no timer. Pick an option to reveal the correct answer and compare it with what you chose in the test.
+                </div>
+              )}
               {q.passage && (
                 <div style={{ marginBottom: 18, border: `1px solid ${BD}`, borderLeft: `3px solid ${A}`, background: '#FFFBF2', borderRadius: 8, padding: '14px 18px' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: A, marginBottom: 6 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
@@ -189,21 +209,26 @@ export default function AnalysisView({ questions, sections, answers, marked = []
               {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth: q.imageLarge ? '100%' : 340, maxHeight: q.imageLarge ? 340 : 220, border: `1px solid ${BD}`, borderRadius: 6, marginBottom: 20, display: 'block' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {q.options.map((opt, i) => {
-                  const isCorrect = i === q.answer, isChosen = chosen === i
+                  const isCorrect = i === q.answer, isTest = chosen === i, isSelf = sp === i
+                  const tags = []
+                  if (isTest) tags.push('Your test answer')
+                  if (isSelf) tags.push('Your self-analysis answer')
                   let bg = '#fff', bd = '#E4E8F1', rail = null, fg = '#2A3244', badge = null, lbg = '#F1F3F9', lfg = T2, strong = false
-                  if (reveal && isCorrect) { bg = GREEN_L; bd = '#BDE8D2'; rail = GREEN; fg = '#137a38'; lbg = GREEN; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#137a38' }}>✓ Correct{isChosen ? ' · Your answer' : ''}</span> }
-                  else if (reveal && isChosen) { bg = RED_L; bd = '#F5C6C8'; rail = RED; fg = '#B4272C'; lbg = RED; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B4272C' }}>✕ Your answer</span> }
-                  else if (isChosen) { bg = PL; bd = P; rail = P; fg = PD; lbg = P; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11, fontWeight: 600, color: T3 }}>Your answer</span> }
+                  if (rv && isCorrect) { bg = GREEN_L; bd = '#BDE8D2'; rail = GREEN; fg = '#137a38'; lbg = GREEN; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#137a38' }}>✓ Correct{tags.length ? ' · ' + tags.join(' & ') : ''}</span> }
+                  else if (rv && (isTest || isSelf)) { bg = RED_L; bd = '#F5C6C8'; rail = RED; fg = '#B4272C'; lbg = RED; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11.5, fontWeight: 700, color: '#B4272C' }}>✕ {tags.join(' & ')}</span> }
+                  else if (!rv && sm && isSelf) { bg = PL; bd = P; rail = P; fg = PD; lbg = P; lfg = '#fff'; strong = true }
+                  else if (!rv && !sm && isTest) { bg = PL; bd = P; rail = P; fg = PD; lbg = P; lfg = '#fff'; strong = true; badge = <span style={{ fontSize: 11, fontWeight: 600, color: T3 }}>Your test answer</span> }
+                  const clickable = sm && !rv
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, background: bg, border: `1px solid ${bd}`, boxShadow: rail ? `inset 3px 0 0 ${rail}` : 'none', fontSize: 15.5 }}>
+                    <div key={i} onClick={() => clickable && pickSelf(i)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 10, background: bg, border: `1px solid ${bd}`, boxShadow: rail ? `inset 3px 0 0 ${rail}` : 'none', fontSize: 15.5, cursor: clickable ? 'pointer' : 'default' }}>
                       <span style={{ width: 28, height: 28, borderRadius: 7, background: lbg, color: lfg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{LETTERS[i]}</span>
                       <span style={{ flex: 1, color: fg, fontWeight: strong ? 600 : 500 }}>{opt}</span>{badge}
                     </div>
                   )
                 })}
               </div>
-              {reveal && chosen === null && <div style={{ marginTop: 14, fontSize: 12.5, color: T3 }}>You did not attempt this question.</div>}
-              {reveal && (
+              {rv && chosen === null && <div style={{ marginTop: 14, fontSize: 12.5, color: T3 }}>You did not attempt this question in the test.</div>}
+              {rv && (
                 <div style={{ marginTop: 22, borderLeft: `3px solid ${P}`, background: '#F7F9FF', borderRadius: '0 8px 8px 0', padding: '14px 18px', maxWidth: 800 }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: P, marginBottom: 6 }}>Solution</div>
                   <p style={{ fontSize: 14, lineHeight: 1.7, color: '#3A4152' }}>{expl.text}</p>
@@ -211,10 +236,16 @@ export default function AnalysisView({ questions, sections, answers, marked = []
               )}
             </div>
           </div>
-          <div style={{ flexShrink: 0, background: th.pane, borderTop: `1px solid ${th.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px' }}>
-            <button onClick={() => goToPos(-1)} disabled={curPos === 0} style={{ background: th.pane, border: `1px solid ${th.bd}`, borderRadius: isNprep ? 10 : 4, padding: '10px 18px', fontSize: 13, fontWeight: 600, color: T1, cursor: curPos === 0 ? 'default' : 'pointer', opacity: curPos === 0 ? 0.5 : 1 }}>« Previous</button>
+          <div style={{ flexShrink: 0, background: th.pane, borderTop: `1px solid ${th.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', gap: 12 }}>
+            <button onClick={() => goToPos(-1)} disabled={curPos === 0} style={{ background: th.pane, border: `1px solid ${th.bd}`, borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, color: T1, cursor: curPos === 0 ? 'default' : 'pointer', opacity: curPos === 0 ? 0.5 : 1 }}>« Previous</button>
             <span style={{ fontSize: 12, color: th.faint }}>Question {curNum} of {ordered.length}</span>
-            <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: isNprep ? 10 : 4, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button onClick={() => doReveal(!rv)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: rv ? PL : '#fff', border: `1px solid ${rv ? P : '#E4E8F1'}`, color: rv ? P : T2, borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                {rv ? 'Hide answer' : 'Show answer'}
+              </button>
+              <button onClick={() => goToPos(1)} disabled={curPos === ordered.length - 1} style={{ background: th.accent, border: 'none', borderRadius: 10, padding: '10px 26px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: curPos === ordered.length - 1 ? 'default' : 'pointer', opacity: curPos === ordered.length - 1 ? 0.6 : 1 }}>Next »</button>
+            </div>
           </div>
         </div>
         {/* Palette collapse toggle — lets the review go full-page like the attempt view */}
