@@ -141,7 +141,7 @@ export default function DesktopTests({
         <div style={{ marginTop:16 }}>
           <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:12 }}>Upcoming Tests</div>
           {topUpcoming.map(t => (
-            <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={SERIES.find(s => s.id === t.seriesId)?.label} />
+            <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={SERIES.find(s => s.id === t.seriesId)?.label} desktop />
           ))}
         </div>
       </aside>

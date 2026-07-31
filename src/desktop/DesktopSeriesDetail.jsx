@@ -48,7 +48,7 @@ export default function DesktopSeriesDetail({ seriesId, userTier, registeredIds,
           <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, textAlign:'center', padding:'32px 0', color:T3, fontSize:13.5 }}>No upcoming tests right now</div>
         ) : (
           <div style={grid}>
-            {upcoming.map(t => <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} />)}
+            {upcoming.map(t => <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} desktop />)}
           </div>
         )}
       </div>
@@ -62,7 +62,7 @@ export default function DesktopSeriesDetail({ seriesId, userTier, registeredIds,
         {past.length === 0 ? (
           <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, textAlign:'center', padding:'32px 0', color:T3, fontSize:13.5 }}>No past tests yet</div>
         ) : (
-          <div style={grid}>{past.map(t => <PastCard key={t.id} test={t} />)}</div>
+          <div style={grid}>{past.map(t => <PastCard key={t.id} test={t} desktop />)}</div>
         )}
       </div>
     </div>

@@ -80,7 +80,7 @@ export default function DesktopCalendar({ registeredIds, onRegisterClick, onBack
                 {dg.tests.map(t => {
                   const series = SERIES.find(s => s.id === t.seriesId)
                   const label = [series.label.replace(' Test Series', ''), t.type && NORCET_TYPE_LABEL[t.type]].filter(Boolean).join(' · ')
-                  return <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={label} />
+                  return <UpcomingCard key={t.id} test={t} isRegistered={registeredIds.has(t.id)} onRegisterClick={onRegisterClick} label={label} desktop />
                 })}
               </div>
             </div>
