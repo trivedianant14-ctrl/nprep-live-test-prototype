@@ -5,62 +5,101 @@ import { downloadReportCard } from '../utils/reportPdf'
 import { scholarshipAmount } from '../utils/tierBranding'
 import { syllabusFor } from '../utils/syllabus'
 
-// "View Syllabus" — the PW/Unacademy card affordance. A subtle link that opens a
-// bottom sheet listing the subjects and topics the test covers. Self-contained (owns
-// its open state and sheet), so any screen using a card gets it for free.
-function SyllabusButton({ test, desktop }) {
+// "View syllabus" — shown ONLY on subject tests (Pre-boards), never on full mocks.
+// Mobile: a subtle link that opens a bottom sheet. Desktop: the link flips the card
+// like a flashcard to reveal the syllabus on the back (scrolls if it's long).
+const ListIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+)
+
+// Mobile bottom sheet with the "View syllabus" trigger.
+function SyllabusSheet({ test }) {
   const [open, setOpen] = useState(false)
   const syl = syllabusFor(test)
-  const topicCount = syl.groups.reduce((n, g) => n + g.topics.length, 0)
-  const sheetBody = (
-    <>
-      <div className="sheet-handle" />
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, padding:'14px 18px 12px', borderBottom:`1px solid ${BD}` }}>
-        <div style={{ minWidth:0 }}>
-          <div style={{ fontSize:15, fontWeight:700, color:T1 }}>Syllabus</div>
-          <div style={{ fontSize:11.5, color:T3, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{test.fullName} · {syl.scope === 'full' ? 'Full syllabus' : 'Subject-focused'} · {topicCount} topics</div>
-        </div>
-        <button onClick={() => setOpen(false)} style={{ flexShrink:0, background:BG2, border:'none', borderRadius:'50%', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:T2 }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div className="scroll" style={{ padding:'8px 18px 6px' }}>
-        {syl.groups.map((g, gi) => (
-          <div key={g.code} style={{ padding:'12px 0', borderBottom:gi < syl.groups.length - 1 ? `1px solid ${BD}` : 'none' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}>
-              <span style={{ fontSize:10, fontWeight:700, color:P, background:PL, borderRadius:6, padding:'3px 7px' }}>{g.code}</span>
-              <span style={{ fontSize:13, fontWeight:600, color:T1 }}>{g.subject}</span>
-              <span style={{ fontSize:11, color:T3, marginLeft:'auto' }}>{g.topics.length}</span>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns: desktop ? '1fr 1fr' : '1fr', gap:'7px 20px', paddingLeft:2 }}>
-              {g.topics.map((tp, i) => (
-                <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:9, fontSize:12.5, color:T2, lineHeight:1.4 }}>
-                  <span style={{ width:5, height:5, borderRadius:'50%', background:PB, flexShrink:0, marginTop:6 }} />
-                  {tp}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding:'11px 18px', borderTop:`1px solid ${BD}`, fontSize:10.5, color:T3 }}>Indicative syllabus — actual topic weightage may vary by test.</div>
-    </>
-  )
+  const g = syl.groups[0]
   return (
     <>
       <button onClick={() => setOpen(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', padding:0, color:P, fontSize:12, fontWeight:600, cursor:'pointer', marginBottom:11 }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        View syllabus
+        <ListIcon/> View syllabus
       </button>
-      {open && (desktop
-        ? <div onClick={() => setOpen(false)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(19,27,99,0.4)', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center' }}>
-            <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:660, maxHeight:'82vh', background:'#fff', borderRadius:'20px 20px 0 0', display:'flex', flexDirection:'column', boxShadow:'0 -8px 44px rgba(0,0,0,0.22)' }}>{sheetBody}</div>
+      {open && (
+        <div className="overlay" onClick={() => setOpen(false)} style={{ zIndex:80 }}>
+          <div className="sheet" onClick={e => e.stopPropagation()} style={{ maxHeight:'80%' }}>
+            <div className="sheet-handle" />
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, padding:'14px 18px 12px', borderBottom:`1px solid ${BD}` }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:700, color:T1 }}>Syllabus</div>
+                <div style={{ fontSize:11.5, color:T3, marginTop:2 }}>{g.subject} · {g.topics.length} topics</div>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ flexShrink:0, background:BG2, border:'none', borderRadius:'50%', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:T2 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="scroll" style={{ padding:'12px 18px 8px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:11 }}>
+                <span style={{ fontSize:10, fontWeight:700, color:P, background:PL, borderRadius:6, padding:'3px 7px' }}>{g.code}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:T1 }}>{g.subject}</span>
+              </div>
+              {g.topics.map((tp, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:9, fontSize:12.5, color:T2, lineHeight:1.5, marginBottom:9 }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:PB, flexShrink:0, marginTop:6 }} />{tp}
+                </div>
+              ))}
+            </div>
+            <div style={{ padding:'11px 18px', borderTop:`1px solid ${BD}`, fontSize:10.5, color:T3 }}>Indicative syllabus — actual topic weightage may vary by test.</div>
           </div>
-        : <div className="overlay" onClick={() => setOpen(false)} style={{ zIndex:80 }}>
-            <div className="sheet" onClick={e => e.stopPropagation()} style={{ maxHeight:'80%' }}>{sheetBody}</div>
-          </div>
+        </div>
       )}
     </>
+  )
+}
+
+// Desktop "View syllabus" link that flips the card.
+function FlipLink({ onClick }) {
+  return (
+    <button onClick={onClick} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', padding:0, color:P, fontSize:12, fontWeight:600, cursor:'pointer', marginBottom:11 }}>
+      <ListIcon/> View syllabus
+    </button>
+  )
+}
+
+// 3D flip container: front (in-flow, sets the height) + back (absolute, rotated 180°).
+function FlipCard({ children, back }) {
+  const [flipped, setFlipped] = useState(false)
+  return (
+    <div style={{ perspective:1600, marginBottom:10 }}>
+      <div style={{ position:'relative', transformStyle:'preserve-3d', transition:'transform .55s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'none' }}>
+        <div style={{ backfaceVisibility:'hidden', WebkitBackfaceVisibility:'hidden' }}>{children(setFlipped)}</div>
+        <div style={{ position:'absolute', inset:0, backfaceVisibility:'hidden', WebkitBackfaceVisibility:'hidden', transform:'rotateY(180deg)' }}>{back(setFlipped)}</div>
+      </div>
+    </div>
+  )
+}
+
+// The syllabus panel on the flipped (back) face — fills the card box; topics scroll if long.
+function SyllabusBackFace({ test, syl, onBack }) {
+  const g = syl.groups[0]
+  return (
+    <div style={{ background:'#fff', border:`1.5px solid ${P}`, borderRadius:14, height:'100%', boxSizing:'border-box', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:9, padding:'12px 14px 10px', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
+        <span style={{ fontSize:10, fontWeight:700, color:P, background:PL, borderRadius:6, padding:'3px 7px', flexShrink:0 }}>{g.code}</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T1 }}>Syllabus</div>
+          <div style={{ fontSize:10.5, color:T3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{g.subject} · {g.topics.length} topics</div>
+        </div>
+        <button onClick={onBack} title="Back to test" style={{ flexShrink:0, background:BG2, border:'none', borderRadius:'50%', width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:T2 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'10px 14px 8px' }}>
+        {g.topics.map((tp, i) => (
+          <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:9, fontSize:12.5, color:T2, lineHeight:1.5, marginBottom:8 }}>
+            <span style={{ width:5, height:5, borderRadius:'50%', background:PB, flexShrink:0, marginTop:6 }} />{tp}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding:'8px 14px', borderTop:`1px solid ${BD}`, fontSize:9.5, color:T3, flexShrink:0 }}>Indicative — actual weightage may vary.</div>
+    </div>
   )
 }
 
@@ -100,8 +139,11 @@ function StatusPill({ isRegistered, regCloses }) {
 // subtitle — the card used to carry a separate bordered chip for this; now it's just
 // the first word of a sentence a student already reads top to bottom.
 export function UpcomingCard({ test, isRegistered, onRegisterClick, label, desktop }) {
-  return (
-    <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom:10 }}>
+  const syl = syllabusFor(test)
+  const showSyllabus = syl.scope === 'subject'   // only subject tests (Pre-boards), not full mocks
+  const flip = desktop && showSyllabus
+  const front = (setFlipped) => (
+    <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom: flip ? 0 : 10, boxSizing:'border-box' }}>
       {test.recommended && (
         <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:8 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill={P} stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
@@ -124,7 +166,7 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label, deskt
           `${(isRegistered ? test.enrolled + 1 : test.enrolled).toLocaleString()} registered`,
         ]}
       />
-      <SyllabusButton test={test} desktop={desktop} />
+      {showSyllabus && (desktop ? <FlipLink onClick={() => setFlipped(true)} /> : <SyllabusSheet test={test} />)}
       {test.deliveryChannel === 'whatsapp' ? (
         <div style={{ width:'100%', padding:'10px', borderRadius:24, fontSize:12, fontWeight:600, background:GL, color:G, textAlign:'center' }}>
           Sent via WhatsApp — no app registration needed
@@ -138,12 +180,17 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label, deskt
       )}
     </div>
   )
+  if (!flip) return front(null)
+  return <FlipCard back={(setFlipped) => <SyllabusBackFace test={test} syl={syl} onBack={() => setFlipped(false)} />}>{front}</FlipCard>
 }
 
 export function PastCard({ test, label, desktop }) {
   if (test.attempted) {
-    return (
-      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom:10 }}>
+    const syl = syllabusFor(test)
+    const showSyllabus = syl.scope === 'subject'   // only subject tests (Pre-boards)
+    const flip = desktop && showSyllabus
+    const front = (setFlipped) => (
+      <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'14px', marginBottom: flip ? 0 : 10, boxSizing:'border-box' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10, marginBottom:4 }}>
           <div style={{ fontSize:13.5, fontWeight:600, color:T1, lineHeight:1.35 }}>{test.fullName}</div>
           <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:10.5, fontWeight:600, color:G, background:GL, padding:'4px 10px 4px 8px', borderRadius:20, whiteSpace:'nowrap' }}>
@@ -162,7 +209,7 @@ export function PastCard({ test, label, desktop }) {
             test.score && <span style={{ fontWeight:700, color:G }}>{test.score}/{test.mks}</span>,
           ]}
         />
-        <SyllabusButton test={test} desktop={desktop} />
+        {showSyllabus && (desktop ? <FlipLink onClick={() => setFlipped(true)} /> : <SyllabusSheet test={test} />)}
         <button
           onClick={() => {
             if (!test.reportLabel) return
@@ -195,6 +242,8 @@ export function PastCard({ test, label, desktop }) {
         )}
       </div>
     )
+    if (!flip) return front(null)
+    return <FlipCard back={(setFlipped) => <SyllabusBackFace test={test} syl={syl} onBack={() => setFlipped(false)} />}>{front}</FlipCard>
   }
 
   return (
