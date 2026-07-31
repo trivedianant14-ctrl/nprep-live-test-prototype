@@ -1,7 +1,62 @@
-import { P, PL, PD, G, GL, A, AL, T1, T2, T3, BD, BG2 } from '../data'
+import { useState } from 'react'
+import { P, PL, PB, PD, G, GL, A, AL, T1, T2, T3, BD, BG2 } from '../data'
 import { ClockIcon, StarIcon } from '../icons'
 import { downloadReportCard } from '../utils/reportPdf'
 import { scholarshipAmount } from '../utils/tierBranding'
+import { syllabusFor } from '../utils/syllabus'
+
+// "View Syllabus" — the PW/Unacademy card affordance. A subtle link that opens a
+// bottom sheet listing the subjects and topics the test covers. Self-contained (owns
+// its open state and sheet), so any screen using a card gets it for free.
+function SyllabusButton({ test }) {
+  const [open, setOpen] = useState(false)
+  const syl = syllabusFor(test)
+  const topicCount = syl.groups.reduce((n, g) => n + g.topics.length, 0)
+  return (
+    <>
+      <button onClick={() => setOpen(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:'none', padding:0, color:P, fontSize:12, fontWeight:600, cursor:'pointer', marginBottom:11 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        View syllabus
+      </button>
+      {open && (
+        <div className="overlay" onClick={() => setOpen(false)} style={{ zIndex:80 }}>
+          <div className="sheet" onClick={e => e.stopPropagation()} style={{ maxHeight:'80%' }}>
+            <div className="sheet-handle" />
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, padding:'14px 18px 12px', borderBottom:`1px solid ${BD}` }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:15, fontWeight:700, color:T1 }}>Syllabus</div>
+                <div style={{ fontSize:11.5, color:T3, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{test.fullName} · {syl.scope === 'full' ? 'Full syllabus' : 'Subject-focused'} · {topicCount} topics</div>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ flexShrink:0, background:BG2, border:'none', borderRadius:'50%', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:T2 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="scroll" style={{ padding:'8px 18px 6px' }}>
+              {syl.groups.map((g, gi) => (
+                <div key={g.code} style={{ padding:'12px 0', borderBottom:gi < syl.groups.length - 1 ? `1px solid ${BD}` : 'none' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:P, background:PL, borderRadius:6, padding:'3px 7px' }}>{g.code}</span>
+                    <span style={{ fontSize:13, fontWeight:600, color:T1 }}>{g.subject}</span>
+                    <span style={{ fontSize:11, color:T3, marginLeft:'auto' }}>{g.topics.length}</span>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:7, paddingLeft:2 }}>
+                    {g.topics.map((tp, i) => (
+                      <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:9, fontSize:12.5, color:T2, lineHeight:1.4 }}>
+                        <span style={{ width:5, height:5, borderRadius:'50%', background:PB, flexShrink:0, marginTop:6 }} />
+                        {tp}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding:'11px 18px', borderTop:`1px solid ${BD}`, fontSize:10.5, color:T3 }}>Indicative syllabus — actual topic weightage may vary by test.</div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 // Joins meta fragments with a middot, skipping empty ones — used instead of separate
 // pills for each fact so a card reads as one calm line, not a row of colored chips.
@@ -63,6 +118,7 @@ export function UpcomingCard({ test, isRegistered, onRegisterClick, label }) {
           `${(isRegistered ? test.enrolled + 1 : test.enrolled).toLocaleString()} registered`,
         ]}
       />
+      <SyllabusButton test={test} />
       {test.deliveryChannel === 'whatsapp' ? (
         <div style={{ width:'100%', padding:'10px', borderRadius:24, fontSize:12, fontWeight:600, background:GL, color:G, textAlign:'center' }}>
           Sent via WhatsApp — no app registration needed
@@ -100,6 +156,7 @@ export function PastCard({ test, label }) {
             test.score && <span style={{ fontWeight:700, color:G }}>{test.score}/{test.mks}</span>,
           ]}
         />
+        <SyllabusButton test={test} />
         <button
           onClick={() => {
             if (!test.reportLabel) return
