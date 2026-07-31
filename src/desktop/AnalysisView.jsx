@@ -336,8 +336,8 @@ export default function AnalysisView({ questions, sections, answers, marked = []
             <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 28px' }}>
               <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Section {sections[curSec].id}</div>
               {q.passage && (
-                <div style={{ marginBottom: 16, border: '1px solid #d3dae2', borderLeft: '3px solid #C98A1B', background: '#FFFBF2', borderRadius: 4, padding: '12px 16px' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#C98A1B', marginBottom: 5 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
+                <div style={{ marginBottom: 16, border: '1px solid #d3dae2', background: '#f7f8fa', borderRadius: 4, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#444', marginBottom: 6 }}>Case Study{q.caseTotal ? ` (Question ${q.caseIndex} of ${q.caseTotal})` : ''}</div>
                   <p style={{ fontSize: 13.5, lineHeight: 1.6, color: '#333' }}>{q.passage}</p>
                 </div>
               )}

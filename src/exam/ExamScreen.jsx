@@ -427,12 +427,17 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             <span style={{ width:3, height:13, borderRadius:2, background:P }} />
             <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:1.3, textTransform:'uppercase', color:P }}>Question {solIdx + 1}</span>
           </div>
-          {q.passage && (
+          {q.passage && (isNPrep ? (
             <div style={{ marginBottom:14, border:`1px solid ${BD}`, borderLeft:'3px solid #C98A1B', background:'#FFFBF2', borderRadius:8, padding:'11px 13px' }}>
               <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:1, textTransform:'uppercase', color:'#C98A1B', marginBottom:5 }}>Case scenario{q.caseTotal ? ` · Q${q.caseIndex}/${q.caseTotal}` : ''}</div>
               <p style={{ fontSize:13, lineHeight:1.6, color:'#3A4152' }}>{q.passage}</p>
             </div>
-          )}
+          ) : (
+            <div style={{ marginBottom:14, border:'1px solid #d3dae2', background:'#f7f8fa', borderRadius:4, padding:'11px 13px' }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'#444', marginBottom:5 }}>Case Study{q.caseTotal ? ` (Question ${q.caseIndex} of ${q.caseTotal})` : ''}</div>
+              <p style={{ fontSize:13, lineHeight:1.6, color:'#333' }}>{q.passage}</p>
+            </div>
+          ))}
           <p style={{ fontSize:15, fontWeight:600, lineHeight:1.55, color:PD, marginBottom:16 }}>{q.text}</p>
           {q.image && <img src={q.image} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ maxWidth:'100%', maxHeight:220, border:`1px solid ${BD}`, borderRadius:6, marginBottom:16, display:'block' }} />}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
