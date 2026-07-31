@@ -68,7 +68,9 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
 
   // The candidate-details landing is skipped — the flow opens on the instructions page.
   const [phase, setPhase] = useState('instructions') // instructions | exam | submitted | analysis
+  const [instrStep, setInstrStep] = useState('general') // NTA-style 2-page flow: general | declaration
   const [agreed, setAgreed] = useState(false)
+  const [defaultLang, setDefaultLang] = useState('English')
   const [curSec, setCurSec] = useState(0)
   const [curQLocal, setCurQLocal] = useState(0)
   const [sectionTimers, setSectionTimers] = useState(() => SECTIONS.map(() => META.sectionSeconds || SECTION_DURATION))
@@ -203,39 +205,79 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   // SCREEN 1 — General instructions (candidate-details landing is skipped)
   // ─────────────────────────────────────────────────────────────────────────
   if (phase === 'instructions') {
+    const totalMin = SECTIONS.length * secMin
+    const isDecl = instrStep === 'declaration'
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#f3f8fb', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', color: '#1a1a1a' }}>
         <div style={{ background: NAVY, color: '#fff', padding: '12px 40px', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{examTitle}</div>
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '28px 40px' }}>
-            <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>General Instructions:</h2>
-            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }}>
-              <li style={{ marginBottom: 10 }}>The clock is set at the server. The countdown timer at the top will display the remaining time for the current section. When it reaches zero, that section ends by itself.</li>
-              <li style={{ marginBottom: 10 }}>The Question Palette on the right shows the status of each question using the symbols below:</li>
-            </ol>
-            <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '14px 18px', margin: '12px 0 18px' }}>
-              {legendItems.map(it => (
-                <div key={it.cls} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0', fontSize: 13.5, color: '#333' }}>
-                  <PaletteCell status={it.cls} num="" isCurrent={false} onClick={() => {}} />
-                  {it.label}
+            {!isDecl ? (
+              <>
+                <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>General Instructions:</h2>
+                <p style={{ fontSize: 13.5, color: '#444', marginBottom: 14 }}>Please read the instructions carefully.</p>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }}>
+                  <li style={{ marginBottom: 10 }}>The total duration of the examination is <strong>{totalMin} minutes</strong>, divided across {SECTIONS.length} sections of {secMin} minutes each.</li>
+                  <li style={{ marginBottom: 10 }}>The clock has been set at the server. The countdown timer at the top of the screen will display the remaining time available for the <strong>current section</strong>. When the timer reaches zero, that section will end by itself — you are not required to end or submit it.</li>
+                  <li style={{ marginBottom: 10 }}>The Question Palette on the right side of the screen shows the status of each question using one of the following symbols:</li>
+                </ol>
+                <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '14px 18px', margin: '12px 0 18px' }}>
+                  {legendItems.map(it => (
+                    <div key={it.cls} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0', fontSize: 13.5, color: '#333' }}>
+                      <PaletteCell status={it.cls} num="" isCurrent={false} onClick={() => {}} />
+                      {it.label}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: '#333', marginBottom: 14 }}>
-              <strong>Mark For Review</strong> indicates you would like to look at the question again. An answered &amp; marked question is still evaluated.
-            </p>
-            <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Answering a Question:</h3>
-            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={3}>
-              <li style={{ marginBottom: 8 }}>Choose one of the 4 options (A–D) by clicking the bubble before it. Click again or use <strong>Clear Response</strong> to deselect.</li>
-              <li style={{ marginBottom: 8 }}>You MUST click <strong>Save &amp; Next</strong> to save your answer. Jumping via the palette does not save the current answer.</li>
-              <li style={{ marginBottom: 8 }}>Sections are attempted in a fixed sequence. Only the current section is active; when its {secMin}-minute timer ends it closes and the next section opens automatically. <strong>You cannot return to a completed section.</strong></li>
-            </ol>
-            <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
-            <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={6}>
-              <li style={{ marginBottom: 8 }}>Click <strong>Submit</strong> on the right panel to view a section-wise summary and confirm submission.</li>
-              <li style={{ marginBottom: 8 }}>The test is submitted automatically when time expires.</li>
-            </ol>
-            <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is an {provider} practice simulation of the {seriesName} test, built to mirror the actual NORCET exam-day interface so you can prepare under real conditions.</p>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={4}>
+                  <li style={{ marginBottom: 8 }}>The <strong>Marked for Review</strong> status simply acts as a reminder that you have set to look at the question again. If an answer is selected for a question that is Marked for Review, that answer <strong>will be considered</strong> in the final evaluation.</li>
+                </ol>
+                <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Answering a Question:</h3>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={5}>
+                  <li style={{ marginBottom: 8 }}>To select your answer, click on one of the four option bubbles (A–D).</li>
+                  <li style={{ marginBottom: 8 }}>To deselect a chosen answer, click the selected bubble again or click <strong>Clear Response</strong>. To change it, click the bubble of another option.</li>
+                  <li style={{ marginBottom: 8 }}>To save your answer, you <strong>MUST</strong> click <strong>Save &amp; Next</strong>. Merely selecting an option without clicking Save &amp; Next will not save it.</li>
+                  <li style={{ marginBottom: 8 }}>To mark a question for review, click <strong>Mark for Review &amp; Next</strong>. A marked question that also has a selected answer is still evaluated.</li>
+                  <li style={{ marginBottom: 8 }}>To go to a question, click its number in the Question Palette. Note that this does <strong>not</strong> save your answer to the current question — always use Save &amp; Next.</li>
+                </ol>
+                <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Navigating through Sections:</h3>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={10}>
+                  <li style={{ marginBottom: 8 }}>The sections are displayed on the top bar of the screen. Only the <strong>current</strong> section is active and highlighted.</li>
+                  <li style={{ marginBottom: 8 }}>Sections are attempted in a fixed sequence. When the current section's {secMin}-minute timer ends it closes and the next section opens automatically. <strong>You cannot return to a completed section.</strong></li>
+                  <li style={{ marginBottom: 8 }}>The section summary (answered / not answered counts) is shown above the Question Palette.</li>
+                </ol>
+                <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={13}>
+                  <li style={{ marginBottom: 8 }}>Click <strong>Submit</strong> on the right panel to view a section-wise summary and confirm submission.</li>
+                  <li style={{ marginBottom: 8 }}>The test is submitted automatically when the overall time expires.</li>
+                  <li style={{ marginBottom: 8 }}>Do not click Submit unless you have completed the test. In case of any technical issue, contact the invigilator.</li>
+                </ol>
+                <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is an {provider} practice simulation of the {seriesName} test, built to mirror the actual NORCET exam-day interface so you can prepare under real conditions.</p>
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>Other Important Instructions &amp; Declaration:</h2>
+                <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }}>
+                  <li style={{ marginBottom: 8 }}>The examination must be attempted on your own. Impersonation is a serious offence.</li>
+                  <li style={{ marginBottom: 8 }}>You must not possess, wear or carry any prohibited item — mobile phone, calculator, smart watch, electronic device, notes or study material — during the examination.</li>
+                  <li style={{ marginBottom: 8 }}>Navigating away from the test window, switching tabs or exiting full screen is recorded and may be treated as a violation of exam conduct.</li>
+                  <li style={{ marginBottom: 8 }}>Any candidate found using unfair means will be disqualified from the examination.</li>
+                  <li style={{ marginBottom: 8 }}>All the computer hardware allotted to you should be in proper working condition. Report any issue before you begin.</li>
+                </ol>
+                <div style={{ margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <label style={{ fontSize: 13.5, color: '#333' }}>Choose your default language:</label>
+                  <select value={defaultLang} onChange={e => setDefaultLang(e.target.value)} style={{ fontFamily: 'Arial, sans-serif', fontSize: 13.5, padding: '5px 10px', border: '1px solid #b8cde4', borderRadius: 3, background: '#fff', color: NAVY }}>
+                    <option>English</option>
+                    <option>Hindi</option>
+                  </select>
+                </div>
+                <p style={{ fontSize: 12.5, color: '#777', marginBottom: 18 }}>Please note all questions will appear in your default language. This language can be changed for a particular question later.</p>
+                <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '16px 18px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Declaration</div>
+                  <p style={{ fontSize: 13.5, lineHeight: 1.75, color: '#333' }}>I have read and understood all the instructions given above. I declare that I am not in possession of, nor wearing, nor carrying any prohibited item. I agree that the computer hardware allotted to me is in proper working condition. I understand that in case of not adhering to the instructions, I shall be liable to action as per the rules of the examination.</p>
+                </div>
+              </>
+            )}
           </div>
 
           <aside style={{ width: 220, flexShrink: 0, background: '#fff', borderLeft: '1px solid #ddd', padding: '28px 20px', textAlign: 'center' }}>
@@ -250,21 +292,25 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
             <strong style={{ fontSize: 12.5 }}>{examTitle}</strong>
             <span style={{ display: 'flex', gap: 16 }}>
               <span>Total Questions: <strong>{QUESTIONS.length}</strong></span>
-              <span>Duration: <strong>{SECTIONS.length * secMin} Min</strong></span>
+              <span>Duration: <strong>{totalMin} Min</strong></span>
               <span>Max Marks: <strong>{META.totalMarks}</strong></span>
               <span style={{ color: '#1a8c36' }}>+ve: <strong>{META.correctMarks}</strong></span>
               <span style={{ color: RED_TXT }}>–ve: <strong>{Math.abs(META.wrongMarks)}</strong></span>
             </span>
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 40px', fontSize: 13.5, cursor: 'pointer' }}>
-            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 16, height: 16 }} />
-            I have read all the instructions carefully and I agree to abide by the terms.
-          </label>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 40px 16px' }}>
-            <button onClick={onBack || onExit} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Back</button>
-            <button disabled={!agreed} onClick={beginExam} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>
-              I am ready to begin
-            </button>
+          {isDecl && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 40px', fontSize: 13.5, cursor: 'pointer' }}>
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 16, height: 16 }} />
+              I have read all the instructions carefully and I agree to abide by the terms of the declaration above.
+            </label>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: isDecl ? '10px 40px 16px' : '14px 40px 16px' }}>
+            {!isDecl
+              ? <button onClick={onBack || onExit} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Back</button>
+              : <button onClick={() => setInstrStep('general')} style={{ ...cbtBtn(), background: '#e0eaf4', color: NAVY, border: '1px solid #b8cde4' }}>← Previous</button>}
+            {!isDecl
+              ? <button onClick={() => setInstrStep('declaration')} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: 'pointer', color: '#fff', background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` }}>Next ▸</button>
+              : <button disabled={!agreed} onClick={beginExam} style={{ padding: '11px 26px', fontSize: 14, fontWeight: 700, border: 'none', borderRadius: 4, cursor: agreed ? 'pointer' : 'not-allowed', color: '#fff', background: agreed ? `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)` : '#d4d8dc' }}>I am ready to begin</button>}
           </div>
         </div>
       </div>
