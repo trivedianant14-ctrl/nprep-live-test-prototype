@@ -8,6 +8,7 @@ import {
 import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from './shuffle'
+import nprepLogo from '../assets/nprep-logo.png'
 
 const MAX_WARNINGS = 3
 
@@ -409,9 +410,11 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
 
         <div style={{ padding:'4px 12px 8px', display:'flex', alignItems:'center', gap:8 }}>
           <button onClick={() => setShowExitConfirm(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.8)', fontSize:18, lineHeight:1, padding:0, flexShrink:0 }}>✕</button>
-          <div style={{ flex:1, textAlign:'center' }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{isNPrep ? EXAM_META.shortName : EXAM_META.name}</div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:1 }}>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+            {isNPrep
+              ? <div style={{ display:'inline-flex', background:'#fff', padding:'3px 8px', borderRadius:7 }}><img src={nprepLogo} alt="NPrep" style={{ height:16, width:'auto', display:'block' }} /></div>
+              : <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{EXAM_META.name}</div>}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
               <span style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Total Time Remaining:</span>
               <span style={{ fontSize:14, fontWeight:900, color: totalTimeLeft <= 300 ? '#ff8080' : '#ffcc44', letterSpacing:'0.05em', fontVariantNumeric:'tabular-nums' }}>{timerStr}</span>
             </div>
@@ -421,19 +424,21 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           </button>
         </div>
 
-        {/* Candidate strip */}
-        <div style={{ background:'rgba(0,0,0,0.22)', padding:'6px 14px', display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:34, height:40, background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:'white', flexShrink:0 }}>A</div>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{EXAM_META.candidate}</div>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Nursing Officer · {EXAM_META.stage || 'Prelims'}</div>
+        {/* Candidate strip — only in the NORCET (govt-CBT) view; NPrep drops candidate/roll */}
+        {!isNPrep && (
+          <div style={{ background:'rgba(0,0,0,0.22)', padding:'6px 14px', display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:34, height:40, background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, fontWeight:700, color:'white', flexShrink:0 }}>A</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{EXAM_META.candidate}</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Nursing Officer · {EXAM_META.stage || 'Prelims'}</div>
+            </div>
+            <div style={{ fontSize:11, textAlign:'right', flexShrink:0 }}>
+              <span style={{ color:'#7fff88', fontWeight:700 }}>+{EXAM_META.correctMarks}</span>
+              <span style={{ color:'rgba(255,255,255,0.45)' }}> / </span>
+              <span style={{ color:'#ff8080', fontWeight:700 }}>{EXAM_META.wrongMarks}</span>
+            </div>
           </div>
-          <div style={{ fontSize:11, textAlign:'right', flexShrink:0 }}>
-            <span style={{ color:'#7fff88', fontWeight:700 }}>+{EXAM_META.correctMarks}</span>
-            <span style={{ color:'rgba(255,255,255,0.45)' }}> / </span>
-            <span style={{ color:'#ff8080', fontWeight:700 }}>{EXAM_META.wrongMarks}</span>
-          </div>
-        </div>
+        )}
 
         {/* Section tabs */}
         <div className="scroll" style={{ display:'flex', overflowX:'auto', borderTop:'1px solid rgba(255,255,255,0.15)' }}>
@@ -441,13 +446,13 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             const isAct = i === curSec, isLk = sectionLocked[i], st = sectionTimers[i]
             return (
               <div key={sec.id} onClick={() => { setCurSec(i); setCurQLocal(0) }} style={{
-                flexShrink:0, padding:'6px 12px 7px', cursor:'pointer',
+                flexShrink:0, padding:'6px 14px 7px', cursor:'pointer',
                 borderRight:'1px solid rgba(255,255,255,0.1)',
                 borderBottom: isAct ? '2.5px solid #ffcc44' : '2.5px solid transparent',
                 background: isAct ? 'rgba(255,255,255,0.12)' : isLk ? 'rgba(0,0,0,0.18)' : 'transparent',
               }}>
-                <div style={{ fontSize:11, fontWeight:isAct?700:500, color:isLk?'rgba(255,255,255,0.35)':'white', whiteSpace:'nowrap' }}>
-                  {sec.id}: {sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}
+                <div style={{ fontSize:11.5, fontWeight:isAct?700:500, color:isLk?'rgba(255,255,255,0.35)':'white', whiteSpace:'nowrap' }}>
+                  {isNPrep ? `Section ${sec.id}` : `${sec.id}: ${sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}`}
                 </div>
                 <div style={{ fontSize:10, marginTop:1, fontVariantNumeric:'tabular-nums', color: isLk ? '#ff8080' : st <= 120 ? '#ffcc44' : 'rgba(255,255,255,0.5)' }}>
                   {isLk ? 'Locked' : fmtSec(st)}
@@ -466,20 +471,30 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           </div>
         )}
 
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 16px 8px', borderBottom:'1px solid #eee' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:13, fontWeight:700, color:T1 }}>Question No. {curQLocal + 1}</span>
+        {isNPrep ? (
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px 4px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+              <span style={{ width:3, height:14, borderRadius:2, background:P }} />
+              <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', color:P }}>Question {curQLocal + 1}</span>
+            </div>
             {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20 }}>★ Marked</span>}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <span style={{ fontSize:11, color:T3 }}>Marks:</span>
-            <span style={{ fontSize:11, fontWeight:700, color:GRUN }}>+{EXAM_META.correctMarks}</span>
-            <span style={{ fontSize:11, color:T3 }}>/</span>
-            <span style={{ fontSize:11, fontWeight:700, color:DIAM }}>{EXAM_META.wrongMarks}</span>
+        ) : (
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 16px 8px', borderBottom:'1px solid #eee' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:13, fontWeight:700, color:T1 }}>Question No. {curQLocal + 1}</span>
+              {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20 }}>★ Marked</span>}
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <span style={{ fontSize:11, color:T3 }}>Marks:</span>
+              <span style={{ fontSize:11, fontWeight:700, color:GRUN }}>+{EXAM_META.correctMarks}</span>
+              <span style={{ fontSize:11, color:T3 }}>/</span>
+              <span style={{ fontSize:11, fontWeight:700, color:DIAM }}>{EXAM_META.wrongMarks}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div style={{ padding:'14px 16px 12px', fontSize:14, color:T1, lineHeight:1.75 }}>{q.text}</div>
+        <div style={{ padding:'12px 16px 14px', fontSize:15, fontWeight: isNPrep ? 600 : 400, color: isNPrep ? PD : T1, lineHeight:1.6 }}>{q.text}</div>
 
         {q.image && (
           <div style={{ position:'relative', borderTop:'1px solid #eee', borderBottom:'1px solid #eee', background:'#f8f8f8', height:200, overflow:'hidden' }}>
@@ -496,39 +511,73 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           <p style={{ padding:'6px 16px 0', fontSize:11, color:T3, fontStyle:'italic' }}>Tap the zoom button to inspect the image closely.</p>
         )}
 
-        <div>
-          {q.options.map((opt, oi) => {
-            const isSel = selected === oi
-            return (
-              <div key={oi} onClick={() => handleAnswer(oi)} style={{
-                display:'flex', alignItems:'flex-start', gap:10, padding:'11px 16px',
-                borderBottom: oi < q.options.length - 1 ? '1px solid #f0f0f0' : 'none',
-                cursor: isLocked ? 'default' : 'pointer',
-                background: isSel ? (isNPrep ? PL : '#eaf5ec') : 'white',
-              }}>
-                <input type="radio" readOnly checked={isSel} disabled={isLocked} style={{ marginTop:3, cursor: isLocked ? 'default' : 'pointer', accentColor:HDR, flexShrink:0 }} />
-                <div style={{ flex:1, fontSize:14, lineHeight:1.6, color: isSel ? HDR : T1 }}>
-                  <span style={{ fontWeight:700 }}>({String.fromCharCode(65 + oi)}) </span>{opt}
+        {isNPrep ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'0 16px 8px' }}>
+            {q.options.map((opt, oi) => {
+              const on = selected === oi
+              return (
+                <div key={oi} onClick={() => !isLocked && handleAnswer(oi)} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:10,
+                  background: on ? PL : 'white', border:`1px solid ${on ? P : '#E4E8F1'}`, boxShadow: on ? `inset 3px 0 0 ${P}` : 'none',
+                  cursor: isLocked ? 'default' : 'pointer',
+                }}>
+                  <span style={{ width:26, height:26, borderRadius:7, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12.5, fontWeight:700, background: on ? P : '#F1F3F9', color: on ? '#fff' : T2 }}>{String.fromCharCode(65 + oi)}</span>
+                  <span style={{ flex:1, fontSize:14, lineHeight:1.5, fontWeight: on ? 600 : 500, color: on ? PD : '#2A3244' }}>{opt}</span>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div>
+            {q.options.map((opt, oi) => {
+              const isSel = selected === oi
+              return (
+                <div key={oi} onClick={() => handleAnswer(oi)} style={{
+                  display:'flex', alignItems:'flex-start', gap:10, padding:'11px 16px',
+                  borderBottom: oi < q.options.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  cursor: isLocked ? 'default' : 'pointer',
+                  background: isSel ? '#eaf5ec' : 'white',
+                }}>
+                  <input type="radio" readOnly checked={isSel} disabled={isLocked} style={{ marginTop:3, cursor: isLocked ? 'default' : 'pointer', accentColor:HDR, flexShrink:0 }} />
+                  <div style={{ flex:1, fontSize:14, lineHeight:1.6, color: isSel ? HDR : T1 }}>
+                    <span style={{ fontWeight:700 }}>({String.fromCharCode(65 + oi)}) </span>{opt}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Bottom action bar */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#f5f5f5', borderTop:'1px solid #bbb', padding:'8px 12px 14px' }}>
-        <div style={{ display:'flex', gap:6, marginBottom:6 }}>
-          <button onClick={handleMarkNext} disabled={isLocked} style={{ ...gBtn({ flex:1, background: isMarked ? 'linear-gradient(#ede0ff,#c9a8f5)' : undefined, color: isMarked ? PURP : T1, opacity: isLocked ? 0.45 : 1 }) }}>
-            {isMarked ? '★ Marked for Review' : 'Mark for Review & Next'}
-          </button>
-          <button onClick={handleClear} disabled={isLocked} style={{ ...gBtn({ opacity: isLocked ? 0.45 : 1 }) }}>Clear Response</button>
+      {isNPrep ? (() => {
+        const nSec = (x = {}) => ({ padding:'11px 12px', fontSize:12.5, fontWeight:600, border:`1px solid ${BD}`, background:'#fff', color:T1, cursor:'pointer', borderRadius:10, ...x })
+        return (
+          <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff', borderTop:`1px solid ${BD}`, padding:'10px 14px 16px', boxShadow:'0 -2px 12px rgba(19,27,99,0.05)' }}>
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+              <button onClick={handleMarkNext} disabled={isLocked} style={nSec({ flex:1, background: isMarked ? '#F0E8FF' : '#fff', color: isMarked ? PURP : T1, borderColor: isMarked ? PURP : BD, opacity: isLocked ? 0.45 : 1 })}>{isMarked ? '★ Marked' : 'Mark for Review'}</button>
+              <button onClick={handleClear} disabled={isLocked} style={nSec({ opacity: isLocked ? 0.45 : 1 })}>Clear Response</button>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={goPrev} disabled={curSec === 0 && curQLocal === 0} style={nSec({ flex:1, borderRadius:24, opacity: (curSec === 0 && curQLocal === 0) ? 0.4 : 1 })}>« Previous</button>
+              <button onClick={handleSaveNext} style={{ flex:2, padding:'12px', fontSize:13, fontWeight:700, border:'none', borderRadius:24, background:P, color:'#fff', cursor:'pointer' }}>{isLastQ ? 'Submit Test' : 'Save & Next »'}</button>
+            </div>
+          </div>
+        )
+      })() : (
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#f5f5f5', borderTop:'1px solid #bbb', padding:'8px 12px 14px' }}>
+          <div style={{ display:'flex', gap:6, marginBottom:6 }}>
+            <button onClick={handleMarkNext} disabled={isLocked} style={{ ...gBtn({ flex:1, background: isMarked ? 'linear-gradient(#ede0ff,#c9a8f5)' : undefined, color: isMarked ? PURP : T1, opacity: isLocked ? 0.45 : 1 }) }}>
+              {isMarked ? '★ Marked for Review' : 'Mark for Review & Next'}
+            </button>
+            <button onClick={handleClear} disabled={isLocked} style={{ ...gBtn({ opacity: isLocked ? 0.45 : 1 }) }}>Clear Response</button>
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            <button onClick={goPrev} disabled={curSec === 0 && curQLocal === 0} style={{ ...gBtn({ flex:1, opacity: (curSec === 0 && curQLocal === 0) ? 0.4 : 1 }) }}>« Previous</button>
+            <button onClick={handleSaveNext} style={{ ...hPrim({ flex:2, fontSize:13 }) }}>{isLastQ ? 'Submit Exam' : 'Save & Next »'}</button>
+          </div>
         </div>
-        <div style={{ display:'flex', gap:6 }}>
-          <button onClick={goPrev} disabled={curSec === 0 && curQLocal === 0} style={{ ...gBtn({ flex:1, opacity: (curSec === 0 && curQLocal === 0) ? 0.4 : 1 }) }}>« Previous</button>
-          <button onClick={handleSaveNext} style={{ ...hPrim({ flex:2, fontSize:13 }) }}>{isLastQ ? 'Submit Exam' : 'Save & Next »'}</button>
-        </div>
-      </div>
+      )}
 
       {/* Question Palette bottom sheet */}
       {showGrid && (
