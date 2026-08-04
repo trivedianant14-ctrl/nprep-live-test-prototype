@@ -28,6 +28,11 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
       </div>
 
       <div className="scroll" style={{ flex:1, padding:'18px 16px 24px' }}>
+        {/* Desktop nudge — the exam is fuller on a large screen */}
+        <div style={{ display:'flex', alignItems:'flex-start', gap:9, background:PL, borderRadius:10, padding:'10px 12px', marginBottom:16 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={PD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, marginTop:1 }}><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span style={{ fontSize:11.5, color:PD, lineHeight:1.5 }}>For the best experience, browse <b>nprep.in</b> on desktop.</span>
+        </div>
         <div style={{ background:'white', border:`1px solid ${BD}`, borderRadius:14, padding:'16px', marginBottom:20 }}>
           <div style={{ fontSize:15, fontWeight:700, color:T1, marginBottom:4 }}>{m.shortName}</div>
           <div style={{ fontSize:11, color:T3, marginBottom:14 }}>{m.candidate} · Nursing Officer</div>
@@ -75,9 +80,23 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
           </div>
         )}
 
+        <div style={{ fontSize:13, fontWeight:700, color:T1, marginBottom:8 }}>General Instructions</div>
+        <ol style={{ paddingLeft:18, margin:'0 0 18px', fontSize:11.5, color:T2, lineHeight:1.7 }}>
+          <li style={{ marginBottom:7 }}>The test has <b>{sectionCount} section{sectionCount === 1 ? '' : 's'} of {sectionMinutes} minutes</b> each ({totalMinutes} min total). Each section has its own countdown timer, shown at the top.</li>
+          <li style={{ marginBottom:7 }}>Sections are attempted in a fixed order. When a section's timer ends it closes and the next opens automatically — <b>you cannot return to a completed section</b>.</li>
+          <li style={{ marginBottom:7 }}>Tap one of the four options to select your answer, then tap <b>Save &amp; Next</b> to save it and move on. Use <b>Clear Response</b> to deselect.</li>
+          <li style={{ marginBottom:7 }}>Use <b>Mark for Review</b> to flag a question to revisit within the same section.</li>
+          <li style={{ marginBottom:7 }}>The <b>Question Palette</b> shows the status of every question — answered, not answered, marked for review or not visited.</li>
+          <li style={{ marginBottom:7 }}>Marking: <b>+{m.correctMarks}</b> for a correct answer, <b>{m.wrongMarks}</b> for a wrong answer; an unattempted question scores 0.</li>
+          <li style={{ marginBottom:7 }}>Tap <b>Submit</b> to end the test; it also submits automatically when time expires.</li>
+          {interfaceMode === 'norcet'
+            ? <li><b>Real Exam Mode:</b> full-screen is required and the keyboard is disabled. Leaving full-screen or pressing a key counts as a warning — 3 warnings auto-submit your test.</li>
+            : <li><b>Prep Mode:</b> no full-screen lock and the keyboard is allowed — you can step away without penalty.</li>}
+        </ol>
+
         <label style={{ display:'flex', alignItems:'flex-start', gap:10, fontSize:12, color:T2, lineHeight:1.6, cursor:'pointer' }}>
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop:2, flexShrink:0 }} />
-          I have read the instructions and agree to abide by the exam rules. Once started, section timers cannot be paused.
+          I have read all the instructions and agree to abide by the exam rules. Once started, section timers cannot be paused.
         </label>
       </div>
 
