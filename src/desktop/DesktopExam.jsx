@@ -486,15 +486,29 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
         {/* Palette */}
         {paletteOpen && (
           <aside style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f0f0f0' }}>
-            <div style={{ height: 36, display: 'flex', alignItems: 'center', padding: '0 14px', background: NAVY, color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Question Palette</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', padding: '10px 12px', background: '#fff', borderBottom: '1px solid #ddd', fontSize: 12.5, flexShrink: 0 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: GREEN, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)', padding: '2px 0' }}>{counts.answered}</b> Answered</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: RED, color: '#fff', minWidth: 22, textAlign: 'center', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)', padding: '2px 0' }}>{counts.notanswered}</b> Not Answered</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: '#ddd', color: '#222', minWidth: 22, textAlign: 'center', border: '1px solid #aaa', padding: '1px 0' }}>{counts.notvisited}</b> Not Visited</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.marked}</b> Marked</span>
-              <span style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6 }}><b style={{ background: PURPLE, color: '#fff', minWidth: 22, textAlign: 'center', borderRadius: '50%', padding: '2px 0' }}>{counts.answeredmarked}</b> Answered &amp; Marked (evaluated)</span>
+            {/* Candidate strip — AIIMS palette leads with the candidate, not a title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: '#fff', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e2e8f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#6b7a90"><circle cx="12" cy="8" r="4" /><path d="M4 20.5c0-4 3.6-6 8-6s8 2 8 6z" /></svg>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>{META.candidate}</span>
             </div>
-            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, background: '#e6ebf2', flexShrink: 0 }}>Section {section.id}</div>
+            {/* Legend — the exact 5 NTA states, with shaped count chips */}
+            <div style={{ padding: '11px 12px', background: '#fff', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#333' }}><b style={{ minWidth: 21, height: 21, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, background: GREEN, color: '#fff', clipPath: 'polygon(0 30%,50% 0,100% 30%,100% 100%,0 100%)' }}>{counts.answered}</b> Answered</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#333' }}><b style={{ minWidth: 21, height: 21, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, background: PURPLE, color: '#fff', borderRadius: '50%' }}>{counts.marked}</b> Marked</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#333' }}><b style={{ minWidth: 21, height: 21, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, background: '#fff', color: '#222', border: '1px solid #999', borderRadius: 2 }}>{counts.notvisited}</b> Not Visited</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#333' }}>
+                  <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+                    <b style={{ minWidth: 21, height: 21, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: PURPLE, color: '#fff', borderRadius: '50%' }}>{counts.answeredmarked}</b>
+                    <span style={{ position: 'absolute', bottom: -1, right: -1, width: 9, height: 9, background: GREEN, borderRadius: '50%', border: '1.5px solid #fff' }} />
+                  </span> Marked and answered
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#333' }}><b style={{ minWidth: 21, height: 21, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, background: RED, color: '#fff', clipPath: 'polygon(0 0,100% 0,100% 62%,50% 100%,0 62%)' }}>{counts.notanswered}</b> Not Answered</span>
+              </div>
+            </div>
+            <div style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#333', background: '#e6ebf2', flexShrink: 0, letterSpacing: 0.4 }}>SECTION : {section.id}</div>
             <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, justifyItems: 'center' }}>
                 {section.ids.map((gIdx, li) => (
