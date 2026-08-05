@@ -246,6 +246,12 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n }) // forfeit the current part, no return
     setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0)
   }
+  // Tapping a section tab: a completed part opens read-only; moving forward warns first.
+  const handleSectionTap = (i) => {
+    if (i === curSec) return
+    if (i < curSec) { setCurSec(i); setCurQLocal(0) }
+    else setShowNextPartWarn(true)
+  }
   const goNext = () => {
     if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
     else if (!isLastSec) setShowNextPartWarn(true) // warn before forfeiting the section's remaining time
@@ -569,7 +575,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           {SECTIONS.map((sec, i) => {
             const isAct = i === curSec, isLk = sectionLocked[i], st = sectionTimers[i]
             return (
-              <div key={sec.id} onClick={() => { setCurSec(i); setCurQLocal(0) }} style={{
+              <div key={sec.id} onClick={() => handleSectionTap(i)} style={{
                 flexShrink:0, padding:'6px 14px 7px', cursor:'pointer',
                 borderRight:'1px solid rgba(255,255,255,0.1)',
                 borderBottom: isAct ? '2.5px solid #ffcc44' : '2.5px solid transparent',
