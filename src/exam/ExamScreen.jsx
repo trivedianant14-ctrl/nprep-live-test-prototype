@@ -246,15 +246,16 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n }) // forfeit the current part, no return
     setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0)
   }
-  // Tapping a section tab: a completed part opens read-only; moving forward warns first.
+  // Tapping a section tab: a completed part opens read-only. Moving forward is BLOCKED in Real
+  // Exam Mode (the actual NORCET has no option to move ahead); Prep Mode warns then advances.
   const handleSectionTap = (i) => {
     if (i === curSec) return
     if (i < curSec) { setCurSec(i); setCurQLocal(0) }
-    else setShowNextPartWarn(true)
+    else if (!strictMode) setShowNextPartWarn(true)
   }
   const goNext = () => {
     if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
-    else if (!isLastSec) setShowNextPartWarn(true) // warn before forfeiting the section's remaining time
+    else if (!isLastSec && !strictMode) setShowNextPartWarn(true) // Prep Mode only; Real Exam Mode can't move ahead
   }
   const goPrev = () => {
     if (curQLocal > 0) setCurQLocal(l => l - 1)
