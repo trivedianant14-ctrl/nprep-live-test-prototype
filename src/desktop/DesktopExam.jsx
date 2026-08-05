@@ -79,7 +79,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   const [marked, setMarked] = useState(() => Array(QUESTIONS.length).fill(false))
   const [visited, setVisited] = useState(() => Array(QUESTIONS.length).fill(false))
   const [showSubmit, setShowSubmit] = useState(false)
-  const [showNextPartWarn, setShowNextPartWarn] = useState(false) // early move-to-next-section warning
   const [results, setResults] = useState(null)
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [toast, setToast] = useState(null)
@@ -200,9 +199,8 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   }
   const goNext = () => {
     if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
-    else if (!isLastSec) setShowNextPartWarn(true) // manual early advance → warn before forfeiting section time
+    // Real exam (NORCET): no manual move to the next section — it advances only when the section timer ends.
   }
-  const confirmNextPart = () => { setShowNextPartWarn(false); advanceSection() }
   // Previous is confined to the current section — a closed section can't be revisited.
   const goPrev = () => { if (curQLocal > 0) setCurQLocal(l => l - 1) }
   const selectOption = (i) => { if (!isLocked) setAnswers(prev => { const n = [...prev]; n[curGlobalIdx] = i; return n }) }
@@ -587,24 +585,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
               <button onClick={() => setShowSubmit(false)} style={{ ...cbtBtn({ padding: '10px 18px' }) }}>No, Continue Test</button>
               <button onClick={computeAndFinalize} style={{ padding: '10px 20px', border: 'none', borderRadius: 3, background: GREEN, color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>Yes, Submit Test</button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Between-sections warning — appears when a student tries to leave a section before its timer ends */}
-      {showNextPartWarn && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 210, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 400, padding: '28px 26px 24px', textAlign: 'center', boxShadow: '0 14px 50px rgba(0,0,0,0.32)' }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#FCEFC7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C99400" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v5" /><path d="M12 16h.01" /></svg>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', marginBottom: 10 }}>Attention: Move to next part?</div>
-            <p style={{ fontSize: 13.5, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>You have <strong style={{ color: RED_TXT }}>{Math.ceil(sectionTimers[curSec] / 60)} min left</strong> in this part. If you choose to move ahead, you will lose the time and you cannot come back to this part.</p>
-            <div style={{ background: '#FFFBEA', border: '1px solid #F5E3A3', borderRadius: 8, padding: '11px 14px', marginBottom: 20, textAlign: 'left' }}>
-              <span style={{ fontSize: 12.5, color: '#8a6d1a', lineHeight: 1.5 }}><strong>Note:</strong> The actual exam does not have the option to move ahead to the next parts.</span>
-            </div>
-            <button onClick={() => setShowNextPartWarn(false)} style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 8, background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)`, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 12 }}>Stay in this part</button>
-            <button onClick={confirmNextPart} style={{ background: 'none', border: 'none', color: NAVY, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Move to next part anyway</button>
           </div>
         </div>
       )}

@@ -93,7 +93,9 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   const [gridSec, setGridSec]                     = useState(0)
   const [showExitConfirm, setShowExitConfirm]     = useState(false)
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
-  const [showNextPartWarn, setShowNextPartWarn]   = useState(false) // early move-to-next-section warning
+  const [showNextPartWarn, setShowNextPartWarn]   = useState(false) // Prep Mode forward-move heads-up (once)
+  const [warnedFwd, setWarnedFwd]                 = useState(false) // the heads-up has been shown once
+  const [pendingSec, setPendingSec]               = useState(null)  // section to jump to after confirming
   const [imageZoom, setImageZoom]                 = useState(1)
   const [phase, setPhase]                         = useState('test') // test | submitted | loading | analysis | solutions
   // Mobile solutions review + self-analysis (mirrors the desktop NPrep solutions)
@@ -241,21 +243,27 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
 
   // Clamped updaters: rapid taps can queue multiple increments into one React batch,
   // which would otherwise walk curQLocal past the section's last question and crash.
+  const navTo = (i) => { setCurSec(i); setCurQLocal(0) }
   const confirmNextPart = () => {
-    setShowNextPartWarn(false)
-    setSectionLocked(prev => { const n = [...prev]; n[curSec] = true; return n }) // forfeit the current part, no return
-    setCurSec(s => Math.min(s + 1, SECTIONS.length - 1)); setCurQLocal(0)
+    setWarnedFwd(true); setShowNextPartWarn(false)
+    navTo(pendingSec != null ? pendingSec : Math.min(curSec + 1, SECTIONS.length - 1))
+    setPendingSec(null)
   }
-  // Tapping a section tab: a completed part opens read-only. Moving forward is BLOCKED in Real
-  // Exam Mode (the actual NORCET has no option to move ahead); Prep Mode warns then advances.
+  // Section navigation. Prep Mode: going BACK is free & silent; moving FORWARD shows a one-time
+  // heads-up, then moves freely. Real Exam Mode: forward is blocked (the actual NORCET can't move ahead).
+  const moveForward = (target) => {
+    if (strictMode) return
+    if (warnedFwd) navTo(target)
+    else { setPendingSec(target); setShowNextPartWarn(true) }
+  }
   const handleSectionTap = (i) => {
     if (i === curSec) return
-    if (i < curSec) { setCurSec(i); setCurQLocal(0) }
-    else if (!strictMode) setShowNextPartWarn(true)
+    if (i < curSec) navTo(i)          // go back — always allowed (read-only if that part is already done)
+    else moveForward(i)
   }
   const goNext = () => {
     if (!isLastQInSec) setCurQLocal(l => Math.min(l + 1, section.ids.length - 1))
-    else if (!isLastSec && !strictMode) setShowNextPartWarn(true) // Prep Mode only; Real Exam Mode can't move ahead
+    else if (!isLastSec) moveForward(curSec + 1)
   }
   const goPrev = () => {
     if (curQLocal > 0) setCurQLocal(l => l - 1)
@@ -585,8 +593,8 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
                 <div style={{ fontSize:11.5, fontWeight:isAct?700:500, color:isLk?'rgba(255,255,255,0.35)':'white', whiteSpace:'nowrap' }}>
                   {isNPrep ? `Section ${sec.id}` : `${sec.id}: ${sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}`}
                 </div>
-                <div style={{ fontSize:10, marginTop:1, fontVariantNumeric:'tabular-nums', color: isLk ? '#ff8080' : st <= 120 ? '#ffcc44' : 'rgba(255,255,255,0.5)' }}>
-                  {isLk ? 'Locked' : fmtSec(st)}
+                <div style={{ fontSize:10, marginTop:1, fontVariantNumeric:'tabular-nums', color: isLk ? 'rgba(255,255,255,0.4)' : st <= 120 ? '#ffcc44' : 'rgba(255,255,255,0.5)' }}>
+                  {fmtSec(st)}
                 </div>
               </div>
             )
@@ -803,13 +811,13 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             <div style={{ width:44, height:44, borderRadius:'50%', background:'#FCEFC7', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C99400" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
             </div>
-            <div style={{ fontSize:16.5, fontWeight:700, color:T1, marginBottom:8 }}>Attention: Move to next part?</div>
-            <p style={{ fontSize:12.5, color:T2, lineHeight:1.6, marginBottom:14 }}>You have <b style={{ color:DIAM }}>{Math.ceil(sectionTimers[curSec] / 60)} min left</b> in this part. If you choose to move ahead, you will lose the time and you cannot come back to this part.</p>
+            <div style={{ fontSize:16.5, fontWeight:700, color:T1, marginBottom:8 }}>Moving to the next section?</div>
+            <p style={{ fontSize:12.5, color:T2, lineHeight:1.6, marginBottom:14 }}>You still have <b style={{ color:DIAM }}>{Math.ceil(sectionTimers[curSec] / 60)} min</b> in this section. In Prep Mode you can come back to it anytime, so feel free to move ahead.</p>
             <div style={{ background:'#FFFBEA', border:'1px solid #F5E3A3', borderRadius:8, padding:'10px 12px', marginBottom:18, textAlign:'left' }}>
-              <span style={{ fontSize:11.5, color:'#8a6d1a', lineHeight:1.5 }}><b>Note:</b> The actual exam does not have the option to move ahead to the next parts.</span>
+              <span style={{ fontSize:11.5, color:'#8a6d1a', lineHeight:1.5 }}><b>Note:</b> The actual exam does not let you move ahead or return to a section. You'll only see this reminder once.</span>
             </div>
-            <button onClick={() => setShowNextPartWarn(false)} style={{ width:'100%', padding:'12px', border:'none', borderRadius:24, background:HDR, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:10 }}>Stay in this part</button>
-            <button onClick={confirmNextPart} style={{ background:'none', border:'none', color:HDR, fontSize:12.5, fontWeight:600, cursor:'pointer' }}>Move to next part anyway</button>
+            <button onClick={() => setShowNextPartWarn(false)} style={{ width:'100%', padding:'12px', border:'none', borderRadius:24, background:HDR, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:10 }}>Stay here</button>
+            <button onClick={confirmNextPart} style={{ background:'none', border:'none', color:HDR, fontSize:12.5, fontWeight:600, cursor:'pointer' }}>Move ahead</button>
           </div>
         </div>
       )}
