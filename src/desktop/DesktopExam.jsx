@@ -256,15 +256,14 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
                 </ol>
                 <h3 style={{ fontSize: 15, color: NAVY, margin: '18px 0 8px' }}>Submitting the Test:</h3>
                 <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }} start={13}>
-                  <li style={{ marginBottom: 8 }}>Click <strong>Submit</strong> on the right panel to view a section-wise summary and confirm submission.</li>
-                  <li style={{ marginBottom: 8 }}>The test is submitted automatically when the overall time expires.</li>
-                  <li style={{ marginBottom: 8 }}>Do not click Submit unless you have completed the test. In case of any technical issue, contact the invigilator.</li>
+                  <li style={{ marginBottom: 8 }}>There is no manual submit. Each section closes when its timer ends, and the test is submitted automatically once the final section's time expires.</li>
+                  <li style={{ marginBottom: 8 }}>In case of any technical issue during the examination, contact the invigilator immediately.</li>
                 </ol>
                 <p style={{ color: RED_TXT, fontSize: 13.5, marginTop: 14 }}><strong>Important:</strong> This is an {provider} practice simulation of the {seriesName} test, built to mirror the actual NORCET exam-day interface so you can prepare under real conditions.</p>
               </>
             ) : (
               <>
-                <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>Other Important Instructions &amp; Declaration:</h2>
+                <h2 style={{ fontSize: 20, color: NAVY, marginBottom: 16 }}>Other Important Instructions:</h2>
                 <ol style={{ paddingLeft: 20, fontSize: 14, lineHeight: 1.7, color: '#333' }}>
                   <li style={{ marginBottom: 8 }}>The examination must be attempted on your own. Impersonation is a serious offence.</li>
                   <li style={{ marginBottom: 8 }}>You must not possess, wear or carry any prohibited item — mobile phone, calculator, smart watch, electronic device, notes or study material — during the examination.</li>
@@ -272,17 +271,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
                   <li style={{ marginBottom: 8 }}>Any candidate found using unfair means will be disqualified from the examination.</li>
                   <li style={{ marginBottom: 8 }}>All the computer hardware allotted to you should be in proper working condition. Report any issue before you begin.</li>
                 </ol>
-                <div style={{ margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <label style={{ fontSize: 13.5, color: '#333' }}>Choose your default language:</label>
-                  <select value={defaultLang} onChange={e => setDefaultLang(e.target.value)} style={{ fontFamily: 'Arial, sans-serif', fontSize: 13.5, padding: '5px 10px', border: '1px solid #b8cde4', borderRadius: 3, background: '#fff', color: NAVY }}>
-                    <option>English</option>
-                  </select>
-                </div>
-                <p style={{ fontSize: 12.5, color: '#777', marginBottom: 18 }}>Please note all questions will appear in your default language.</p>
-                <div style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 4, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Declaration</div>
-                  <p style={{ fontSize: 13.5, lineHeight: 1.75, color: '#333' }}>I have read and understood the instructions. All computer hardware allotted to me is in proper working condition. I declare that I am not in possession of / not wearing / not carrying any prohibited gadget like a mobile phone, Bluetooth device, etc., or any prohibited material into the examination hall. I agree that in case of not adhering to these instructions, I shall be liable to be debarred from this test and/or to disciplinary action, which may include a ban from future tests / examinations and/or civil / criminal proceedings against me.</p>
-                </div>
               </>
             )}
           </div>
@@ -306,10 +294,23 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
             </span>
           </div>
           {isDecl && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 40px', fontSize: 13.5, cursor: 'pointer' }}>
-              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 16, height: 16 }} />
-              I have read all the instructions carefully and I agree to abide by the terms of the declaration above.
-            </label>
+            <div style={{ padding: '12px 40px 6px', borderBottom: '1px solid #eee' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                <label style={{ fontSize: 13, color: '#333' }}>Choose your default language:</label>
+                <select value={defaultLang} onChange={e => setDefaultLang(e.target.value)} style={{ fontFamily: 'Arial, sans-serif', fontSize: 13, padding: '4px 10px', border: '1px solid #b8cde4', borderRadius: 3, background: '#fff', color: NAVY }}>
+                  <option>English</option>
+                </select>
+                <span style={{ fontSize: 12, color: '#888' }}>All questions will appear in your default language.</span>
+              </div>
+              <div style={{ background: '#f7f8fa', border: '1px solid #ddd', borderRadius: 4, padding: '10px 14px', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 4 }}>Declaration</div>
+                <p style={{ fontSize: 12.5, lineHeight: 1.65, color: '#333' }}>I have read and understood the instructions. All computer hardware allotted to me is in proper working condition. I declare that I am not in possession of / not wearing / not carrying any prohibited gadget like a mobile phone, Bluetooth device, etc., or any prohibited material into the examination hall. I agree that in case of not adhering to these instructions, I shall be liable to be debarred from this test and/or to disciplinary action, which may include a ban from future tests / examinations and/or civil / criminal proceedings against me.</p>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, cursor: 'pointer' }}>
+                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 16, height: 16 }} />
+                I have read all the instructions carefully and I agree to abide by the terms of the declaration above.
+              </label>
+            </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: isDecl ? '10px 40px 16px' : '14px 40px 16px' }}>
             {!isDecl
@@ -486,13 +487,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
         {/* Palette */}
         {paletteOpen && (
           <aside style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f0f0f0' }}>
-            {/* Candidate strip — AIIMS palette leads with the candidate, not a title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: '#fff', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e2e8f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="#6b7a90"><circle cx="12" cy="8" r="4" /><path d="M4 20.5c0-4 3.6-6 8-6s8 2 8 6z" /></svg>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>{META.candidate}</span>
-            </div>
             {/* Legend — the exact 5 NTA states, with shaped count chips */}
             <div style={{ padding: '11px 12px', background: '#fff', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 12px' }}>
@@ -515,9 +509,6 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
                   <PaletteCell key={gIdx} status={getStatus(gIdx)} num={curSec * 20 + li + 1} isCurrent={li === curQLocal} onClick={() => jumpTo(gIdx)} />
                 ))}
               </div>
-            </div>
-            <div style={{ padding: 12, borderTop: '1px solid #ddd', flexShrink: 0 }}>
-              <button onClick={() => setShowSubmit(true)} style={{ width: '100%', padding: '11px', border: 'none', borderRadius: 3, background: `linear-gradient(135deg,${CYAN} 0%,${CYAN_D} 100%)`, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Submit</button>
             </div>
           </aside>
         )}
