@@ -105,7 +105,12 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
   const counts = { answered: 0, notanswered: 0, marked: 0, answeredmarked: 0, notvisited: 0 }
   QUESTIONS.forEach((_, i) => { counts[getStatus(i)]++ })
 
+  // Per-question time capture (ms per global index) for the solutions time-analysis.
+  const perQTimeRef = useRef(Array(QUESTIONS.length).fill(0))
+  const qTimerRef = useRef({ gIdx: null, start: Date.now() })
+
   const computeAndFinalize = () => {
+    const p = qTimerRef.current; if (p.gIdx != null) perQTimeRef.current[p.gIdx] += Date.now() - p.start
     let correct = 0, wrong = 0, unattempted = 0
     const sectionStats = SECTIONS.map(sec => ({ name: `Section ${sec.id}`, correct: 0, wrong: 0, unattempted: 0 }))
     QUESTIONS.forEach((qi, gIdx) => {
@@ -181,6 +186,9 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
 
   useEffect(() => {
     setVisited(prev => { if (prev[curGlobalIdx]) return prev; const n = [...prev]; n[curGlobalIdx] = true; return n })
+    const p = qTimerRef.current
+    if (p.gIdx != null && p.gIdx !== curGlobalIdx) perQTimeRef.current[p.gIdx] += Date.now() - p.start
+    qTimerRef.current = { gIdx: curGlobalIdx, start: Date.now() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curSec, curQLocal])
 
@@ -320,7 +328,7 @@ export default function DesktopExam({ onExit, onBack, onFinish, durationMode = f
 
   // ── Analysis (Career-Launcher-style tabbed review, NORCET-styled) ──────────
   if (phase === 'analysis') {
-    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} interface="norcet" onBack={onExit} />
+    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} perQTime={perQTimeRef.current} interface="norcet" onBack={onExit} />
   }
 
   // ─────────────────────────────────────────────────────────────────────────

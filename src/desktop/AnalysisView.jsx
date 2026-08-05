@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { P, PD, PL, G, GL, A, T1, T2, T3, BD, BG2 } from '../data'
 import { ordinal } from '../utils/format'
 import { explanationFor } from '../exam/practiceContent'
+import { topperSeconds, fmtDur, paceColor } from '../utils/timing'
 import nprepLogo from '../assets/nprep-logo.png'
 
 const RED = '#E5484D', RED_L = '#FDECED', GREEN = '#189A57', GREEN_L = '#E9F8F0', YEL = '#E3B71E'
@@ -22,7 +23,7 @@ const SELF_TAGS = ['Good Shot', 'Unforced Error', 'Missed Opportunity', 'Risky S
 // (Scorecard / Accuracy / Solutions / Bookmarks), with the Solutions tab in the same
 // three-column exam layout: question · answer + solution + self-assessment · circular
 // palette. The visual style mirrors the interface the test was taken in (NPrep / NORCET).
-export default function AnalysisView({ questions, sections, answers, marked = [], meta, results, interface: initialStyle = 'nprep', onBack }) {
+export default function AnalysisView({ questions, sections, answers, marked = [], meta, results, perQTime = [], interface: initialStyle = 'nprep', onBack }) {
   const [tab, setTab] = useState('scorecard') // scorecard | accuracy | solutions | bookmarks
   const [style, setStyle] = useState(initialStyle)
   const [curSec, setCurSec] = useState(0)
@@ -213,8 +214,20 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                 })}
               </div>
               {rv && chosen === null && <div style={{ marginTop: 14, fontSize: 12.5, color: T3 }}>You did not attempt this question in the test.</div>}
+              {(() => {
+                const yourSec = (perQTime[cur] || 0) / 1000, topSec = topperSeconds(q, cur), pc = paceColor(yourSec, topSec)
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, padding: '10px 14px', background: BG2, borderRadius: 10, fontSize: 12.5, color: T2, flexWrap: 'wrap', maxWidth: 800 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T2} strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <span>Your time <b style={{ color: yourSec > 0 ? T1 : T3 }}>{yourSec > 0 ? fmtDur(yourSec) : '—'}</b></span>
+                    <span style={{ color: T3 }}>·</span>
+                    <span>Topper avg <b style={{ color: T1 }}>{fmtDur(topSec)}</b></span>
+                    {yourSec > 0 && <span style={{ marginLeft: 'auto', color: pc, fontWeight: 600 }}>{yourSec <= topSec ? `${fmtDur(topSec - yourSec)} faster` : `${fmtDur(yourSec - topSec)} slower`}</span>}
+                  </div>
+                )
+              })()}
               {rv && (
-                <div style={{ marginTop: 22, borderLeft: `3px solid ${P}`, background: '#F7F9FF', borderRadius: '0 8px 8px 0', padding: '14px 18px', maxWidth: 800 }}>
+                <div style={{ marginTop: 18, borderLeft: `3px solid ${P}`, background: '#F7F9FF', borderRadius: '0 8px 8px 0', padding: '14px 18px', maxWidth: 800 }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase', color: P, marginBottom: 6 }}>Solution</div>
                   <p style={{ fontSize: 14, lineHeight: 1.7, color: '#3A4152' }}>{expl.text}</p>
                 </div>
@@ -360,8 +373,20 @@ export default function AnalysisView({ questions, sections, answers, marked = []
                 })}
               </div>
               {reveal && chosen === null && <div style={{ marginTop: 14, color: RED_TXT, fontSize: 13, fontWeight: 600 }}>You did not attempt this question.</div>}
+              {(() => {
+                const yourSec = (perQTime[cur] || 0) / 1000, topSec = topperSeconds(q, cur), pc = paceColor(yourSec, topSec)
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, padding: '9px 14px', background: '#f7f8fa', border: '1px solid #d3dae2', borderRadius: 4, fontSize: 12.5, color: '#555', flexWrap: 'wrap' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <span>Your time <b style={{ color: yourSec > 0 ? '#222' : '#999' }}>{yourSec > 0 ? fmtDur(yourSec) : '—'}</b></span>
+                    <span style={{ color: '#aaa' }}>·</span>
+                    <span>Topper avg <b style={{ color: '#222' }}>{fmtDur(topSec)}</b></span>
+                    {yourSec > 0 && <span style={{ marginLeft: 'auto', color: pc, fontWeight: 700 }}>{yourSec <= topSec ? `${fmtDur(topSec - yourSec)} faster` : `${fmtDur(yourSec - topSec)} slower`}</span>}
+                  </div>
+                )
+              })()}
               {reveal && (
-                <div style={{ marginTop: 20, border: '1px solid #d3dae2', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ marginTop: 16, border: '1px solid #d3dae2', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ background: '#eef2f6', padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: NAVY, borderBottom: '1px solid #d3dae2' }}>Solution</div>
                   <p style={{ fontSize: 13.5, lineHeight: 1.65, color: '#444', padding: '12px 14px' }}>{expl.text}</p>
                 </div>

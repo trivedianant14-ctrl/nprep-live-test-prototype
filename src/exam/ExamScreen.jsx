@@ -9,6 +9,7 @@ import { P, PD, PL, T1, T2, T3, BD, BG2, LIVE_TEST } from '../data'
 import { ordinal } from '../utils/format'
 import { shuffleForAttempt } from './shuffle'
 import { explanationFor } from './practiceContent'
+import { topperSeconds, fmtDur, paceColor } from '../utils/timing'
 import nprepLogo from '../assets/nprep-logo.png'
 
 const MAX_WARNINGS = 3
@@ -108,6 +109,9 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   const isMarked     = marked[curGlobalIdx]
   const isLocked     = sectionLocked[curSec]
   const isLastQInSec = curQLocal === section.ids.length - 1
+  // Per-question time capture (ms per global index) for the solutions time-analysis.
+  const perQTimeRef = useRef(Array(QUESTIONS.length).fill(0))
+  const qTimerRef = useRef({ gIdx: null, start: Date.now() })
   const isLastSec    = curSec === SECTIONS.length - 1
   const isLastQ      = isLastQInSec && isLastSec
 
@@ -127,6 +131,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   QUESTIONS.forEach((_, i) => { counts[getStatus(i)]++ })
 
   const computeAndFinalize = () => {
+    const p = qTimerRef.current; if (p.gIdx != null) perQTimeRef.current[p.gIdx] += Date.now() - p.start
     let correct = 0, wrong = 0, unattempted = 0
     const sectionStats = SECTIONS.map(sec => ({ name: sec.name, correct: 0, wrong: 0, unattempted: 0 }))
     QUESTIONS.forEach((qi, gIdx) => {
@@ -227,6 +232,9 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   useEffect(() => {
     setVisited(prev => { if (prev[curGlobalIdx]) return prev; const next = [...prev]; next[curGlobalIdx] = true; return next })
     setImageZoom(1)
+    const p = qTimerRef.current
+    if (p.gIdx != null && p.gIdx !== curGlobalIdx) perQTimeRef.current[p.gIdx] += Date.now() - p.start
+    qTimerRef.current = { gIdx: curGlobalIdx, start: Date.now() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [curSec, curQLocal])
 
@@ -461,8 +469,20 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             })}
           </div>
           {rv && chosen === null && <div style={{ marginTop:12, fontSize:12, color:T3 }}>You did not attempt this question in the test.</div>}
+          {(() => {
+            const yourSec = (perQTimeRef.current[gi] || 0) / 1000, topSec = topperSeconds(q, gi), pc = paceColor(yourSec, topSec)
+            return (
+              <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:14, padding:'9px 12px', background:BG2, borderRadius:9, fontSize:11.5, color:T2, flexWrap:'wrap' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T2} strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <span>Your time <b style={{ color: yourSec>0 ? T1 : T3 }}>{yourSec>0 ? fmtDur(yourSec) : '—'}</b></span>
+                <span style={{ color:T3 }}>·</span>
+                <span>Topper avg <b style={{ color:T1 }}>{fmtDur(topSec)}</b></span>
+                {yourSec>0 && <span style={{ marginLeft:'auto', color:pc, fontWeight:600 }}>{yourSec<=topSec ? `${fmtDur(topSec-yourSec)} faster` : `${fmtDur(yourSec-topSec)} slower`}</span>}
+              </div>
+            )
+          })()}
           {rv && (
-            <div style={{ marginTop:18, borderLeft:`3px solid ${P}`, background:'#F7F9FF', borderRadius:'0 8px 8px 0', padding:'12px 14px' }}>
+            <div style={{ marginTop:14, borderLeft:`3px solid ${P}`, background:'#F7F9FF', borderRadius:'0 8px 8px 0', padding:'12px 14px' }}>
               <div style={{ fontSize:9.5, fontWeight:700, letterSpacing:1.2, textTransform:'uppercase', color:P, marginBottom:5 }}>Solution</div>
               <p style={{ fontSize:13, lineHeight:1.65, color:'#3A4152' }}>{expl.text}</p>
             </div>

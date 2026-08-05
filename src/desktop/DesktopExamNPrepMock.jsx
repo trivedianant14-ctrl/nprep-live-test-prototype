@@ -106,7 +106,13 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
   const attemptedTotal = counts.answered + counts.answeredmarked
   const answeredIn = (sec) => sec.ids.filter(id => answers[id] !== null).length
 
+  // Per-question time capture (ms per global index) for the solutions time-analysis.
+  const perQTimeRef = useRef(Array(QUESTIONS.length).fill(0))
+  const qTimerRef = useRef({ gIdx: null, start: Date.now() })
+  const bankTime = () => { const p = qTimerRef.current; if (p.gIdx != null) perQTimeRef.current[p.gIdx] += Date.now() - p.start }
+
   const finalize = () => {
+    bankTime()
     let correct = 0, wrong = 0, unattempted = 0
     const sectionStats = SECTIONS.map(sec => ({ name: `Section ${sec.id}`, correct: 0, wrong: 0, unattempted: 0 }))
     QUESTIONS.forEach((qi, i) => {
@@ -147,6 +153,13 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
     try { localStorage.setItem(SESSION_KEY, JSON.stringify({ seed, deadline, answers, marked, guessed, visited, eliminated, curSec, curQLocal })) } catch { /* ignore quota */ }
   }, [phase, deadline, seed, answers, marked, guessed, visited, eliminated, curSec, curQLocal])
   useEffect(() => { if (phase === 'exam') setVisited(prev => { if (prev[gIdx]) return prev; const n = [...prev]; n[gIdx] = true; return n }) }, [gIdx, phase])
+  // Bank time on the previous question whenever the active question changes.
+  useEffect(() => {
+    if (phase !== 'exam') return
+    const p = qTimerRef.current
+    if (p.gIdx != null && p.gIdx !== gIdx) perQTimeRef.current[p.gIdx] += Date.now() - p.start
+    qTimerRef.current = { gIdx, start: Date.now() }
+  }, [gIdx, phase])
   // Fullscreen enforcement: note when the student leaves fullscreen during the exam.
   useEffect(() => {
     const onFs = () => { if (phase === 'exam' && !document.fullscreenElement) setFsExited(true); else setFsExited(false) }
@@ -265,7 +278,7 @@ export default function DesktopExamNPrepMock({ onExit, onFinish, customQuestions
 
   // ── Analysis (Career-Launcher-style tabbed review) ─────────────────────────
   if (phase === 'analysis') {
-    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} interface="nprep" onBack={onExit} />
+    return <AnalysisView questions={QUESTIONS} sections={SECTIONS} answers={answers} marked={marked} meta={META} results={results} perQTime={perQTimeRef.current} interface="nprep" onBack={onExit} />
   }
 
   // ── Thank-you / summary ────────────────────────────────────────────────────
