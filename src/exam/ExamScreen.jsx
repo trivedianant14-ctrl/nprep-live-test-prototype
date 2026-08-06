@@ -71,6 +71,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   const HDR_D = isNPrep ? PD : NAVY_D
   const hPrim = (x = {}) => ({ ...gBtn(), background: `linear-gradient(${HDR},${HDR_D})`, color: 'white', border: `1px solid ${HDR_D}`, ...x })
   const EXAM_META  = customMeta || DEFAULT_EXAM_META
+  const SEC_DURATION = EXAM_META.sectionSeconds ?? SECTION_DURATION
 
   // The "bucket" anti-cheating shuffle — each attempt gets its own question and option
   // order (see shuffle.js), computed once per mount and memoized so it doesn't reshuffle
@@ -84,7 +85,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
 
   const [curSec, setCurSec]                       = useState(() => initialSnapshot?.curSec ?? 0)
   const [curQLocal, setCurQLocal]                 = useState(() => initialSnapshot?.curQLocal ?? 0)
-  const [sectionTimers, setSectionTimers]         = useState(() => initialSnapshot?.sectionTimers ?? SECTIONS.map(() => SECTION_DURATION))
+  const [sectionTimers, setSectionTimers]         = useState(() => initialSnapshot?.sectionTimers ?? SECTIONS.map(() => SEC_DURATION))
   const [sectionLocked, setSectionLocked]         = useState(() => initialSnapshot?.sectionLocked ?? SECTIONS.map(() => false))
   const [answers, setAnswers]                     = useState(() => initialSnapshot?.answers ?? Array(QUESTIONS.length).fill(null))
   const [marked, setMarked]                       = useState(() => initialSnapshot?.marked ?? Array(QUESTIONS.length).fill(false))
@@ -93,8 +94,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   const [gridSec, setGridSec]                     = useState(0)
   const [showExitConfirm, setShowExitConfirm]     = useState(false)
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
-  const [showNextPartWarn, setShowNextPartWarn]   = useState(false) // Prep Mode forward-move heads-up (once)
-  const [warnedFwd, setWarnedFwd]                 = useState(false) // the heads-up has been shown once
+  const [showNextPartWarn, setShowNextPartWarn]   = useState(false) // NPrep Mode forward-move heads-up (every forward jump)
   const [pendingSec, setPendingSec]               = useState(null)  // section to jump to after confirming
   const [imageZoom, setImageZoom]                 = useState(1)
   const [phase, setPhase]                         = useState('test') // test | submitted | loading | analysis | solutions
@@ -148,7 +148,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     const percentile = estimatePercentile(accuracy)
     const air = Math.max(1, Math.round(((100 - percentile) / 100) * LIVE_TEST.enrolled) + 1)
     const weakestSection = [...sectionStats].sort((a, b) => a.correct / 20 - b.correct / 20)[0]
-    const results = { correct, wrong, unattempted, score, accuracy, timeTaken: SECTIONS.length * SECTION_DURATION - totalTimeLeft, sectionStats, percentile, air, weakestSection, testName: EXAM_META.shortName }
+    const results = { correct, wrong, unattempted, score, accuracy, timeTaken: SECTIONS.length * SEC_DURATION - totalTimeLeft, sectionStats, percentile, air, weakestSection, testName: EXAM_META.shortName }
     setFinalResults(results)
     setPhase('submitted')
     onFinish?.(results)
@@ -245,16 +245,16 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
   // which would otherwise walk curQLocal past the section's last question and crash.
   const navTo = (i) => { setCurSec(i); setCurQLocal(0) }
   const confirmNextPart = () => {
-    setWarnedFwd(true); setShowNextPartWarn(false)
+    setShowNextPartWarn(false)
     navTo(pendingSec != null ? pendingSec : Math.min(curSec + 1, SECTIONS.length - 1))
     setPendingSec(null)
   }
-  // Section navigation. Prep Mode: going BACK is free & silent; moving FORWARD shows a one-time
-  // heads-up, then moves freely. Real Exam Mode: forward is blocked (the actual NORCET can't move ahead).
+  // Section navigation. NPrep Mode: going BACK is free & silent; moving FORWARD shows a
+  // heads-up EVERY time (A→B, B→C, ...) before moving on. Real Exam Mode: forward is
+  // blocked outright (the actual NORCET can't move ahead).
   const moveForward = (target) => {
     if (strictMode) return
-    if (warnedFwd) navTo(target)
-    else { setPendingSec(target); setShowNextPartWarn(true) }
+    setPendingSec(target); setShowNextPartWarn(true)
   }
   const handleSectionTap = (i) => {
     if (i === curSec) return
@@ -281,7 +281,9 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
     if (!isLocked) setMarked(prev => { const next = [...prev]; next[curGlobalIdx] = !next[curGlobalIdx]; return next })
     goNext()
   }
-  const handleSaveNext = () => { if (isLastQ) setShowSubmitConfirm(true); else goNext() }
+  // Real Exam Mode has no manual submit at all — the last question just saves, and the
+  // test only ends when a section's timer actually runs out (see the auto-submit effect).
+  const handleSaveNext = () => { if (isLastQ) { if (!strictMode) setShowSubmitConfirm(true) } else goNext() }
   const handleSubmit = () => { setShowSubmitConfirm(false); computeAndFinalize() }
 
   // ── Submitted celebration screen ─────────────────────────────────────────
@@ -552,11 +554,23 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
             {isNPrep
               ? <div style={{ display:'inline-flex', background:'#fff', padding:'3px 8px', borderRadius:7 }}><img src={nprepLogo} alt="NPrep" style={{ height:16, width:'auto', display:'block' }} /></div>
-              : <div style={{ fontSize:12, fontWeight:700, color:'white' }}>{EXAM_META.name}</div>}
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-              <span style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Total Time Remaining:</span>
-              <span style={{ fontSize:14, fontWeight:900, color: totalTimeLeft <= 300 ? '#ff8080' : '#ffcc44', letterSpacing:'0.05em', fontVariantNumeric:'tabular-nums' }}>{timerStr}</span>
-            </div>
+              : <div style={{ fontSize:12, fontWeight:700, color:'white', textAlign:'center' }}>{EXAM_META.name}</div>}
+            {isNPrep ? (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                <span style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Total Time Remaining:</span>
+                <span style={{ fontSize:14, fontWeight:900, color: totalTimeLeft <= 300 ? '#ff8080' : '#ffcc44', letterSpacing:'0.05em', fontVariantNumeric:'tabular-nums' }}>{timerStr}</span>
+              </div>
+            ) : (
+              // Real Exam Mode: the CURRENT section's own clock is what matters (it's the
+              // one actually running out) — that's the hero number here, not the aggregate.
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                  <span style={{ fontSize:10, color:'rgba(255,255,255,0.6)' }}>Section {section.id} — Time Left:</span>
+                  <span style={{ fontSize:15, fontWeight:900, color: sectionTimers[curSec] <= 120 ? '#ff8080' : '#ffcc44', letterSpacing:'0.05em', fontVariantNumeric:'tabular-nums' }}>{fmtSec(sectionTimers[curSec])}</span>
+                </div>
+                <span style={{ fontSize:9, color:'rgba(255,255,255,0.45)', marginTop:1 }}>Total time left: {timerStr}</span>
+              </div>
+            )}
           </div>
           <button onClick={() => { setGridSec(curSec); setShowGrid(true) }} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.8)', flexShrink:0, display:'flex', padding:0 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -590,8 +604,8 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
                 borderBottom: isAct ? '2.5px solid #ffcc44' : '2.5px solid transparent',
                 background: isAct ? 'rgba(255,255,255,0.12)' : isLk ? 'rgba(0,0,0,0.18)' : 'transparent',
               }}>
-                <div style={{ fontSize:11.5, fontWeight:isAct?700:500, color:isLk?'rgba(255,255,255,0.35)':'white', whiteSpace:'nowrap' }}>
-                  {isNPrep ? `Section ${sec.id}` : `${sec.id}: ${sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}`}
+                <div style={{ fontSize: isNPrep ? 11.5 : 13, fontWeight:isAct?700:500, color:isLk?'rgba(255,255,255,0.35)':'white', whiteSpace:'nowrap' }}>
+                  Section {sec.id}
                 </div>
                 <div style={{ fontSize:10, marginTop:1, fontVariantNumeric:'tabular-nums', color: isLk ? 'rgba(255,255,255,0.4)' : st <= 120 ? '#ffcc44' : 'rgba(255,255,255,0.5)' }}>
                   {fmtSec(st)}
@@ -616,13 +630,13 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
               <span style={{ width:3, height:14, borderRadius:2, background:P }} />
               <span style={{ fontSize:10.5, fontWeight:700, letterSpacing:1.4, textTransform:'uppercase', color:P }}>Question {curQLocal + 1}</span>
             </div>
-            {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20 }}>★ Marked</span>}
+            {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20, whiteSpace:'nowrap' }}>★ Marked for Review</span>}
           </div>
         ) : (
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 16px 8px', borderBottom:'1px solid #eee' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={{ fontSize:13, fontWeight:700, color:T1 }}>Question No. {curQLocal + 1}</span>
-              {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20 }}>★ Marked</span>}
+              {isMarked && <span style={{ fontSize:10, fontWeight:700, background:'#f0e8ff', color:PURP, border:`1px solid ${PURP}55`, padding:'2px 7px', borderRadius:20, whiteSpace:'nowrap' }}>★ Marked for Review</span>}
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:4 }}>
               <span style={{ fontSize:11, color:T3 }}>Marks:</span>
@@ -694,7 +708,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
         return (
           <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff', borderTop:`1px solid ${BD}`, padding:'10px 14px 16px', boxShadow:'0 -2px 12px rgba(19,27,99,0.05)' }}>
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-              <button onClick={handleMarkNext} disabled={isLocked} style={nSec({ flex:1, background: isMarked ? '#F0E8FF' : '#fff', color: isMarked ? PURP : T1, borderColor: isMarked ? PURP : BD, opacity: isLocked ? 0.45 : 1 })}>{isMarked ? '★ Marked' : 'Mark for Review'}</button>
+              <button onClick={handleMarkNext} disabled={isLocked} style={nSec({ flex:1, background: isMarked ? '#F0E8FF' : '#fff', color: isMarked ? PURP : T1, borderColor: isMarked ? PURP : BD, opacity: isLocked ? 0.45 : 1 })}>{isMarked ? '★ Marked for Review' : 'Mark for Review & Next'}</button>
               <button onClick={handleClear} disabled={isLocked || selected === null} style={nSec({ opacity: (isLocked || selected === null) ? 0.45 : 1, color: selected === null ? T3 : T1 })}>Clear Response</button>
             </div>
             <div style={{ display:'flex', gap:8 }}>
@@ -713,7 +727,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
           </div>
           <div style={{ display:'flex', gap:6 }}>
             <button onClick={goPrev} disabled={curSec === 0 && curQLocal === 0} style={{ ...gBtn({ flex:1, opacity: (curSec === 0 && curQLocal === 0) ? 0.4 : 1 }) }}>« Previous</button>
-            <button onClick={handleSaveNext} style={{ ...hPrim({ flex:2, fontSize:13 }) }}>{isLastQ ? 'Submit Exam' : 'Save & Next »'}</button>
+            <button onClick={handleSaveNext} disabled={isLastQ} style={{ ...hPrim({ flex:2, fontSize:13, opacity: isLastQ ? 0.5 : 1, cursor: isLastQ ? 'default' : 'pointer' }) }}>{isLastQ ? 'Last Question' : 'Save & Next »'}</button>
           </div>
         </div>
       )}
@@ -725,13 +739,15 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             <div className="sheet-handle" />
             <div style={{ background:HDR, padding:'10px 16px 12px', flexShrink:0 }}>
               <div style={{ fontSize:13, fontWeight:700, color:'white' }}>Question Palette</div>
-              <div style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{counts.answered} answered · {counts.notanswered} not answered · {counts.notvisited} not visited</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.65)', marginTop:2 }}>{counts.answered} answered · {counts.notanswered} not answered · {counts.marked + counts.answeredmarked} marked for review · {counts.notvisited} not visited</div>
             </div>
             <div style={{ padding:'10px 16px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 10px', borderBottom:'1px solid #ddd', flexShrink:0, background:'white' }}>
               {isNPrep
-                ? [['answered', GRUN, 'Answered'], ['notanswered', DIAM, 'Not Answered'], ['notvisited', '#ccc', 'Not Visited'], ['marked', P, 'Marked for Review'], ['answeredmarked', P, 'Answered & Marked']].map(([st, col, label], li) => (
+                ? [['answered', GRUN, 'Answered', false], ['notanswered', DIAM, 'Not Answered', false], ['notvisited', '#ccc', 'Not Visited', false], ['marked', P, 'Marked for Review', false], ['answeredmarked', P, 'Answered & Marked', true]].map(([st, col, label, dot], li) => (
                     <div key={st} style={{ display:'flex', alignItems:'center', gap:6, gridColumn: li === 4 ? '1 / span 2' : undefined }}>
-                      <div style={{ width:22, height:22, borderRadius:'50%', background:col, flexShrink:0 }} />
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:col, flexShrink:0, position:'relative' }}>
+                        {dot && <div style={{ position:'absolute', bottom:-1, right:-1, width:9, height:9, background:GRUN, borderRadius:'50%', border:'1.5px solid white' }} />}
+                      </div>
                       <span style={{ fontSize:11, color:T2 }}>{label}</span>
                     </div>
                   ))
@@ -743,15 +759,19 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
                   ))
               }
             </div>
-            <div className="scroll" style={{ display:'flex', overflowX:'auto', borderBottom:'1px solid #ddd', background:'#f5f5f5', flexShrink:0 }}>
+            {/* Just the letter — a truncated subject name here added clutter without adding
+                information (the full name is already on the main question header). */}
+            <div style={{ display:'flex', gap:6, padding:'10px 14px', borderBottom:'1px solid #ddd', background:'#f5f5f5', flexShrink:0 }}>
               {SECTIONS.map((sec, i) => (
-                <div key={sec.id} onClick={() => setGridSec(i)} style={{
-                  flexShrink:0, padding:'7px 12px', cursor:'pointer', whiteSpace:'nowrap',
-                  fontSize:11, fontWeight: gridSec === i ? 700 : 500, color: gridSec === i ? HDR : T2,
-                  borderBottom: gridSec === i ? `2px solid ${HDR}` : '2px solid transparent',
+                <button key={sec.id} onClick={() => setGridSec(i)} style={{
+                  flex:1, padding:'8px 0', border:'none', borderRadius:10, cursor:'pointer',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                  background: gridSec === i ? HDR : '#fff',
+                  boxShadow: gridSec === i ? '0 2px 6px rgba(0,0,0,0.15)' : '0 1px 2px rgba(0,0,0,0.06)',
                 }}>
-                  {sec.id}: {sec.name.length > 14 ? sec.name.slice(0, 14) + '…' : sec.name}
-                </div>
+                  <span style={{ fontSize:14, fontWeight:700, color: gridSec === i ? '#fff' : T1 }}>{sec.id}</span>
+                  {!isNPrep && <span style={{ fontSize:9.5, fontVariantNumeric:'tabular-nums', color: gridSec === i ? 'rgba(255,255,255,0.8)' : T3 }}>{fmtSec(sectionTimers[i])}</span>}
+                </button>
               ))}
             </div>
             <div className="scroll" style={{ flex:1, padding:'12px 16px' }}>
@@ -763,8 +783,9 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
                     const bg = st === 'answered' ? GRUN : st === 'notanswered' ? DIAM : (st === 'marked' || st === 'answeredmarked') ? P : '#ccc'
                     return (
                       <div key={gIdx} onClick={() => { setCurSec(gridSec); setCurQLocal(localIdx); setShowGrid(false) }}
-                        style={{ width:36, height:36, borderRadius:'50%', background:bg, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, cursor:'pointer', outline: isC ? '2.5px solid #ff8800' : 'none', outlineOffset:1 }}>
+                        style={{ width:36, height:36, borderRadius:'50%', background:bg, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, cursor:'pointer', outline: isC ? '2.5px solid #ff8800' : 'none', outlineOffset:1, position:'relative' }}>
                         {localIdx + 1}
+                        {st === 'answeredmarked' && <div style={{ position:'absolute', bottom:1, right:1, width:10, height:10, background:GRUN, borderRadius:'50%', border:'1.5px solid white' }} />}
                       </div>
                     )
                   }
@@ -774,14 +795,41 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             </div>
             <div style={{ padding:'10px 16px 20px', borderTop:'1px solid #ddd', flexShrink:0, display:'flex', gap:8 }}>
               <button onClick={() => setShowGrid(false)} style={{ ...gBtn({ flex:1 }) }}>Resume</button>
-              <button onClick={() => { setShowGrid(false); setShowSubmitConfirm(true) }} style={{ ...hPrim({ flex:2 }) }}>Submit Exam</button>
+              {/* Real Exam Mode has no early submit — matches the bottom bar, which only offers
+                  Submit on the last question of the last section (see handleSaveNext). */}
+              {!strictMode && (
+                <button onClick={() => { setShowGrid(false); setShowSubmitConfirm(true) }} style={{ ...hPrim({ flex:2 }) }}>Submit Exam</button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Submit confirm */}
-      {showSubmitConfirm && (
+      {/* Submit confirm — NPrep gets its own soft, rounded popup (matches the rest of the
+          NPrep chrome); Real Exam Mode keeps the sharp CBT-table look for authenticity. */}
+      {showSubmitConfirm && (isNPrep ? (
+        <div className="popup-overlay">
+          <div className="popup" style={{ textAlign:'center' }}>
+            <div style={{ width:48, height:48, borderRadius:'50%', background:PL, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+            </div>
+            <div style={{ fontSize:16.5, fontWeight:700, color:T1, marginBottom:8 }}>Ready to submit?</div>
+            <p style={{ fontSize:12.5, color:T2, lineHeight:1.6, marginBottom:16 }}>Once submitted, you can't make changes.</p>
+            <div style={{ background:BG2, borderRadius:14, padding:'0 14px', marginBottom:18, textAlign:'left' }}>
+              {[['Answered', counts.answered, GRUN], ['Not Answered', counts.notanswered, DIAM], ['Marked for Review', counts.marked, PURP], ['Answered & Marked', counts.answeredmarked, PURP], ['Not Visited', counts.notvisited, T3]].map(([label, value, color], i, arr) => (
+                <div key={label} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${BD}` }}>
+                  <span style={{ fontSize:12.5, color:T2 }}>{label}</span>
+                  <span style={{ fontSize:12.5, fontWeight:700, color }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setShowSubmitConfirm(false)} style={{ flex:1, padding:'12px', borderRadius:24, background:'transparent', color:T2, border:`1px solid ${BD}`, fontSize:14, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+              <button onClick={handleSubmit} style={{ flex:1, padding:'12px', borderRadius:24, background:P, color:'white', border:'none', fontSize:14, fontWeight:600, cursor:'pointer' }}>Yes, Submit</button>
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="popup-overlay">
           <div className="popup" style={{ padding:0, overflow:'hidden' }}>
             <div style={{ background:HDR, padding:'11px 16px' }}>
@@ -802,7 +850,7 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             </div>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Between-sections warning — appears when leaving a section before its timer ends */}
       {showNextPartWarn && (
@@ -811,13 +859,13 @@ export default function ExamScreen({ interfaceMode = 'nprep', onExit, onFinish, 
             <div style={{ width:44, height:44, borderRadius:'50%', background:'#FCEFC7', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C99400" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
             </div>
-            <div style={{ fontSize:16.5, fontWeight:700, color:T1, marginBottom:8 }}>Moving to the next section?</div>
-            <p style={{ fontSize:12.5, color:T2, lineHeight:1.6, marginBottom:14 }}>You still have <b style={{ color:DIAM }}>{Math.ceil(sectionTimers[curSec] / 60)} min</b> in this section. In Prep Mode you can come back to it anytime, so feel free to move ahead.</p>
+            <div style={{ fontSize:16.5, fontWeight:700, color:T1, marginBottom:8 }}>Move to Section {pendingSec != null && SECTIONS[pendingSec].id}?</div>
+            <p style={{ fontSize:12.5, color:T2, lineHeight:1.6, marginBottom:14 }}>Section {section.id} still has <b style={{ color:DIAM }}>{Math.ceil(sectionTimers[curSec] / 60)} min</b> left. NPrep Mode lets you jump ahead and come back anytime — the real NORCET exam won't.</p>
             <div style={{ background:'#FFFBEA', border:'1px solid #F5E3A3', borderRadius:8, padding:'10px 12px', marginBottom:18, textAlign:'left' }}>
-              <span style={{ fontSize:11.5, color:'#8a6d1a', lineHeight:1.5 }}><b>Note:</b> The actual exam does not let you move ahead or return to a section. You'll only see this reminder once.</span>
+              <span style={{ fontSize:11.5, color:'#8a6d1a', lineHeight:1.5 }}><b>Heads up:</b> On exam day, each section locks the moment you leave it (or its timer runs out) — there's no coming back.</span>
             </div>
-            <button onClick={() => setShowNextPartWarn(false)} style={{ width:'100%', padding:'12px', border:'none', borderRadius:24, background:HDR, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:10 }}>Stay here</button>
-            <button onClick={confirmNextPart} style={{ background:'none', border:'none', color:HDR, fontSize:12.5, fontWeight:600, cursor:'pointer' }}>Move ahead</button>
+            <button onClick={() => setShowNextPartWarn(false)} style={{ width:'100%', padding:'12px', border:'none', borderRadius:24, background:HDR, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:10 }}>Stay in Section {section.id}</button>
+            <button onClick={confirmNextPart} style={{ background:'none', border:'none', color:HDR, fontSize:12.5, fontWeight:600, cursor:'pointer' }}>Move ahead anyway</button>
           </div>
         </div>
       )}

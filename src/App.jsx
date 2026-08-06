@@ -274,6 +274,10 @@ export default function App() {
   }
 
   if (screen === 'exampretest' || screen === 'exam') {
+    // The official Live Test's Real Exam Mode is a faithful NORCET replica (per its own
+    // instructions copy) — it must run the real NORCET Prelims paper, same as desktop's
+    // NORCET Prelims option, not the generic mock question bank.
+    const prelims = customTest ? null : buildPrelimsConfig()
     return (
       <div className="phone-wrapper" style={{ width:'100%', height:'100%' }}>
         <div className="phone">
@@ -286,6 +290,9 @@ export default function App() {
               sectionMinutes={18}
               totalMarks={customTest?.meta.totalMarks}
               showWebPrompt={!customTest}
+              norcetMeta={prelims?.meta}
+              norcetSectionCount={prelims?.sections.length}
+              norcetSectionMinutes={prelims ? prelims.meta.sectionSeconds / 60 : undefined}
             />
           ) : (
             <ExamScreen
@@ -295,9 +302,9 @@ export default function App() {
               onPause={customTest?.dailyTestId ? handleDailyPause : undefined}
               exitLabel={customTest?.dailyTestId ? 'Back to Daily Tests' : 'Back to Live Tests'}
               initialSnapshot={resumeSnapshot}
-              customQuestions={customTest?.questions}
-              customSections={customTest?.sections}
-              customMeta={customTest?.meta}
+              customQuestions={customTest?.questions ?? (examInterfaceMode === 'norcet' ? prelims.questions : undefined)}
+              customSections={customTest?.sections ?? (examInterfaceMode === 'norcet' ? prelims.sections : undefined)}
+              customMeta={customTest?.meta ?? (examInterfaceMode === 'norcet' ? prelims.meta : undefined)}
             />
           )}
         </div>

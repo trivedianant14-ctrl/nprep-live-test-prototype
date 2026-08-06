@@ -9,15 +9,20 @@ const GRN = '#2eaa3a', REDX = '#d94a4a', PURP = '#8a4ed4'
 // Two-step pre-test: (1) pick the interface mode, then (2) a General Instructions page that
 // reflects the chosen mode — NPrep's friendly practice rules, or the formal NORCET/NTA
 // govt-CBT rules. The "I agree" declaration lives once, on that instructions page.
-export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, sectionMinutes = 18, totalMarks, showWebPrompt = false }) {
+export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, sectionMinutes = 18, totalMarks, showWebPrompt = false, norcetMeta, norcetSectionCount, norcetSectionMinutes }) {
   const [step, setStep] = useState('mode')          // mode | instructions
   const [interfaceMode, setInterfaceMode] = useState('nprep')
   const [agreed, setAgreed] = useState(false)
   const [webPromptOpen, setWebPromptOpen] = useState(showWebPrompt)
-  const m = meta || DEFAULT_EXAM_META
-  const marks = totalMarks ?? m.totalMarks
-  const totalMinutes = sectionCount * sectionMinutes
   const isNPrep = interfaceMode === 'nprep'
+  // Real Exam Mode runs the actual NORCET paper (different length/timing than the NPrep
+  // mock) — once picked, the instructions page must describe that paper, not the mock's.
+  const useNorcet = !isNPrep && norcetMeta
+  const m = (useNorcet ? norcetMeta : meta) || DEFAULT_EXAM_META
+  const effSectionCount = useNorcet ? norcetSectionCount : sectionCount
+  const effSectionMinutes = useNorcet ? norcetSectionMinutes : sectionMinutes
+  const marks = (useNorcet ? undefined : totalMarks) ?? m.totalMarks
+  const totalMinutes = effSectionCount * effSectionMinutes
 
   const OL = { paddingLeft: 18, margin: '0 0 16px', fontSize: 11.5, color: T2, lineHeight: 1.7 }
   const LI = { marginBottom: 7 }
@@ -33,7 +38,7 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
         <li style={LI}>The <b>Question Palette</b> shows the status of every question — answered, not answered, marked for review or not visited.</li>
         <li style={LI}>Marking: <b>+{m.correctMarks}</b> for a correct answer, <b>{m.wrongMarks}</b> for a wrong answer; an unattempted question scores 0.</li>
         <li style={LI}>Tap <b>Submit</b> to end the test; it also submits automatically when time expires.</li>
-        <li style={LI}><b>Prep Mode is relaxed</b> — no full-screen lock and the keyboard is allowed, so you can step away without penalty. Same questions and rules as the real exam, in NPrep's cleaner layout.</li>
+        <li style={LI}><b>NPrep Mode is relaxed</b> — no full-screen lock and the keyboard is allowed, so you can step away without penalty. Same questions and rules as the real exam, in NPrep's cleaner layout.</li>
       </ol>
     </>
   )
@@ -62,7 +67,7 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
         <li style={LI}>3. To answer, tap one of the four options. To deselect, tap it again or tap <b>Clear Response</b>. You <b>MUST</b> tap <b>Save &amp; Next</b> to save your answer.</li>
         <li style={LI}>4. Use <b>Mark for Review</b> to flag a question; a marked question that also has a selected answer is still evaluated.</li>
         <li style={LI}>5. Sections are attempted in a fixed sequence. When a section's timer ends it closes and the next opens automatically — <b>you cannot return to a completed section</b>.</li>
-        <li style={LI}>6. Tap <b>Submit</b> to end the test; it also submits automatically when the overall time expires.</li>
+        <li style={LI}>6. There is no early submit — the <b>Submit</b> option only appears on the last question of the last section; the test also submits automatically when the overall time expires.</li>
         <li style={LI}>7. Marking: <b>+{m.correctMarks}</b> for a correct answer, <b>{m.wrongMarks}</b> for a wrong answer; an unattempted question scores 0.</li>
         <li style={LI}>8. <b>Real Exam Mode</b> enforces exam-day conditions: full-screen is required and the keyboard is disabled. Leaving full-screen or pressing a key counts as a warning — <b>3 warnings auto-submit your test</b>.</li>
       </ol>
@@ -92,15 +97,15 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
               <div style={{ fontSize: 15, fontWeight: 700, color: T1, marginBottom: 4 }}>{m.shortName}</div>
               <div style={{ fontSize: 11, color: T3, marginBottom: 14 }}>{m.candidate} · Nursing Officer</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: T2 }}><ClockIcon size={13} />{totalMinutes} min · {sectionCount} section{sectionCount === 1 ? '' : 's'} × {sectionMinutes} min</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: T2 }}><ClockIcon size={13} />{totalMinutes} min · {effSectionCount} section{effSectionCount === 1 ? '' : 's'} × {effSectionMinutes} min</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: T2 }}><StarIcon size={13} />{marks} Marks</span>
               </div>
               <div style={{ fontSize: 11, color: T3, marginTop: 8 }}>+{m.correctMarks} correct · {m.wrongMarks} incorrect</div>
             </div>
 
-            <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: 8 }}>Prep Mode or Real Exam Mode?</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T1, marginBottom: 8 }}>NPrep Mode or Real Exam Mode?</div>
             <div style={{ display: 'flex', background: BG2, borderRadius: 12, padding: 4, gap: 4, marginBottom: 10 }}>
-              {[{ id: 'nprep', label: 'Prep Mode', sub: 'NPrep · relaxed', color: P }, { id: 'norcet', label: 'Real Exam Mode', sub: 'NORCET · strict', color: NAVY }].map(opt => {
+              {[{ id: 'nprep', label: 'NPrep Mode', sub: 'relaxed', color: P }, { id: 'norcet', label: 'Real Exam Mode', sub: 'NORCET · strict', color: NAVY }].map(opt => {
                 const isAct = interfaceMode === opt.id
                 return (
                   <button key={opt.id} onClick={() => setInterfaceMode(opt.id)} style={{ flex: 1, padding: '11px 8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: isAct ? opt.color : 'transparent', boxShadow: isAct ? '0 2px 8px rgba(0,0,0,0.12)' : 'none' }}>
@@ -123,13 +128,13 @@ export default function ExamPreTest({ onBack, onStart, meta, sectionCount = 5, s
         </>
       ) : (
         <>
-          <div className="scroll" style={{ flex: 1, padding: '16px 16px 24px' }}>
+          <div className="scroll" style={{ flex: 1, padding: '16px 16px 24px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: isNPrep ? PL : '#EAF0F8', borderRadius: 20, padding: '5px 12px', marginBottom: 14 }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: isNPrep ? P : NAVY }} />
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: isNPrep ? P : NAVY }}>{isNPrep ? 'Prep Mode · NPrep' : 'Real Exam Mode · NORCET'}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: isNPrep ? P : NAVY }}>{isNPrep ? 'NPrep Mode' : 'Real Exam Mode · NORCET'}</span>
             </div>
             {isNPrep ? nprepInstructions : norcetInstructions}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12, color: T2, lineHeight: 1.6, cursor: 'pointer', marginTop: 6, paddingTop: 14, borderTop: `1px solid ${BD}` }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 12, color: T2, lineHeight: 1.6, cursor: 'pointer', marginTop: 'auto', paddingTop: 14, borderTop: `1px solid ${BD}` }}>
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
               I have read and understood all the instructions and agree to abide by the exam rules. Once started, section timers cannot be paused.
             </label>

@@ -11,13 +11,13 @@ const OPTIONS = [
   {
     id: 'norcet', badge: 'NORCET · PRELIMS', title: 'NORCET Prelims', accent: PD, tint: '#EEF1FB',
     sub: 'The authentic AIIMS CBT — Stage I, exam-day conditions.',
-    points: ['5 sections × 18 min, in sequence', 'No feedback until you submit', 'Section-locked · full-screen'],
+    points: ['4 sections × 27 min, in sequence', 'No feedback until you submit', 'Section-locked · full-screen'],
     icon: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>,
   },
   {
     id: 'norcet-mains', badge: 'NORCET · MAINS', title: 'NORCET Mains', accent: '#9A3E12', tint: '#FFF4EC',
     sub: 'The authentic AIIMS CBT — Stage II, the final merit round.',
-    points: ['4 sections × 45 min · case-based', 'Section-locked, in sequence', 'Full-screen exam-day mode'],
+    points: ['5 sections × 45 min · case-based', 'Section-locked, in sequence', 'Full-screen exam-day mode'],
     icon: <><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>,
   },
 ]
